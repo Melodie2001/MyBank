@@ -11,16 +11,20 @@ on:
 
 jobs:
   symfony-tests:
+
     runs-on: ubuntu-latest
 
     services:
       mysql:
         image: mysql:8.0
+
         env:
           MYSQL_ROOT_PASSWORD: root
           MYSQL_DATABASE: mybank_test
+
         ports:
           - 3306:3306
+
         options: >-
           --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -proot"
           --health-interval=10s
@@ -37,6 +41,7 @@ jobs:
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
+
         with:
           php-version: 8.3
           extensions: mbstring, intl, pdo_mysql
