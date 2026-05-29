@@ -42,18 +42,22 @@ jobs:
       - name: Copy .env
         run: cp backend/.env backend/.env.test
 
-      - name: Install Composer dependencies
-        working-directory: backend
-        run: composer install --no-interaction --prefer-dist
-
       - name: Configure test database
         run: |
           echo 'DATABASE_URL="mysql://root:root@127.0.0.1:3306/mybank_test?serverVersion=8.0"' >> backend/.env.test
 
+      - name: Install Composer dependencies
+        working-directory: backend
+        run: composer install --no-interaction --prefer-dist
+
       - name: Run migrations
         working-directory: backend
+        env:
+          APP_ENV: test
         run: php bin/console doctrine:migrations:migrate --no-interaction
 
       - name: Run Symfony tests
         working-directory: backend
+        env:
+          APP_ENV: test
         run: php bin/phpunit
