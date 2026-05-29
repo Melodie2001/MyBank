@@ -16,6 +16,10 @@ final class UserController extends AbstractController
     #[Route('/api/users', methods: ['GET'])]
     public function index(UserRepository $repository): JsonResponse
     {
+        if (!$this->isGranted('ROLE_ADMIN')) {
+            return $this->json(['message' => 'Access denied'], 403);
+        }
+
         $users = $repository->findAll();
 
         return $this->json(array_map(function (User $user) {
@@ -26,11 +30,27 @@ final class UserController extends AbstractController
     #[Route('/api/users/{id}', methods: ['GET'])]
     public function show(int $id, UserRepository $repository): JsonResponse
     {
+        /** @var User $connectedUser */
+        $connectedUser = $this->getUser();
+
         $user = $repository->find($id);
 
         if (!$user) {
             return $this->json(['message' => 'User not found'], 404);
         }
+
+        if (!$this->isGranted('ROLE_ADMIN') && $connectedUser->getId() !== $user->getId()) {
+            return $this->json(['message' => 'Access denied'], 403);
+        }
+
+        return $this->json($this->formatUser($user));
+    }
+
+    #[Route('/api/me', methods: ['GET'])]
+    public function me(): JsonResponse
+    {
+        /** @var User $user */
+        $user = $this->getUser();
 
         return $this->json($this->formatUser($user));
     }
@@ -44,19 +64,30 @@ final class UserController extends AbstractController
     ): JsonResponse {
         $data = json_decode($request->getContent(), true);
 
-        if (!$data || empty($data['email']) || empty($data['password'])) {
-            return $this->json(['message' => 'Email and password are required'], 400);
+        $validationError = $this->validateRegisterData($data);
+        if ($validationError) {
+            return $validationError;
         }
 
-        $existingUser = $userRepository->findOneBy(['email' => $data['email']]);
+        $email = strtolower(trim($data['email']));
+
+        $existingUser = $userRepository->findOneBy(['email' => $email]);
 
         if ($existingUser) {
             return $this->json(['message' => 'Email already exists'], 409);
         }
 
         $user = new User();
-        $user->setEmail($data['email']);
-        $roles = $data['roles'] ?? ['ROLE_USER'];
+        $user->setEmail($email);
+
+        $roles = ['ROLE_USER'];
+
+        if (isset($data['roles']) && in_array('ROLE_ADMIN', $data['roles'], true)) {
+            if ($this->getUser() && $this->isGranted('ROLE_ADMIN')) {
+                $roles[] = 'ROLE_ADMIN';
+            }
+        }
+
         $user->setRoles($roles);
 
         $hashedPassword = $passwordHasher->hashPassword(
@@ -76,27 +107,36 @@ final class UserController extends AbstractController
     }
 
     #[Route('/api/login', methods: ['POST'])]
-    public function login(
-        Request $request,
-        UserRepository $userRepository,
-        UserPasswordHasherInterface $passwordHasher
-    ): JsonResponse {
-        $data = json_decode($request->getContent(), true);
-
-        if (!$data || empty($data['email']) || empty($data['password'])) {
-            return $this->json(['message' => 'Email and password are required'], 400);
-        }
-
-        $user = $userRepository->findOneBy(['email' => $data['email']]);
-
-        if (!$user || !$passwordHasher->isPasswordValid($user, $data['password'])) {
-            return $this->json(['message' => 'Invalid credentials'], 401);
-        }
-
+    public function login(): JsonResponse
+    {
         return $this->json([
-            'message' => 'Login successful',
-            'user' => $this->formatUser($user)
+            'message' => 'Login is handled by JWT security firewall'
         ]);
+    }
+
+    private function validateRegisterData(?array $data): ?JsonResponse
+    {
+        if (!$data) {
+            return $this->json(['message' => 'Invalid JSON body'], 400);
+        }
+
+        if (empty($data['email'])) {
+            return $this->json(['message' => 'Email is required'], 400);
+        }
+
+        if (!filter_var($data['email'], FILTER_VALIDATE_EMAIL)) {
+            return $this->json(['message' => 'Email is invalid'], 400);
+        }
+
+        if (empty($data['password'])) {
+            return $this->json(['message' => 'Password is required'], 400);
+        }
+
+        if (strlen($data['password']) < 6) {
+            return $this->json(['message' => 'Password must contain at least 6 characters'], 400);
+        }
+
+        return null;
     }
 
     private function formatUser(User $user): array

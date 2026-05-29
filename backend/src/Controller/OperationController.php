@@ -3,9 +3,9 @@
 namespace App\Controller;
 
 use App\Entity\Operation;
+use App\Entity\User;
 use App\Repository\CategoryRepository;
 use App\Repository\OperationRepository;
-use App\Repository\UserRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -17,7 +17,14 @@ final class OperationController extends AbstractController
     #[Route('/api/operations', methods: ['GET'])]
     public function index(OperationRepository $repository): JsonResponse
     {
-        $operations = $repository->findAll();
+        /** @var User $user */
+        $user = $this->getUser();
+
+        if ($this->isGranted('ROLE_ADMIN')) {
+            $operations = $repository->findBy([], ['date' => 'DESC']);
+        } else {
+            $operations = $repository->findBy(['user' => $user], ['date' => 'DESC']);
+        }
 
         return $this->json(array_map([$this, 'formatOperation'], $operations));
     }
@@ -25,10 +32,17 @@ final class OperationController extends AbstractController
     #[Route('/api/operations/{id}', methods: ['GET'])]
     public function show(int $id, OperationRepository $repository): JsonResponse
     {
+        /** @var User $user */
+        $user = $this->getUser();
+
         $operation = $repository->find($id);
 
         if (!$operation) {
             return $this->json(['message' => 'Operation not found'], 404);
+        }
+
+        if (!$this->isGranted('ROLE_ADMIN') && $operation->getUser()->getId() !== $user->getId()) {
+            return $this->json(['message' => 'Access denied'], 403);
         }
 
         return $this->json($this->formatOperation($operation));
@@ -38,24 +52,26 @@ final class OperationController extends AbstractController
     public function create(
         Request $request,
         EntityManagerInterface $em,
-        CategoryRepository $categoryRepository,
-        UserRepository $userRepository
+        CategoryRepository $categoryRepository
     ): JsonResponse {
+        /** @var User $user */
+        $user = $this->getUser();
+
         $data = json_decode($request->getContent(), true);
 
+        $validationError = $this->validateOperationData($data, true);
+        if ($validationError) {
+            return $validationError;
+        }
+
         $category = $categoryRepository->find($data['category_id']);
-        $user = $userRepository->find($data['user_id']);
 
         if (!$category) {
             return $this->json(['message' => 'Category not found'], 404);
         }
 
-        if (!$user) {
-            return $this->json(['message' => 'User not found'], 404);
-        }
-
         $operation = new Operation();
-        $operation->setLabel($data['label']);
+        $operation->setLabel(trim($data['label']));
         $operation->setAmount((float) $data['amount']);
         $operation->setDate(new \DateTimeImmutable($data['date']));
         $operation->setType($data['type']);
@@ -79,16 +95,28 @@ final class OperationController extends AbstractController
         CategoryRepository $categoryRepository,
         EntityManagerInterface $em
     ): JsonResponse {
+        /** @var User $user */
+        $user = $this->getUser();
+
         $operation = $repository->find($id);
 
         if (!$operation) {
             return $this->json(['message' => 'Operation not found'], 404);
         }
 
+        if (!$this->isGranted('ROLE_ADMIN') && $operation->getUser()->getId() !== $user->getId()) {
+            return $this->json(['message' => 'Access denied'], 403);
+        }
+
         $data = json_decode($request->getContent(), true);
 
+        $validationError = $this->validateOperationData($data, false);
+        if ($validationError) {
+            return $validationError;
+        }
+
         if (isset($data['label'])) {
-            $operation->setLabel($data['label']);
+            $operation->setLabel(trim($data['label']));
         }
 
         if (isset($data['amount'])) {
@@ -127,10 +155,17 @@ final class OperationController extends AbstractController
         OperationRepository $repository,
         EntityManagerInterface $em
     ): JsonResponse {
+        /** @var User $user */
+        $user = $this->getUser();
+
         $operation = $repository->find($id);
 
         if (!$operation) {
             return $this->json(['message' => 'Operation not found'], 404);
+        }
+
+        if (!$this->isGranted('ROLE_ADMIN') && $operation->getUser()->getId() !== $user->getId()) {
+            return $this->json(['message' => 'Access denied'], 403);
         }
 
         $em->remove($operation);
@@ -139,10 +174,24 @@ final class OperationController extends AbstractController
         return $this->json(['message' => 'Operation deleted']);
     }
 
-    #[Route('/api/dashboard/{userId}', methods: ['GET'])]
-    public function dashboard(int $userId, OperationRepository $repository): JsonResponse
+    #[Route('/api/me/operations', methods: ['GET'])]
+    public function myOperations(OperationRepository $repository): JsonResponse
     {
-        $operations = $repository->findBy(['user' => $userId], ['date' => 'DESC']);
+        /** @var User $user */
+        $user = $this->getUser();
+
+        $operations = $repository->findBy(['user' => $user], ['date' => 'DESC']);
+
+        return $this->json(array_map([$this, 'formatOperation'], $operations));
+    }
+
+    #[Route('/api/dashboard', methods: ['GET'])]
+    public function dashboard(OperationRepository $repository): JsonResponse
+    {
+        /** @var User $user */
+        $user = $this->getUser();
+
+        $operations = $repository->findBy(['user' => $user], ['date' => 'DESC']);
 
         $income = 0;
         $expenses = 0;
@@ -161,6 +210,51 @@ final class OperationController extends AbstractController
             'expenses' => $expenses,
             'recent_operations' => array_map([$this, 'formatOperation'], $operations)
         ]);
+    }
+
+    private function validateOperationData(?array $data, bool $isCreate): ?JsonResponse
+    {
+        if (!$data) {
+            return $this->json(['message' => 'Invalid JSON body'], 400);
+        }
+
+        if ($isCreate && empty($data['label'])) {
+            return $this->json(['message' => 'Label is required'], 400);
+        }
+
+        if ($isCreate && !isset($data['amount'])) {
+            return $this->json(['message' => 'Amount is required'], 400);
+        }
+
+        if (isset($data['amount']) && (!is_numeric($data['amount']) || (float) $data['amount'] <= 0)) {
+            return $this->json(['message' => 'Amount must be a positive number'], 400);
+        }
+
+        if ($isCreate && empty($data['date'])) {
+            return $this->json(['message' => 'Date is required'], 400);
+        }
+
+        if (isset($data['date'])) {
+            try {
+                new \DateTimeImmutable($data['date']);
+            } catch (\Exception) {
+                return $this->json(['message' => 'Invalid date format'], 400);
+            }
+        }
+
+        if ($isCreate && empty($data['type'])) {
+            return $this->json(['message' => 'Type is required'], 400);
+        }
+
+        if (isset($data['type']) && !in_array($data['type'], ['income', 'expense'], true)) {
+            return $this->json(['message' => 'Type must be income or expense'], 400);
+        }
+
+        if ($isCreate && empty($data['category_id'])) {
+            return $this->json(['message' => 'Category is required'], 400);
+        }
+
+        return null;
     }
 
     private function formatOperation(Operation $operation): array

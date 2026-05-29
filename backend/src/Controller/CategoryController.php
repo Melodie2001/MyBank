@@ -19,47 +19,42 @@ final class CategoryController extends AbstractController
     }
 
     #[Route('/api/categories/{id}', methods: ['GET'])]
-    public function show(
-        int $id,
-        CategoryRepository $repository
-    ): JsonResponse {
-
+    public function show(int $id, CategoryRepository $repository): JsonResponse
+    {
         $category = $repository->find($id);
 
         if (!$category) {
-            return $this->json([
-                'message' => 'Category not found'
-            ], 404);
+            return $this->json(['message' => 'Category not found'], 404);
         }
 
         return $this->json($category);
     }
 
     #[Route('/api/categories', methods: ['POST'])]
-    public function create(
-        Request $request,
-        EntityManagerInterface $em
-    ): JsonResponse {
+    public function create(Request $request, EntityManagerInterface $em): JsonResponse
+    {
+        if (!$this->isGranted('ROLE_ADMIN')) {
+            return $this->json(['message' => 'Access denied'], 403);
+        }
 
         $data = json_decode($request->getContent(), true);
 
-        $category = new Category();
+        $validationError = $this->validateCategoryData($data, true);
+        if ($validationError) {
+            return $validationError;
+        }
 
-        $category->setName($data['name']);
-        $category->setIcon($data['icon']);
-        $category->setColor($data['color']);
+        $category = new Category();
+        $category->setName(trim($data['name']));
+        $category->setIcon(trim($data['icon']));
+        $category->setColor(trim($data['color']));
 
         $em->persist($category);
         $em->flush();
 
         return $this->json([
             'message' => 'Category created',
-            'category' => [
-                'id' => $category->getId(),
-                'name' => $category->getName(),
-                'icon' => $category->getIcon(),
-                'color' => $category->getColor()
-            ]
+            'category' => $this->formatCategory($category)
         ], 201);
     }
 
@@ -70,25 +65,40 @@ final class CategoryController extends AbstractController
         CategoryRepository $repository,
         EntityManagerInterface $em
     ): JsonResponse {
+        if (!$this->isGranted('ROLE_ADMIN')) {
+            return $this->json(['message' => 'Access denied'], 403);
+        }
 
         $category = $repository->find($id);
 
         if (!$category) {
-            return $this->json([
-                'message' => 'Category not found'
-            ], 404);
+            return $this->json(['message' => 'Category not found'], 404);
         }
 
         $data = json_decode($request->getContent(), true);
 
-        $category->setName($data['name']);
-        $category->setIcon($data['icon']);
-        $category->setColor($data['color']);
+        $validationError = $this->validateCategoryData($data, false);
+        if ($validationError) {
+            return $validationError;
+        }
+
+        if (isset($data['name'])) {
+            $category->setName(trim($data['name']));
+        }
+
+        if (isset($data['icon'])) {
+            $category->setIcon(trim($data['icon']));
+        }
+
+        if (isset($data['color'])) {
+            $category->setColor(trim($data['color']));
+        }
 
         $em->flush();
 
         return $this->json([
-            'message' => 'Category updated'
+            'message' => 'Category updated',
+            'category' => $this->formatCategory($category)
         ]);
     }
 
@@ -98,20 +108,68 @@ final class CategoryController extends AbstractController
         CategoryRepository $repository,
         EntityManagerInterface $em
     ): JsonResponse {
+        if (!$this->isGranted('ROLE_ADMIN')) {
+            return $this->json(['message' => 'Access denied'], 403);
+        }
 
         $category = $repository->find($id);
 
         if (!$category) {
-            return $this->json([
-                'message' => 'Category not found'
-            ], 404);
+            return $this->json(['message' => 'Category not found'], 404);
         }
 
-        $em->remove($category);
-        $em->flush();
+        try {
+            $em->remove($category);
+            $em->flush();
+        } catch (\Exception) {
+            return $this->json([
+                'message' => 'Cannot delete this category because it is used by operations'
+            ], 409);
+        }
 
-        return $this->json([
-            'message' => 'Category deleted'
-        ]);
+        return $this->json(['message' => 'Category deleted']);
+    }
+
+    private function validateCategoryData(?array $data, bool $isCreate): ?JsonResponse
+    {
+        if (!$data) {
+            return $this->json(['message' => 'Invalid JSON body'], 400);
+        }
+
+        if ($isCreate && empty($data['name'])) {
+            return $this->json(['message' => 'Name is required'], 400);
+        }
+
+        if ($isCreate && empty($data['icon'])) {
+            return $this->json(['message' => 'Icon is required'], 400);
+        }
+
+        if ($isCreate && empty($data['color'])) {
+            return $this->json(['message' => 'Color is required'], 400);
+        }
+
+        if (isset($data['name']) && trim($data['name']) === '') {
+            return $this->json(['message' => 'Name cannot be empty'], 400);
+        }
+
+        if (isset($data['icon']) && trim($data['icon']) === '') {
+            return $this->json(['message' => 'Icon cannot be empty'], 400);
+        }
+
+        if (isset($data['color']) && !preg_match('/^#[0-9A-Fa-f]{6}$/', $data['color'])) {
+            return $this->json(['message' => 'Color must be a valid hexadecimal color'], 400);
+        }
+
+        return null;
+    }
+
+    private function formatCategory(Category $category): array
+    {
+        return [
+            'id' => $category->getId(),
+            'name' => $category->getName(),
+            'icon' => $category->getIcon(),
+            'color' => $category->getColor()
+        ];
     }
 }
