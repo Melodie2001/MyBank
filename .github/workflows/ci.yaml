@@ -6,6 +6,7 @@ on:
   pull_request:
     branches:
       - main
+
 jobs:
   symfony-tests:
     runs-on: ubuntu-latest
@@ -14,7 +15,7 @@ jobs:
         image: mysql:8.0
         env:
           MYSQL_ROOT_PASSWORD: root
-          MYSQL_DATABASE: mybank_test
+          MYSQL_DATABASE: mybank
         ports:
           - 3306:3306
         options: >-
@@ -22,6 +23,7 @@ jobs:
           --health-interval=10s
           --health-timeout=5s
           --health-retries=5
+
     steps:
       - name: Checkout project
         uses: actions/checkout@v4
@@ -37,17 +39,16 @@ jobs:
         working-directory: backend
         run: composer install --no-interaction --prefer-dist
 
-      - name: Create .env.test.local
+      - name: Override DATABASE_URL pour GitHub Actions
         working-directory: backend
         run: |
-          echo "APP_ENV=test" > .env.test.local
-          echo "DATABASE_URL=mysql://root:root@127.0.0.1:3306/mybank_test?serverVersion=8.0" >> .env.test.local
+          echo "DATABASE_URL=mysql://root:root@127.0.0.1:3306/mybank?serverVersion=8.0" > .env.local
 
       - name: Wait for MySQL
         run: |
           for i in {1..30}; do
             mysqladmin ping -h 127.0.0.1 -uroot -proot --silent && break
-            echo "Waiting for MySQL..."
+            echo "Waiting for MySQL... ($i)"
             sleep 2
           done
 
