@@ -1,47 +1,33 @@
 name: Symfony CI
-
 on:
   push:
     branches:
       - main
-
   pull_request:
     branches:
       - main
-
 jobs:
   symfony-tests:
-
     runs-on: ubuntu-latest
-
     services:
       mysql:
         image: mysql:8.0
-
         env:
           MYSQL_ROOT_PASSWORD: root
           MYSQL_DATABASE: mybank_test
-
         ports:
           - 3306:3306
-
         options: >-
           --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -proot"
           --health-interval=10s
           --health-timeout=5s
           --health-retries=5
-
-    env:
-      APP_ENV: test
-      DATABASE_URL: "mysql://root:root@127.0.0.1:3306/mybank_test?serverVersion=8.0"
-
     steps:
       - name: Checkout project
         uses: actions/checkout@v4
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
-
         with:
           php-version: 8.3
           extensions: mbstring, intl, pdo_mysql
@@ -50,6 +36,20 @@ jobs:
       - name: Install Composer dependencies
         working-directory: backend
         run: composer install --no-interaction --prefer-dist
+
+      - name: Create .env.test.local
+        working-directory: backend
+        run: |
+          echo "APP_ENV=test" > .env.test.local
+          echo "DATABASE_URL=mysql://root:root@127.0.0.1:3306/mybank_test?serverVersion=8.0" >> .env.test.local
+
+      - name: Wait for MySQL
+        run: |
+          for i in {1..30}; do
+            mysqladmin ping -h 127.0.0.1 -uroot -proot --silent && break
+            echo "Waiting for MySQL..."
+            sleep 2
+          done
 
       - name: Run migrations
         working-directory: backend
