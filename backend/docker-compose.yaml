@@ -1,0 +1,38 @@
+services:
+  backend:
+    build: .
+    container_name: mybank_backend
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/var/www/html
+    depends_on:
+      - database
+
+  database:
+    image: mysql:8.0
+    container_name: mybank_database
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: mybank
+    ports:
+      - "3307:3306"
+    volumes:
+      - mybank_data:/var/lib/mysql
+
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    container_name: mybank_phpmyadmin
+    restart: always
+    ports:
+      - "8081:80"
+    environment:
+      PMA_HOST: database
+      PMA_USER: root
+      PMA_PASSWORD: root
+    depends_on:
+      - database
+
+volumes:
+  mybank_data:
