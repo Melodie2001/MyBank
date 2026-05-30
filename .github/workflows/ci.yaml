@@ -39,6 +39,10 @@ jobs:
         working-directory: backend
         run: composer install --no-interaction --prefer-dist
 
+      - name: Install PHPUnit
+        working-directory: backend
+        run: composer require --dev symfony/test-pack --no-interaction
+
       - name: Override DATABASE_URL pour GitHub Actions
         working-directory: backend
         run: |
