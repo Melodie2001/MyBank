@@ -1,0 +1,123 @@
+.app-layout {
+  display: flex;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.app-content {
+  flex: 1;
+  margin-left: var(--sidebar-width);
+  padding: 32px;
+  overflow-y: auto;
+  background-color: var(--color-bg);
+}
+
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.page-title {
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.btn-primary {
+  background-color: var(--color-accent);
+  color: var(--color-white);
+  border: none;
+  padding: 10px 20px;
+  border-radius: var(--radius);
+  font-weight: 600;
+  font-size: 13px;
+  transition: opacity 0.2s;
+  cursor: pointer;
+}
+
+.btn-primary:hover {
+  opacity: 0.85;
+}
+
+.btn-secondary {
+  background-color: var(--color-input-bg);
+  color: var(--color-text);
+  border: none;
+  padding: 10px 20px;
+  border-radius: var(--radius);
+  font-weight: 500;
+  font-size: 13px;
+  transition: opacity 0.2s;
+  cursor: pointer;
+}
+
+.btn-secondary:hover {
+  opacity: 0.75;
+}
+
+.btn-danger {
+  background-color: #fde8e8;
+  color: var(--color-danger);
+  border: none;
+  padding: 6px 14px;
+  border-radius: var(--radius);
+  font-weight: 500;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.btn-edit {
+  background-color: var(--color-input-bg);
+  color: var(--color-text);
+  border: none;
+  padding: 6px 14px;
+  border-radius: var(--radius);
+  font-weight: 500;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.card {
+  background-color: var(--color-white);
+  border-radius: var(--radius);
+  padding: 20px;
+  box-shadow: var(--shadow);
+}
+
+/* Hamburger menu button - hidden on desktop */
+.hamburger {
+  display: none;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 8px;
+  color: var(--color-primary);
+}
+
+/* Overlay for mobile sidebar */
+.sidebar-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.4);
+  z-index: 99;
+}
+
+.sidebar-overlay.open {
+  display: block;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .app-content {
+    margin-left: 0;
+    padding: 16px;
+  }
+
+  .hamburger {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+}

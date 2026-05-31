@@ -79,6 +79,15 @@ final class UserController extends AbstractController
 
         $user = new User();
         $user->setEmail($email);
+        $user->setStatus('pending');
+
+        if (!empty($data['firstName'])) {
+            $user->setFirstName(trim($data['firstName']));
+        }
+
+        if (!empty($data['lastName'])) {
+            $user->setLastName(trim($data['lastName']));
+        }
 
         $roles = ['ROLE_USER'];
 
@@ -90,20 +99,70 @@ final class UserController extends AbstractController
 
         $user->setRoles($roles);
 
-        $hashedPassword = $passwordHasher->hashPassword(
-            $user,
-            $data['password']
-        );
-
+        $hashedPassword = $passwordHasher->hashPassword($user, $data['password']);
         $user->setPassword($hashedPassword);
 
         $em->persist($user);
         $em->flush();
 
         return $this->json([
-            'message' => 'User created',
+            'message' => 'User created — waiting for admin approval',
             'user' => $this->formatUser($user)
         ], 201);
+    }
+
+    #[Route('/api/users/{id}/status', methods: ['PUT'])]
+    public function updateStatus(
+        int $id,
+        Request $request,
+        UserRepository $repository,
+        EntityManagerInterface $em
+    ): JsonResponse {
+        if (!$this->isGranted('ROLE_ADMIN')) {
+            return $this->json(['message' => 'Access denied'], 403);
+        }
+
+        $user = $repository->find($id);
+
+        if (!$user) {
+            return $this->json(['message' => 'User not found'], 404);
+        }
+
+        $data = json_decode($request->getContent(), true);
+
+        if (!isset($data['status']) || !in_array($data['status'], ['active', 'pending', 'rejected'], true)) {
+            return $this->json(['message' => 'Invalid status. Must be active, pending or rejected'], 400);
+        }
+
+        $user->setStatus($data['status']);
+        $em->flush();
+
+        return $this->json([
+            'message' => 'User status updated',
+            'user' => $this->formatUser($user)
+        ]);
+    }
+
+    #[Route('/api/users/{id}', methods: ['DELETE'])]
+    public function delete(
+        int $id,
+        UserRepository $repository,
+        EntityManagerInterface $em
+    ): JsonResponse {
+        if (!$this->isGranted('ROLE_ADMIN')) {
+            return $this->json(['message' => 'Access denied'], 403);
+        }
+
+        $user = $repository->find($id);
+
+        if (!$user) {
+            return $this->json(['message' => 'User not found'], 404);
+        }
+
+        $em->remove($user);
+        $em->flush();
+
+        return $this->json(['message' => 'User deleted']);
     }
 
     #[Route('/api/login', methods: ['POST'])]
@@ -144,7 +203,10 @@ final class UserController extends AbstractController
         return [
             'id' => $user->getId(),
             'email' => $user->getEmail(),
-            'roles' => $user->getRoles()
+            'firstName' => $user->getFirstName(),
+            'lastName' => $user->getLastName(),
+            'roles' => $user->getRoles(),
+            'status' => $user->getStatus()
         ];
     }
 }
