@@ -44,14 +44,11 @@ jobs:
         working-directory: backend
         run: composer require --dev symfony/test-pack --no-interaction
 
-      - name: Create .env.local
+      - name: Fix DATABASE_URL in .env
         working-directory: backend
         run: |
-          printf 'APP_ENV=test\nDATABASE_URL="mysql://root:root@127.0.0.1:3306/mybank?serverVersion=8.0&charset=utf8mb4"\n' > .env.local
-
-      - name: Debug .env.local
-        working-directory: backend
-        run: cat .env.local
+          sed -i 's|DATABASE_URL=.*|DATABASE_URL=mysql://root:root@127.0.0.1:3306/mybank?serverVersion=8.0|g' .env
+          grep DATABASE_URL .env
 
       - name: Wait for MySQL
         run: |
