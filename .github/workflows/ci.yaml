@@ -47,10 +47,11 @@ jobs:
       - name: Create .env.local
         working-directory: backend
         run: |
-          cat > .env.local << 'EOF'
-          APP_ENV=test
-          DATABASE_URL="mysql://root:root@127.0.0.1:3306/mybank?serverVersion=8.0&charset=utf8mb4"
-          EOF
+          printf 'APP_ENV=test\nDATABASE_URL="mysql://root:root@127.0.0.1:3306/mybank?serverVersion=8.0&charset=utf8mb4"\n' > .env.local
+
+      - name: Debug .env.local
+        working-directory: backend
+        run: cat .env.local
 
       - name: Wait for MySQL
         run: |
