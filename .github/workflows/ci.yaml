@@ -4,31 +4,34 @@ on:
   push:
     branches:
       - main
+
   pull_request:
     branches:
       - main
 
 jobs:
+  # ==================
+  # Backend Symfony CI
+  # ==================
   symfony-tests:
     runs-on: ubuntu-latest
 
     services:
       mysql:
         image: mysql:8.0
+
         env:
           MYSQL_ROOT_PASSWORD: root
           MYSQL_DATABASE: mybank
+
         ports:
           - 3306:3306
+
         options: >-
           --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -proot"
           --health-interval=10s
           --health-timeout=5s
           --health-retries=5
-
-    env:
-      APP_ENV: test
-      DATABASE_URL: "mysql://root:root@127.0.0.1:3306/mybank?serverVersion=8.0&charset=utf8mb4"
 
     steps:
       - name: Checkout project
@@ -63,12 +66,21 @@ jobs:
 
       - name: Run migrations
         working-directory: backend
+        env:
+          APP_ENV: test
+          DATABASE_URL: mysql://root:root@127.0.0.1:3306/mybank?serverVersion=8.0&charset=utf8mb4
         run: php bin/console doctrine:migrations:migrate --no-interaction
 
       - name: Run Symfony tests
         working-directory: backend
+        env:
+          APP_ENV: test
+          DATABASE_URL: mysql://root:root@127.0.0.1:3306/mybank?serverVersion=8.0&charset=utf8mb4
         run: php bin/phpunit
 
+  # ===================
+  # Frontend React CI
+  # ===================
   frontend-tests:
     runs-on: ubuntu-latest
 
