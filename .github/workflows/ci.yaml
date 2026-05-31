@@ -50,10 +50,8 @@ jobs:
       - name: Override DATABASE_URL pour GitHub Actions
         working-directory: backend
         run: |
-          echo "DATABASE_URL=mysql://root:root@127.0.0.1:3306/mybank?serverVersion=8.0&charset=utf8mb4" >> .env
-          echo "APP_ENV=test" >> .env
+          sed -i 's|DATABASE_URL=.*|DATABASE_URL="mysql://root:root@127.0.0.1:3306/mybank?serverVersion=8.0\&charset=utf8mb4"|' .env
       - name: Wait for MySQL
-      
         run: |
           for i in {1..30}; do
             mysqladmin ping -h 127.0.0.1 -uroot -proot --silent && break
