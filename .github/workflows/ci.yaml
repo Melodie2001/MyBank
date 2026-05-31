@@ -13,64 +13,72 @@ jobs:
   # Backend Symfony CI
   # ==================
  symfony-tests:
-  runs-on: ubuntu-latest
+name: Symfony CI
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
 
-  services:
-    mysql:
-      image: mysql:8.0
+jobs:
+  symfony-tests:
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: mybank
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -proot"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
 
-      env:
-        MYSQL_ROOT_PASSWORD: root
-        MYSQL_DATABASE: mybank
+    steps:
+      - name: Checkout project
+        uses: actions/checkout@v4
 
-      ports:
-        - 3306:3306
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: 8.3
+          extensions: mbstring, intl, pdo_mysql
+          coverage: none
 
-      options: >-
-        --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -proot"
-        --health-interval=10s
-        --health-timeout=5s
-        --health-retries=5
+      - name: Install Composer dependencies
+        working-directory: backend
+        run: composer install --no-interaction --prefer-dist
 
-  env:
-    APP_ENV: test
-    DATABASE_URL: "mysql://root:root@127.0.0.1:3306/mybank?serverVersion=8.0&charset=utf8mb4"
+      - name: Install PHPUnit
+        working-directory: backend
+        run: composer require --dev symfony/test-pack --no-interaction
 
-  steps:
-    - name: Checkout project
-      uses: actions/checkout@v4
+      - name: Override DATABASE_URL pour GitHub Actions
+        working-directory: backend
+        run: |
+          echo "DATABASE_URL=mysql://root:root@127.0.0.1:3306/mybank?serverVersion=8.0" > .env.local
 
-    - name: Setup PHP
-      uses: shivammathur/setup-php@v2
+      - name: Wait for MySQL
+        run: |
+          for i in {1..30}; do
+            mysqladmin ping -h 127.0.0.1 -uroot -proot --silent && break
+            echo "Waiting for MySQL... ($i)"
+            sleep 2
+          done
 
-      with:
-        php-version: 8.3
-        extensions: mbstring, intl, pdo_mysql
-        coverage: none
+      - name: Run migrations
+        working-directory: backend
+        run: php bin/console doctrine:migrations:migrate --no-interaction
 
-    - name: Install Composer dependencies
-      working-directory: backend
-      run: composer install --no-interaction --prefer-dist
+      - name: Run Symfony tests
+        working-directory: backend
+        run: php bin/phpunit
 
-    - name: Install PHPUnit
-      working-directory: backend
-      run: composer require --dev symfony/test-pack --no-interaction
-
-    - name: Wait for MySQL
-      run: |
-        for i in {1..30}; do
-          mysqladmin ping -h 127.0.0.1 -uroot -proot --silent && break
-          echo "Waiting for MySQL... ($i)"
-          sleep 2
-        done
-
-    - name: Run migrations
-      working-directory: backend
-      run: php bin/console doctrine:migrations:migrate --no-interaction
-
-    - name: Run Symfony tests
-      working-directory: backend
-      run: php bin/phpunit
 
   # ===================
   # Frontend React CI
