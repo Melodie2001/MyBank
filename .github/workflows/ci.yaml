@@ -44,12 +44,6 @@ jobs:
         working-directory: backend
         run: composer require --dev symfony/test-pack --no-interaction
 
-      - name: Fix DATABASE_URL in .env
-        working-directory: backend
-        run: |
-          sed -i 's|DATABASE_URL=.*|DATABASE_URL=mysql://root:root@127.0.0.1:3306/mybank?serverVersion=8.0|g' .env
-          grep DATABASE_URL .env
-
       - name: Wait for MySQL
         run: |
           for i in {1..30}; do
@@ -58,17 +52,13 @@ jobs:
             sleep 2
           done
 
-      - name: Clear Symfony cache
-        working-directory: backend
-        run: rm -rf var/cache/*
-
       - name: Run migrations
         working-directory: backend
-        run: php bin/console doctrine:migrations:migrate --no-interaction
+        run: DATABASE_URL="mysql://root:root@127.0.0.1:3306/mybank?serverVersion=8.0" php bin/console doctrine:migrations:migrate --no-interaction --env=test
 
       - name: Run Symfony tests
         working-directory: backend
-        run: php bin/phpunit
+        run: DATABASE_URL="mysql://root:root@127.0.0.1:3306/mybank?serverVersion=8.0" php bin/phpunit
 
   frontend-tests:
     runs-on: ubuntu-latest
