@@ -9,6 +9,9 @@ on:
       - main
 
 jobs:
+  # ==================
+  # Backend Symfony CI
+  # ==================
   symfony-tests:
     runs-on: ubuntu-latest
     services:
@@ -54,12 +57,15 @@ jobs:
 
       - name: Run migrations
         working-directory: backend
-        run: DATABASE_URL="mysql://root:root@127.0.0.1:3306/mybank?serverVersion=8.0" php bin/console doctrine:migrations:migrate --no-interaction --env=test
+        run: DATABASE_URL="mysql://root:root@127.0.0.1:3306/mybank?serverVersion=8.0" php bin/console doctrine:migrations:migrate --no-interaction
 
       - name: Run Symfony tests
         working-directory: backend
         run: DATABASE_URL="mysql://root:root@127.0.0.1:3306/mybank?serverVersion=8.0" php bin/phpunit
 
+  # ===================
+  # Frontend React CI
+  # ===================
   frontend-tests:
     runs-on: ubuntu-latest
 

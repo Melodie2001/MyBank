@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { getUsers, updateUserStatus, deleteUser, getAllOperations } from '../services/adminService';
 
 export default function Admin() {
@@ -7,11 +7,7 @@ export default function Admin() {
   const [activeTab, setActiveTab] = useState('users');
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    fetchData();
-  }, []);
-
-  async function fetchData() {
+  const fetchData = useCallback(async () => {
     try {
       const [usersData, opsData] = await Promise.all([
         getUsers(),
@@ -24,7 +20,11 @@ export default function Admin() {
     } finally {
       setLoading(false);
     }
-  }
+  }, []);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
   async function handleStatusChange(id, status) {
     try {
