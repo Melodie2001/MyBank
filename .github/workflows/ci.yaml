@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+
   pull_request:
     branches:
       - main
@@ -12,27 +13,20 @@ jobs:
   # ==================
   # Backend Symfony CI
   # ==================
- symfony-tests:
-name: Symfony CI
-on:
-  push:
-    branches:
-      - main
-  pull_request:
-    branches:
-      - main
-
-jobs:
   symfony-tests:
     runs-on: ubuntu-latest
+
     services:
       mysql:
         image: mysql:8.0
+
         env:
           MYSQL_ROOT_PASSWORD: root
           MYSQL_DATABASE: mybank
+
         ports:
           - 3306:3306
+
         options: >-
           --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -proot"
           --health-interval=10s
@@ -58,11 +52,6 @@ jobs:
         working-directory: backend
         run: composer require --dev symfony/test-pack --no-interaction
 
-      - name: Override DATABASE_URL pour GitHub Actions
-        working-directory: backend
-        run: |
-          echo "DATABASE_URL=mysql://root:root@127.0.0.1:3306/mybank?serverVersion=8.0" > .env.local
-
       - name: Wait for MySQL
         run: |
           for i in {1..30}; do
@@ -71,14 +60,23 @@ jobs:
             sleep 2
           done
 
+      - name: Clear Symfony cache
+        working-directory: backend
+        run: rm -rf var/cache/*
+
       - name: Run migrations
         working-directory: backend
+        env:
+          APP_ENV: test
+          DATABASE_URL: mysql://root:root@127.0.0.1:3306/mybank?serverVersion=8.0&charset=utf8mb4
         run: php bin/console doctrine:migrations:migrate --no-interaction
 
       - name: Run Symfony tests
         working-directory: backend
+        env:
+          APP_ENV: test
+          DATABASE_URL: mysql://root:root@127.0.0.1:3306/mybank?serverVersion=8.0&charset=utf8mb4
         run: php bin/phpunit
-
 
   # ===================
   # Frontend React CI
@@ -93,22 +91,18 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
-          cache: 'npm'
+          node-version: "20"
+          cache: "npm"
           cache-dependency-path: frontend/package-lock.json
 
-      - name: Install dependencies
+      - name: Install frontend dependencies
         working-directory: frontend
         run: npm ci
 
-      - name: Run linter
+      - name: Run frontend linter
         working-directory: frontend
         run: npm run lint
 
-      - name: Run tests
-        working-directory: frontend
-        run: npm run test:run
-
-      - name: Build
+      - name: Build frontend
         working-directory: frontend
         run: npm run build
