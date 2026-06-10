@@ -56,10 +56,9 @@ jobs:
         working-directory: backend
         run: DATABASE_URL="mysql://root:root@127.0.0.1:3306/mybank?serverVersion=8.0" php bin/console doctrine:migrations:migrate --no-interaction
 
-      - name: Run Symfony tests
+      - name: Run Symfony unit tests
         working-directory: backend
-        run: DATABASE_URL="mysql://root:root@127.0.0.1:3306/mybank?serverVersion=8.0" php bin/phpunit --exclude-testsuite Integration
-
+        run: DATABASE_URL="mysql://root:root@127.0.0.1:3306/mybank?serverVersion=8.0" APP_ENV=dev php bin/phpunit tests/Unit/
       - name: Create test database
         working-directory: backend
         run: DATABASE_URL="mysql://root:root@127.0.0.1:3306/mybank_test?serverVersion=8.0" php bin/console doctrine:database:create --env=test --no-interaction
