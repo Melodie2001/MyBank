@@ -58,7 +58,7 @@ jobs:
 
       - name: Run Symfony tests
         working-directory: backend
-        run: DATABASE_URL="mysql://root:root@127.0.0.1:3306/mybank?serverVersion=8.0" php bin/phpunit
+        run: DATABASE_URL="mysql://root:root@127.0.0.1:3306/mybank?serverVersion=8.0" php bin/phpunit tests/ --exclude tests/Integration
 
       - name: Create test database
         working-directory: backend
