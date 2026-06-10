@@ -159,10 +159,39 @@ final class UserController extends AbstractController
             return $this->json(['message' => 'User not found'], 404);
         }
 
-        $em->remove($user);
-        $em->flush();
+        // Empêcher la suppression de son propre compte
+        /** @var User $currentUser */
+        $currentUser = $this->getUser();
+        if ($currentUser->getId() === $user->getId()) {
+            return $this->json(['message' => 'You cannot delete your own account'], 403);
+        }
 
-        return $this->json(['message' => 'User deleted']);
+        try {
+            // Supprimer les opérations de l'user
+            $operations = $em->getRepository(\App\Entity\Operation::class)
+                ->findBy(['user' => $user]);
+            foreach ($operations as $operation) {
+                $em->remove($operation);
+            }
+
+            // Supprimer les user_categories de l'user
+            $userCategories = $em->getRepository(\App\Entity\UserCategory::class)
+                ->findBy(['user' => $user]);
+            foreach ($userCategories as $userCategory) {
+                $em->remove($userCategory);
+            }
+
+            $em->flush();
+
+            // Supprimer l'user
+            $em->remove($user);
+            $em->flush();
+
+            return $this->json(['message' => 'User deleted successfully']);
+
+        } catch (\Exception $e) {
+            return $this->json(['message' => 'Cannot delete this user: ' . $e->getMessage()], 500);
+        }
     }
 
     #[Route('/api/login', methods: ['POST'])]
@@ -209,4 +238,42 @@ final class UserController extends AbstractController
             'status' => $user->getStatus()
         ];
     }
+    #[Route('/api/users/{id}/role', methods: ['PUT'])]
+public function updateRole(
+    int $id,
+    Request $request,
+    UserRepository $repository,
+    EntityManagerInterface $em
+): JsonResponse {
+    if (!$this->isGranted('ROLE_ADMIN')) {
+        return $this->json(['message' => 'Access denied'], 403);
+    }
+
+    $user = $repository->find($id);
+
+    if (!$user) {
+        return $this->json(['message' => 'User not found'], 404);
+    }
+
+    $data = json_decode($request->getContent(), true);
+
+    if (!isset($data['roles']) || !is_array($data['roles'])) {
+        return $this->json(['message' => 'Roles must be an array'], 400);
+    }
+
+    $validRoles = ['ROLE_USER', 'ROLE_ADMIN'];
+    foreach ($data['roles'] as $role) {
+        if (!in_array($role, $validRoles, true)) {
+            return $this->json(['message' => 'Invalid role: ' . $role], 400);
+        }
+    }
+
+    $user->setRoles($data['roles']);
+    $em->flush();
+
+    return $this->json([
+        'message' => 'User role updated',
+        'user' => $this->formatUser($user)
+    ]);
+}
 }

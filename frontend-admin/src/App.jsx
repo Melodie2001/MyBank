@@ -1,14 +1,14 @@
-import { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import MainLayout from './layouts/MainLayout';
+import { lazy, Suspense } from 'react';
 import ProtectedRoute from './components/ProtectedRoute';
+import Layout from './components/Layout';
 import './styles/global.css';
 
 const Login = lazy(() => import('./pages/Login'));
-const Register = lazy(() => import('./pages/Register'));
 const Dashboard = lazy(() => import('./pages/Dashboard'));
+const Users = lazy(() => import('./pages/Users'));
+const Pending = lazy(() => import('./pages/Pending'));
 const Operations = lazy(() => import('./pages/Operations'));
-const Categories = lazy(() => import('./pages/Categories'));
 const NotFound = lazy(() => import('./pages/NotFound'));
 
 function PageLoader() {
@@ -19,23 +19,11 @@ function PageLoader() {
       justifyContent: 'center',
       height: '100vh',
       backgroundColor: '#E8F0EF',
+      fontSize: '14px',
+      color: '#6b7280',
+      fontFamily: 'Montserrat, sans-serif',
     }}>
-      <div style={{ textAlign: 'center' }}>
-        <div style={{
-          width: '48px',
-          height: '48px',
-          borderRadius: '10px',
-          backgroundColor: '#F8E16C',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          fontSize: '24px',
-          margin: '0 auto 16px',
-        }}>
-          🏦
-        </div>
-        <div style={{ color: '#156064', fontWeight: '600', fontSize: '14px' }}>Loading...</div>
-      </div>
+      Loading...
     </div>
   );
 }
@@ -45,21 +33,21 @@ export default function App() {
     <BrowserRouter>
       <Suspense fallback={<PageLoader />}>
         <Routes>
-          {/* Public routes */}
+          {/* Public */}
           <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
 
-          {/* Protected routes */}
+          {/* Protected */}
           <Route
             element={
               <ProtectedRoute>
-                <MainLayout />
+                <Layout />
               </ProtectedRoute>
             }
           >
             <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/users" element={<Users />} />
+            <Route path="/pending" element={<Pending />} />
             <Route path="/operations" element={<Operations />} />
-            <Route path="/categories" element={<Categories />} />
           </Route>
 
           {/* Redirects */}

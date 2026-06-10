@@ -12,12 +12,34 @@ describe('authService', () => {
 
   it('login stores token and user in localStorage', async () => {
     api.post.mockResolvedValueOnce({ data: { token: 'fake-token' } });
-    api.get.mockResolvedValueOnce({ data: { id: 1, email: 'test@test.com', firstName: 'Test', lastName: 'User' } });
+    api.get.mockResolvedValueOnce({
+      data: {
+        id: 1,
+        email: 'test@test.com',
+        firstName: 'Test',
+        lastName: 'User',
+        roles: ['ROLE_USER']
+      }
+    });
 
     await login('test@test.com', 'password');
 
     expect(localStorage.getItem('token')).toBe('fake-token');
     expect(JSON.parse(localStorage.getItem('user'))).toMatchObject({ email: 'test@test.com' });
+  });
+
+  it('login throws error if user is admin', async () => {
+    api.post.mockResolvedValueOnce({ data: { token: 'fake-token' } });
+    api.get.mockResolvedValueOnce({
+      data: {
+        id: 1,
+        email: 'admin@test.com',
+        roles: ['ROLE_ADMIN', 'ROLE_USER']
+      }
+    });
+
+    await expect(login('admin@test.com', 'password')).rejects.toThrow();
+    expect(localStorage.getItem('token')).toBeNull();
   });
 
   it('logout removes token and user from localStorage', () => {

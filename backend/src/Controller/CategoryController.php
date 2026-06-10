@@ -3,7 +3,9 @@
 namespace App\Controller;
 
 use App\Entity\Category;
+use App\Entity\UserCategory;
 use App\Repository\CategoryRepository;
+use App\Repository\UserCategoryRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -12,10 +14,107 @@ use Symfony\Component\Routing\Attribute\Route;
 
 final class CategoryController extends AbstractController
 {
+    // GET toutes les categories disponibles
     #[Route('/api/categories', methods: ['GET'])]
     public function index(CategoryRepository $repository): JsonResponse
     {
-        return $this->json($repository->findAll());
+        return $this->json(array_map(
+            fn($cat) => $this->formatCategory($cat),
+            $repository->findAll()
+        ));
+    }
+
+    // GET les categories de l'utilisateur connecté
+    #[Route('/api/my-categories', methods: ['GET'])]
+    public function myCategories(UserCategoryRepository $userCategoryRepository): JsonResponse
+    {
+        /** @var \App\Entity\User $user */
+        $user = $this->getUser();
+
+        $userCategories = $userCategoryRepository->findBy(['user' => $user]);
+
+        return $this->json(array_map(
+            fn($uc) => $this->formatCategory($uc->getCategory()),
+            $userCategories
+        ));
+    }
+
+    // POST ajouter une categorie a la liste de l'utilisateur
+    #[Route('/api/my-categories', methods: ['POST'])]
+    public function addToMyCategories(
+        Request $request,
+        CategoryRepository $categoryRepository,
+        UserCategoryRepository $userCategoryRepository,
+        EntityManagerInterface $em
+    ): JsonResponse {
+        /** @var \App\Entity\User $user */
+        $user = $this->getUser();
+
+        $data = json_decode($request->getContent(), true);
+
+        if (empty($data['category_id'])) {
+            return $this->json(['message' => 'Category ID is required'], 400);
+        }
+
+        $category = $categoryRepository->find($data['category_id']);
+
+        if (!$category) {
+            return $this->json(['message' => 'Category not found'], 404);
+        }
+
+        // Vérifier si déjà ajoutée
+        $existing = $userCategoryRepository->findOneBy([
+            'user' => $user,
+            'category' => $category
+        ]);
+
+        if ($existing) {
+            return $this->json(['message' => 'Category already added'], 409);
+        }
+
+        $userCategory = new UserCategory();
+        $userCategory->setUser($user);
+        $userCategory->setCategory($category);
+
+        $em->persist($userCategory);
+        $em->flush();
+
+        return $this->json([
+            'message' => 'Category added',
+            'category' => $this->formatCategory($category)
+        ], 201);
+    }
+
+    // DELETE supprimer une categorie de la liste de l'utilisateur
+    #[Route('/api/my-categories/{id}', methods: ['DELETE'])]
+    public function removeFromMyCategories(
+        int $id,
+        CategoryRepository $categoryRepository,
+        UserCategoryRepository $userCategoryRepository,
+        EntityManagerInterface $em
+    ): JsonResponse {
+        /** @var \App\Entity\User $user */
+        $user = $this->getUser();
+
+        $category = $categoryRepository->find($id);
+
+        if (!$category) {
+            return $this->json(['message' => 'Category not found'], 404);
+        }
+
+        $userCategory = $userCategoryRepository->findOneBy([
+            'user' => $user,
+            'category' => $category
+        ]);
+
+        if (!$userCategory) {
+            return $this->json(['message' => 'Category not in your list'], 404);
+        }
+
+        $em->remove($userCategory);
+        $em->flush();
+
+        return $this->json(['message' => 'Category removed']);
     }
 
     #[Route('/api/categories/{id}', methods: ['GET'])]
@@ -27,7 +126,7 @@ final class CategoryController extends AbstractController
             return $this->json(['message' => 'Category not found'], 404);
         }
 
-        return $this->json($category);
+        return $this->json($this->formatCategory($category));
     }
 
     #[Route('/api/categories', methods: ['POST'])]
@@ -82,17 +181,9 @@ final class CategoryController extends AbstractController
             return $validationError;
         }
 
-        if (isset($data['name'])) {
-            $category->setName(trim($data['name']));
-        }
-
-        if (isset($data['icon'])) {
-            $category->setIcon(trim($data['icon']));
-        }
-
-        if (isset($data['color'])) {
-            $category->setColor(trim($data['color']));
-        }
+        if (isset($data['name'])) $category->setName(trim($data['name']));
+        if (isset($data['icon'])) $category->setIcon(trim($data['icon']));
+        if (isset($data['color'])) $category->setColor(trim($data['color']));
 
         $em->flush();
 

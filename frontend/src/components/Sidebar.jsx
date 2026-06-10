@@ -20,11 +20,6 @@ const icons = {
       <path d="M4 6h16M4 10h16M4 14h16M4 18h16"/>
     </svg>
   ),
-  admin: (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
-    </svg>
-  ),
   signout: (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
       <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
@@ -54,7 +49,6 @@ export default function Sidebar({ isOpen, onClose }) {
   const navigate = useNavigate();
 
   const user = JSON.parse(localStorage.getItem('user') || '{}');
-  const isAdmin = user.roles?.includes('ROLE_ADMIN');
   const initials = user.firstName
     ? `${user.firstName[0]}${user.lastName?.[0] || ''}`.toUpperCase()
     : 'U';
@@ -109,17 +103,6 @@ export default function Sidebar({ isOpen, onClose }) {
           {icons.category}
           Category
         </NavLink>
-
-        {isAdmin && (
-          <NavLink
-            to="/admin"
-            className={({ isActive }) => `sidebar-link${isActive ? ' active' : ''}`}
-            onClick={handleNavClick}
-          >
-            {icons.admin}
-            Admin
-          </NavLink>
-        )}
       </nav>
 
       <div className="sidebar-signout">

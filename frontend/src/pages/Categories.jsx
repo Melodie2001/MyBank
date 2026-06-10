@@ -1,60 +1,49 @@
 import { useState, useEffect } from 'react';
-import { getCategories, createCategory, updateCategory, deleteCategory } from '../services/categoryService';
+import { getCategories, getMyCategories, addToMyCategories, removeFromMyCategories } from '../services/categoryService';
 import { getOperations } from '../services/operationService';
 
-const ICONS = [
-  { id: 'house.png', emoji: '🏠' },
-  { id: 'train.png', emoji: '🚆' },
-  { id: 'healthcare.png', emoji: '❤️' },
-  { id: 'books.png', emoji: '📚' },
-  { id: 'plane.png', emoji: '✈️' },
-  { id: 'dog.png', emoji: '🐾' },
-  { id: 'briefcase.png', emoji: '💼' },
-  { id: 'gamepad.png', emoji: '🎮' },
-  { id: 'burger.png', emoji: '🍔' },
-  { id: 'pills.png', emoji: '💊' },
-  { id: 'entertainment.png', emoji: '🎬' },
-  { id: 'cart.png', emoji: '🛒' },
-  { id: 'admin-test.png', emoji: '⚙️' },
-];
-
-const COLORS = [
-  '#00C49A',
-  '#156064',
-  '#F8E16C',
-  '#ef4444',
-  '#8b5cf6',
-  '#f97316',
-];
+const ICONS = {
+  'house.png': '🏠',
+  'train.png': '🚆',
+  'healthcare.png': '❤️',
+  'books.png': '📚',
+  'plane.png': '✈️',
+  'dog.png': '🐾',
+  'briefcase.png': '💼',
+  'gamepad.png': '🎮',
+  'burger.png': '🍔',
+  'pills.png': '💊',
+  'entertainment.png': '🎬',
+  'cart.png': '🛒',
+};
 
 export default function Categories() {
-  const [categories, setCategories] = useState([]);
+  const [myCategories, setMyCategories] = useState([]);
+  const [allCategories, setAllCategories] = useState([]);
   const [operations, setOperations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
-  const [editCategory, setEditCategory] = useState(null);
 
   useEffect(() => {
     fetchData();
   }, []);
 
   async function fetchData() {
-  try {
-    const [cats, ops] = await Promise.all([
-      getCategories(),
-      getOperations()
-    ]);
-    setOperations(ops);
-    // Garder uniquement les catégories qui ont au moins une opération
-    const activeCatIds = new Set(ops.map(op => op.category.id));
-    setCategories(cats.filter(cat => activeCatIds.has(cat.id)));
-  } catch (err) {
-    console.error(err);
-  } finally {
-    setLoading(false);
+    try {
+      const [mine, all, ops] = await Promise.all([
+        getMyCategories(),
+        getCategories(),
+        getOperations()
+      ]);
+      setMyCategories(mine);
+      setAllCategories(all);
+      setOperations(ops);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
   }
-}
-  
 
   function getCategoryStats(catId) {
     const catOps = operations.filter(op => op.category.id === catId);
@@ -62,30 +51,29 @@ export default function Categories() {
     return { count: catOps.length, total };
   }
 
-  async function handleDelete(id) {
-    if (!window.confirm('Delete this category?')) return;
+  async function handleAdd(categoryId) {
     try {
-      await deleteCategory(id);
-      setCategories(prev => prev.filter(c => c.id !== id));
+      await addToMyCategories(categoryId);
+      await fetchData();
+      setShowModal(false);
     } catch (err) {
-      alert(err.response?.data?.message || 'Cannot delete this category');
+      alert(err.response?.data?.message || 'An error occurred');
     }
   }
 
-  function handleEdit(cat) {
-    setEditCategory(cat);
-    setShowModal(true);
+  async function handleRemove(id) {
+    if (!window.confirm('Remove this category from your list?')) return;
+    try {
+      await removeFromMyCategories(id);
+      setMyCategories(prev => prev.filter(c => c.id !== id));
+    } catch (err) {
+      alert(err.response?.data?.message || 'Cannot remove this category');
+    }
   }
 
-  function handleModalClose() {
-    setShowModal(false);
-    setEditCategory(null);
-  }
-
-  async function handleSaved() {
-    handleModalClose();
-    await fetchData();
-  }
+  const availableCategories = allCategories.filter(
+    cat => !myCategories.some(mine => mine.id === cat.id)
+  );
 
   if (loading) return <div style={styles.loading}>Loading...</div>;
 
@@ -101,21 +89,29 @@ export default function Categories() {
         </button>
       </div>
 
-      {categories.length === 0 ? (
-        <div style={styles.empty}>No categories yet. Create your first one!</div>
+      {myCategories.length === 0 ? (
+        <div style={styles.empty}>
+          No categories yet. Click "+ Add category" to add one.
+        </div>
       ) : (
         <div style={styles.grid}>
-          {categories.map(cat => {
+          {myCategories.map(cat => {
             const { count, total } = getCategoryStats(cat.id);
             return (
               <div key={cat.id} style={styles.card}>
-                <div style={{
-                  ...styles.iconBox,
-                  backgroundColor: cat.color + '22',
-                }}>
-                  <span style={styles.iconEmoji}>
-                    {ICONS.find(i => i.id === cat.icon)?.emoji || '💰'}
-                  </span>
+                <div style={styles.cardTop}>
+                  <div style={{
+                    ...styles.iconBox,
+                    backgroundColor: cat.color + '22',
+                  }}>
+                    <span style={styles.iconEmoji}>
+                      {ICONS[cat.icon] || '💰'}
+                    </span>
+                  </div>
+                  <div style={{
+                    ...styles.colorDot,
+                    backgroundColor: cat.color
+                  }} />
                 </div>
                 <div style={styles.catName}>{cat.name}</div>
                 <div style={styles.catOps}>
@@ -125,8 +121,12 @@ export default function Categories() {
                   €{total.toFixed(2)}
                 </div>
                 <div style={styles.cardActions}>
-                  <button style={styles.btnEdit} onClick={() => handleEdit(cat)}>Edit</button>
-                  <button style={styles.btnDelete} onClick={() => handleDelete(cat.id)}>Delete</button>
+                  <button
+                    style={styles.btnRemove}
+                    onClick={() => handleRemove(cat.id)}
+                  >
+                    Remove
+                  </button>
                 </div>
               </div>
             );
@@ -135,133 +135,61 @@ export default function Categories() {
       )}
 
       {showModal && (
-        <CategoryModal
-          category={editCategory}
-          onClose={handleModalClose}
-          onSaved={handleSaved}
+        <SelectCategoryModal
+          categories={availableCategories}
+          onClose={() => setShowModal(false)}
+          onAdd={handleAdd}
         />
       )}
     </div>
   );
 }
 
-function CategoryModal({ category, onClose, onSaved }) {
-  const [name, setName] = useState(category?.name || '');
-  const [icon, setIcon] = useState(category?.icon || ICONS[0].id);
-  const [color, setColor] = useState(category?.color || COLORS[0]);
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
-
-  const previewEmoji = ICONS.find(i => i.id === icon)?.emoji || '💰';
-
-  async function handleSubmit(e) {
-    e.preventDefault();
-    setError('');
-    setLoading(true);
-    try {
-      const data = { name, icon, color };
-      if (category) {
-        await updateCategory(category.id, data);
-      } else {
-        await createCategory(data);
-      }
-      onSaved();
-    } catch (err) {
-      setError(err.response?.data?.message || 'An error occurred');
-    } finally {
-      setLoading(false);
-    }
-  }
-
+function SelectCategoryModal({ categories, onClose, onAdd }) {
   return (
     <div style={styles.overlay}>
       <div style={styles.modal}>
         <div style={styles.modalHeader}>
           <div>
-            <h2 style={styles.modalTitle}>
-              {category ? 'Edit category' : 'New category'}
-            </h2>
-            <p style={styles.modalSubtitle}>
-              Give your category a name, icon and color
-            </p>
+            <h2 style={styles.modalTitle}>Add a category</h2>
+            <p style={styles.modalSubtitle}>Select a category to add to your list</p>
           </div>
           <button onClick={onClose} style={styles.closeBtn}>✕</button>
         </div>
 
-        {error && <div style={styles.error}>{error}</div>}
-
-        <form onSubmit={handleSubmit} style={styles.form}>
-          <div style={styles.field}>
-            <label style={styles.label}>CATEGORY NAME</label>
-            <input
-              type="text"
-              value={name}
-              onChange={e => setName(e.target.value)}
-              style={styles.input}
-              placeholder="e.g. Groceries, Rent, Sport..."
-              required
-            />
+        {categories.length === 0 ? (
+          <div style={styles.emptyModal}>
+            All available categories are already in your list.
           </div>
-
-          <div style={styles.field}>
-            <label style={styles.label}>ICON</label>
-            <div style={styles.iconsGrid}>
-              {ICONS.map(ic => (
-                <button
-                  key={ic.id}
-                  type="button"
-                  onClick={() => setIcon(ic.id)}
-                  style={{
-                    ...styles.iconBtn,
-                    ...(icon === ic.id ? styles.iconBtnActive : {})
-                  }}
-                >
-                  {ic.emoji}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div style={styles.field}>
-            <label style={styles.label}>COLOR</label>
-            <div style={styles.colorsRow}>
-              {COLORS.map(c => (
-                <button
-                  key={c}
-                  type="button"
-                  onClick={() => setColor(c)}
-                  style={{
-                    ...styles.colorBtn,
-                    backgroundColor: c,
-                    ...(color === c ? styles.colorBtnActive : {})
-                  }}
-                />
-              ))}
-            </div>
-          </div>
-
-          <div style={styles.field}>
-            <label style={styles.label}>PREVIEW</label>
-            <div style={styles.preview}>
-              <div style={{
-                ...styles.previewIcon,
-                backgroundColor: color + '22',
-              }}>
-                <span style={{ fontSize: '20px' }}>{previewEmoji}</span>
+        ) : (
+          <div style={styles.categoriesGrid}>
+            {categories.map(cat => (
+              <div
+                key={cat.id}
+                style={styles.categoryOption}
+                onClick={() => onAdd(cat.id)}
+              >
+                <div style={{
+                  ...styles.optionIcon,
+                  backgroundColor: cat.color + '22',
+                }}>
+                  <span style={{ fontSize: '24px' }}>
+                    {ICONS[cat.icon] || '💰'}
+                  </span>
+                </div>
+                <span style={styles.optionName}>{cat.name}</span>
+                <div style={{
+                  ...styles.optionDot,
+                  backgroundColor: cat.color
+                }} />
               </div>
-              <span style={styles.previewName}>{name || 'Category name'}</span>
-            </div>
+            ))}
           </div>
+        )}
 
-          <div style={styles.modalActions}>
-            <button type="button" onClick={onClose} style={styles.btnCancel}>
-              Cancel
-            </button>
-            <button type="submit" style={styles.btnSave} disabled={loading}>
-              {loading ? 'Saving...' : 'Save category'}
-            </button>
-          </div>
-        </form>
+        <div style={styles.modalActions}>
+          <button onClick={onClose} style={styles.btnCancel}>Cancel</button>
+        </div>
       </div>
     </div>
   );
@@ -306,6 +234,9 @@ const styles = {
     color: '#9ca3af',
     fontSize: '14px',
     padding: '60px 0',
+    backgroundColor: '#fff',
+    borderRadius: '10px',
+    boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
   },
   grid: {
     display: 'grid',
@@ -321,6 +252,12 @@ const styles = {
     flexDirection: 'column',
     gap: '8px',
   },
+  cardTop: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: '4px',
+  },
   iconBox: {
     width: '52px',
     height: '52px',
@@ -328,10 +265,14 @@ const styles = {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: '4px',
   },
   iconEmoji: {
     fontSize: '24px',
+  },
+  colorDot: {
+    width: '10px',
+    height: '10px',
+    borderRadius: '50%',
   },
   catName: {
     fontSize: '16px',
@@ -354,18 +295,7 @@ const styles = {
     gap: '8px',
     marginTop: '4px',
   },
-  btnEdit: {
-    flex: 1,
-    backgroundColor: '#e5e9e8',
-    color: '#374151',
-    border: 'none',
-    borderRadius: '6px',
-    padding: '8px 0',
-    fontSize: '12px',
-    fontWeight: '500',
-    cursor: 'pointer',
-  },
-  btnDelete: {
+  btnRemove: {
     flex: 1,
     backgroundColor: '#fde8e8',
     color: '#ef4444',
@@ -390,7 +320,7 @@ const styles = {
     borderRadius: '12px',
     padding: '32px',
     width: '100%',
-    maxWidth: '460px',
+    maxWidth: '500px',
     boxShadow: '0 8px 32px rgba(0,0,0,0.12)',
   },
   modalHeader: {
@@ -418,97 +348,51 @@ const styles = {
     fontSize: '12px',
     color: '#6b7280',
   },
-  error: {
-    backgroundColor: '#fde8e8',
-    color: '#ef4444',
-    padding: '10px 14px',
-    borderRadius: '8px',
+  emptyModal: {
+    textAlign: 'center',
+    color: '#9ca3af',
     fontSize: '13px',
-    marginBottom: '16px',
+    padding: '24px 0',
   },
-  form: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '16px',
-  },
-  field: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '8px',
-  },
-  label: {
-    fontSize: '11px',
-    fontWeight: '600',
-    color: '#374151',
-    letterSpacing: '0.05em',
-  },
-  input: {
-    backgroundColor: '#e5e9e8',
-    border: 'none',
-    borderRadius: '8px',
-    padding: '12px 14px',
-    fontSize: '14px',
-    outline: 'none',
-    width: '100%',
-  },
-  iconsGrid: {
+  categoriesGrid: {
     display: 'grid',
-    gridTemplateColumns: 'repeat(6, 1fr)',
-    gap: '8px',
-  },
-  iconBtn: {
-    backgroundColor: '#f3f4f6',
-    border: '2px solid transparent',
-    borderRadius: '8px',
-    padding: '8px',
-    fontSize: '18px',
-    cursor: 'pointer',
-  },
-  iconBtnActive: {
-    border: '2px solid #00C49A',
-    backgroundColor: '#e6faf5',
-  },
-  colorsRow: {
-    display: 'flex',
-    gap: '10px',
-  },
-  colorBtn: {
-    width: '28px',
-    height: '28px',
-    borderRadius: '50%',
-    border: '2px solid transparent',
-    cursor: 'pointer',
-  },
-  colorBtnActive: {
-    border: '2px solid #1a1a1a',
-    transform: 'scale(1.15)',
-  },
-  preview: {
-    display: 'flex',
-    alignItems: 'center',
+    gridTemplateColumns: 'repeat(3, 1fr)',
     gap: '12px',
-    backgroundColor: '#f3f4f6',
-    borderRadius: '8px',
-    padding: '12px',
+    marginBottom: '24px',
   },
-  previewIcon: {
-    width: '40px',
-    height: '40px',
-    borderRadius: '8px',
+  categoryOption: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    gap: '8px',
+    padding: '16px 12px',
+    borderRadius: '10px',
+    border: '2px solid #f3f4f6',
+    cursor: 'pointer',
+    position: 'relative',
+  },
+  optionIcon: {
+    width: '52px',
+    height: '52px',
+    borderRadius: '12px',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  previewName: {
-    fontSize: '14px',
-    fontWeight: '500',
-    color: '#374151',
+  optionName: {
+    fontSize: '13px',
+    fontWeight: '600',
+    color: '#1a1a1a',
+    textAlign: 'center',
+  },
+  optionDot: {
+    width: '8px',
+    height: '8px',
+    borderRadius: '50%',
   },
   modalActions: {
     display: 'flex',
     justifyContent: 'flex-end',
-    gap: '12px',
-    marginTop: '8px',
   },
   btnCancel: {
     backgroundColor: '#f3f4f6',
@@ -517,16 +401,6 @@ const styles = {
     borderRadius: '8px',
     padding: '10px 20px',
     fontWeight: '500',
-    fontSize: '13px',
-    cursor: 'pointer',
-  },
-  btnSave: {
-    backgroundColor: '#00C49A',
-    color: '#fff',
-    border: 'none',
-    borderRadius: '8px',
-    padding: '10px 20px',
-    fontWeight: '600',
     fontSize: '13px',
     cursor: 'pointer',
   },

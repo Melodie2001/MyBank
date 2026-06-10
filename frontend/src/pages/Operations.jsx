@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { getOperations, deleteOperation } from '../services/operationService';
-import { getCategories } from '../services/categoryService';
+import { getCategories, addToMyCategories } from '../services/categoryService';
 import OperationCard from '../components/OperationCard';
 
 export default function Operations() {
@@ -11,9 +12,13 @@ export default function Operations() {
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editOperation, setEditOperation] = useState(null);
+  const location = useLocation();
 
   useEffect(() => {
     fetchData();
+    if (location.state?.openModal) {
+      setShowModal(true);
+    }
   }, []);
 
   async function fetchData() {
@@ -167,6 +172,15 @@ function OperationModal({ categories, operation, onClose, onSaved }) {
       } else {
         const { createOperation } = await import('../services/operationService');
         await createOperation(data);
+
+        // Ajouter automatiquement la catégorie dans user_category
+        try {
+          await addToMyCategories(parseInt(categoryId));
+        } catch (err) {
+          if (err.response?.status !== 409) {
+            console.error(err);
+          }
+        }
       }
       onSaved();
     } catch (err) {

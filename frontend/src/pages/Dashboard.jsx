@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { getDashboard } from '../services/operationService';
-import { getCategories } from '../services/categoryService';
+import { getMyCategories } from '../services/categoryService';
 
 export default function Dashboard() {
   const [data, setData] = useState(null);
@@ -15,7 +15,7 @@ export default function Dashboard() {
       try {
         const [dashboard, cats] = await Promise.all([
           getDashboard(),
-          getCategories()
+          getMyCategories()
         ]);
         setData(dashboard);
         setCategories(cats);
@@ -37,7 +37,6 @@ export default function Dashboard() {
     return matchFilter && matchSearch;
   });
 
-  // Budget breakdown par catégorie
   const budgetByCategory = (data?.recent_operations || [])
     .filter(op => op.type === 'expense')
     .reduce((acc, op) => {
@@ -56,8 +55,8 @@ export default function Dashboard() {
     <div>
       <div style={styles.header}>
         <div />
-        <Link to="/operations">
-          <button style={styles.btnAdd}>+ Add operation</button>
+        <Link to="/operations" state={{ openModal: true }}>
+     <button style={styles.btnAdd}>+ Add operation</button>
         </Link>
       </div>
 
