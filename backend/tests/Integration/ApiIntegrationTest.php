@@ -4,15 +4,20 @@ namespace App\Tests\Integration;
 
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Doctrine\ORM\EntityManagerInterface;
+use App\Entity\User;
 
 class ApiIntegrationTest extends WebTestCase
 {
     private $client;
-    private string $token = '';
+
+    // Token statique partagé entre toutes les instances du test
+    private static string $staticToken = '';
 
     protected function setUp(): void
     {
+        // Réutiliser le même kernel pour tous les tests (perf + stabilité)
         $this->client = static::createClient();
+        $this->client->disableReboot(); // évite le reboot du kernel entre requêtes
     }
 
     // =====================
@@ -45,7 +50,6 @@ class ApiIntegrationTest extends WebTestCase
 
     public function testRegisterWithExistingEmail(): void
     {
-        // Premier enregistrement
         $this->client->request(
             'POST',
             '/api/register',
@@ -60,7 +64,6 @@ class ApiIntegrationTest extends WebTestCase
             ])
         );
 
-        // Deuxième enregistrement avec le même email
         $this->client->request(
             'POST',
             '/api/register',
@@ -200,7 +203,6 @@ class ApiIntegrationTest extends WebTestCase
     {
         $token = $this->getAuthToken();
 
-        // Récupérer une catégorie existante
         $this->client->request(
             'GET',
             '/api/categories',
@@ -220,7 +222,6 @@ class ApiIntegrationTest extends WebTestCase
 
         $categoryId = $categories[0]['id'];
 
-        // Créer une opération
         $this->client->request(
             'POST',
             '/api/operations',
@@ -295,19 +296,18 @@ class ApiIntegrationTest extends WebTestCase
 
     private function getAuthToken(): string
     {
-        if ($this->token) {
-            return $this->token;
+        // Token statique : généré une seule fois pour toute la suite de tests
+        if (self::$staticToken !== '') {
+            return self::$staticToken;
         }
 
-        // Créer un user actif pour les tests
         $em = static::getContainer()->get(EntityManagerInterface::class);
-
-        $userRepo = $em->getRepository(\App\Entity\User::class);
+        $userRepo = $em->getRepository(User::class);
         $existingUser = $userRepo->findOneBy(['email' => 'active_test@test.com']);
 
         if (!$existingUser) {
             $hasher = static::getContainer()->get('security.user_password_hasher');
-            $user = new \App\Entity\User();
+            $user = new User();
             $user->setEmail('active_test@test.com');
             $user->setFirstName('Active');
             $user->setLastName('Test');
@@ -318,7 +318,9 @@ class ApiIntegrationTest extends WebTestCase
             $em->flush();
         }
 
-        $this->client->request(
+        // Client dédié au login pour ne pas polluer l'état du client principal
+        $loginClient = static::createClient();
+        $loginClient->request(
             'POST',
             '/api/login',
             [],
@@ -330,9 +332,16 @@ class ApiIntegrationTest extends WebTestCase
             ])
         );
 
-        $response = json_decode($this->client->getResponse()->getContent(), true);
-        $this->token = $response['token'] ?? '';
+        $response = json_decode($loginClient->getResponse()->getContent(), true);
 
-        return $this->token;
+        if (empty($response['token'])) {
+            throw new \RuntimeException(
+                'Could not retrieve JWT token. Login response: ' . json_encode($response)
+            );
+        }
+
+        self::$staticToken = $response['token'];
+
+        return self::$staticToken;
     }
 }
