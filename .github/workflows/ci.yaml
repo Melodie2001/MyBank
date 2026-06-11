@@ -9,6 +9,9 @@ on:
       - main
 
 jobs:
+  # =====================
+  # BACKEND (Symfony)
+  # =====================
   symfony-tests:
     runs-on: ubuntu-latest
     services:
@@ -27,7 +30,7 @@ jobs:
 
     steps:
       - name: Checkout project
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
@@ -44,7 +47,6 @@ jobs:
         working-directory: backend
         run: composer require --dev symfony/test-pack --no-interaction
 
-      # ✅ AJOUT : Génération des clés JWT
       - name: Generate JWT keys
         working-directory: backend
         run: |
@@ -80,15 +82,18 @@ jobs:
         working-directory: backend
         run: DATABASE_URL="mysql://root:root@127.0.0.1:3306/mybank_test?serverVersion=8.0" php bin/phpunit tests/Integration/ApiIntegrationTest.php
 
+  # =====================
+  # FRONTEND (Vue/React)
+  # =====================
   frontend-tests:
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout project
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: '20'
           cache: 'npm'
@@ -106,15 +111,18 @@ jobs:
         working-directory: frontend
         run: npm run build
 
+  # =====================
+  # FRONTEND ADMIN
+  # =====================
   frontend-admin-tests:
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout project
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: '20'
           cache: 'npm'
