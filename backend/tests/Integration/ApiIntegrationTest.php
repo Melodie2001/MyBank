@@ -335,8 +335,8 @@ class ApiIntegrationTest extends WebTestCase
 
         self::$staticToken = $response['token'];
 
-        // Reboot le client pour repartir sur un état propre après le login
-        $this->client = static::createClient();
+        // Vide l'historique du client sans rebooter le kernel
+        $this->client->restart();
 
         return self::$staticToken;
     }
