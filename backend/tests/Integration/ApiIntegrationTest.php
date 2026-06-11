@@ -9,15 +9,11 @@ use App\Entity\User;
 class ApiIntegrationTest extends WebTestCase
 {
     private $client;
-
-    // Token statique partagé entre toutes les instances du test
     private static string $staticToken = '';
 
     protected function setUp(): void
     {
-        // Réutiliser le même kernel pour tous les tests (perf + stabilité)
         $this->client = static::createClient();
-        $this->client->disableReboot(); // évite le reboot du kernel entre requêtes
     }
 
     // =====================
@@ -296,7 +292,6 @@ class ApiIntegrationTest extends WebTestCase
 
     private function getAuthToken(): string
     {
-        // Token statique : généré une seule fois pour toute la suite de tests
         if (self::$staticToken !== '') {
             return self::$staticToken;
         }
@@ -318,9 +313,7 @@ class ApiIntegrationTest extends WebTestCase
             $em->flush();
         }
 
-        // Client dédié au login pour ne pas polluer l'état du client principal
-        $loginClient = static::createClient();
-        $loginClient->request(
+        $this->client->request(
             'POST',
             '/api/login',
             [],
@@ -332,7 +325,7 @@ class ApiIntegrationTest extends WebTestCase
             ])
         );
 
-        $response = json_decode($loginClient->getResponse()->getContent(), true);
+        $response = json_decode($this->client->getResponse()->getContent(), true);
 
         if (empty($response['token'])) {
             throw new \RuntimeException(
@@ -341,6 +334,9 @@ class ApiIntegrationTest extends WebTestCase
         }
 
         self::$staticToken = $response['token'];
+
+        // Reboot le client pour repartir sur un état propre après le login
+        $this->client = static::createClient();
 
         return self::$staticToken;
     }
