@@ -6,23 +6,43 @@ const LogoIcon = () => (
   <div style={{
     width: '40px',
     height: '40px',
-    borderRadius: '10px',
-    backgroundColor: '#F8E16C',
+    borderRadius: '11px',
+    backgroundColor: '#2563EB',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    fontSize: '22px',
+    fontSize: '18px',
+    fontWeight: '800',
+    color: '#fff',
     flexShrink: 0,
+    fontFamily: 'Montserrat, sans-serif',
   }}>
-    🏦
+    N
   </div>
 );
+
+function getPasswordStrength(pwd) {
+  if (!pwd) return { score: 0, label: '', color: '' };
+  let score = 0;
+  if (pwd.length >= 8) score++;
+  if (pwd.length >= 12) score++;
+  if (/[A-Z]/.test(pwd)) score++;
+  if (/[0-9]/.test(pwd)) score++;
+  if (/[^A-Za-z0-9]/.test(pwd)) score++;
+  if (score <= 1) return { score, label: 'Weak', color: '#DC2626' };
+  if (score <= 3) return { score, label: 'Fair', color: '#D97706' };
+  if (score === 4) return { score, label: 'Good', color: '#2563EB' };
+  return { score, label: 'Strong', color: '#16A34A' };
+}
 
 export default function Register() {
   const navigate = useNavigate();
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
+  const [birthDate, setBirthDate] = useState('');
+  const [gender, setGender] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -30,6 +50,8 @@ export default function Register() {
   const [agreeTerms, setAgreeTerms] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  const pwdStrength = getPasswordStrength(password);
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -52,7 +74,7 @@ export default function Register() {
 
     setLoading(true);
     try {
-      await register(email, password, firstName, lastName);
+      await register(email, password, firstName, lastName, phone || undefined, birthDate || undefined, gender || undefined);
       navigate('/login', {
         state: { message: 'Account created! Wait for admin approval before signing in.' }
       });
@@ -69,11 +91,17 @@ export default function Register() {
 
         {/* Left panel */}
         <div style={styles.left}>
+          {/* Background decoration: dot grid + concentric rings */}
+          <div style={styles.dotGrid} />
+          <div style={styles.ring1} />
+          <div style={styles.ring2} />
+          <div style={styles.accentBlob} />
+
           <div style={styles.logo}>
             <LogoIcon />
             <span>
-              <span style={{ color: '#fff', fontWeight: '400' }}>my</span>
-              <span style={{ color: '#00C49A', fontWeight: '700' }}>Bank</span>
+              <span style={{ color: '#fff', fontWeight: '700' }}>Nexo</span>
+              <span style={{ color: '#7DA8FF', fontWeight: '700' }}> Finance</span>
             </span>
           </div>
 
@@ -84,16 +112,11 @@ export default function Register() {
             </div>
 
             <h1 style={styles.leftTitle}>
-              Start managing<br />your <span style={{ color: '#F8E16C' }}>finances</span>
+              Start managing<br />your <span style={{ color: '#2563EB' }}>finances</span>
             </h1>
             <p style={styles.leftSubtitle}>
               Create your free account in less than a minute and take control of your spending today.
             </p>
-
-            <div style={styles.decoration}>
-              <div style={styles.circle1} />
-              <div style={styles.circle2} />
-            </div>
           </div>
 
           <div style={styles.features}>
@@ -125,7 +148,7 @@ export default function Register() {
         <div style={styles.right}>
           <div style={styles.rightInner}>
             <h2 style={styles.rightTitle}>Create an account ✨</h2>
-            <p style={styles.rightSubtitle}>Join myBank and take control of your budget</p>
+            <p style={styles.rightSubtitle}>Join Nexo Finance and take control of your budget</p>
 
             {error && <div style={styles.error}>{error}</div>}
 
@@ -176,6 +199,60 @@ export default function Register() {
                 </div>
               </div>
 
+              <div style={styles.row}>
+                <div style={styles.field}>
+                  <label style={styles.label}>PHONE NUMBER</label>
+                  <div style={styles.inputWrapper}>
+                    <span style={styles.inputIcon}>📱</span>
+                    <input
+                      type="tel"
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                      style={styles.input}
+                      placeholder="+33 6 12 34 56 78"
+                    />
+                  </div>
+                </div>
+                <div style={styles.field}>
+                  <label style={styles.label}>DATE OF BIRTH</label>
+                  <div style={styles.inputWrapper}>
+                    <span style={styles.inputIcon}>🎂</span>
+                    <input
+                      type="date"
+                      value={birthDate}
+                      onChange={(e) => setBirthDate(e.target.value)}
+                      style={styles.input}
+                      max={new Date().toISOString().split('T')[0]}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div style={styles.field}>
+                <label style={styles.label}>GENDER</label>
+                <div style={styles.genderGroup}>
+                  {[
+                    { value: 'male', label: 'Male', emoji: '👨' },
+                    { value: 'female', label: 'Female', emoji: '👩' },
+                    { value: 'non-binary', label: 'Non-binary', emoji: '🧑' },
+                    { value: 'prefer_not_to_say', label: 'Prefer not to say', emoji: '🤐' },
+                  ].map(opt => (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      onClick={() => setGender(gender === opt.value ? '' : opt.value)}
+                      style={{
+                        ...styles.genderBtn,
+                        ...(gender === opt.value ? styles.genderBtnActive : {}),
+                      }}
+                    >
+                      <span>{opt.emoji}</span>
+                      <span>{opt.label}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               <div style={styles.field}>
                 <label style={styles.label}>PASSWORD</label>
                 <div style={styles.inputWrapper}>
@@ -193,6 +270,22 @@ export default function Register() {
                   </button>
                 </div>
               </div>
+
+              {password && (
+                <div style={styles.strengthWrapper}>
+                  <div style={styles.strengthBars}>
+                    {[1, 2, 3, 4, 5].map(i => (
+                      <div key={i} style={{
+                        ...styles.strengthBar,
+                        backgroundColor: i <= pwdStrength.score ? pwdStrength.color : 'var(--color-border)',
+                      }} />
+                    ))}
+                  </div>
+                  <span style={{ ...styles.strengthLabel, color: pwdStrength.color }}>
+                    {pwdStrength.label}
+                  </span>
+                </div>
+              )}
 
               <div style={styles.field}>
                 <label style={styles.label}>CONFIRM PASSWORD</label>
@@ -219,12 +312,12 @@ export default function Register() {
                   onChange={(e) => setAgreeTerms(e.target.checked)}
                   style={styles.checkbox}
                 />
-                <span style={{ fontSize: '13px', color: '#6b7280' }}>
+                <span style={{ fontSize: '13px', color: 'var(--color-text-light)', fontWeight: '500' }}>
                   I agree to the{' '}
                   <span style={styles.termsLink}>Terms of Service</span>
                   {' '}and{' '}
                   <span style={styles.termsLink}>Privacy Policy</span>
-                  {' '}of myBank
+                  {' '}of Nexo Finance
                 </span>
               </label>
 
@@ -232,22 +325,6 @@ export default function Register() {
                 {loading ? 'Creating account...' : 'Create my account →'}
               </button>
             </form>
-
-            <div style={styles.divider}>
-              <div style={styles.dividerLine} />
-              <span style={styles.dividerText}>or sign up with</span>
-              <div style={styles.dividerLine} />
-            </div>
-
-            <button style={styles.btnGoogle}>
-              <svg width="18" height="18" viewBox="0 0 24 24">
-                <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-                <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-                <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-              </svg>
-              Continue with Google
-            </button>
 
             <p style={styles.switchText}>
               Already have an account?{' '}
@@ -267,8 +344,9 @@ const styles = {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#E8F0EF',
+    backgroundColor: 'var(--color-bg)',
     padding: '20px',
+    fontFamily: 'Montserrat, sans-serif',
   },
   container: {
     display: 'flex',
@@ -277,11 +355,11 @@ const styles = {
     minHeight: '650px',
     borderRadius: '20px',
     overflow: 'hidden',
-    boxShadow: '0 20px 60px rgba(0,0,0,0.15)',
+    boxShadow: '0 20px 60px rgba(11,30,61,0.15)',
   },
   left: {
     flex: 1,
-    backgroundColor: '#156064',
+    backgroundColor: '#0B1E3D',
     padding: '48px 40px',
     display: 'flex',
     flexDirection: 'column',
@@ -289,6 +367,49 @@ const styles = {
     position: 'relative',
     overflow: 'hidden',
   },
+
+  /* ===== Background decoration ===== */
+  dotGrid: {
+    position: 'absolute',
+    top: '40px',
+    right: '40px',
+    width: '160px',
+    height: '160px',
+    backgroundImage: 'radial-gradient(circle, rgba(255,255,255,0.12) 1.5px, transparent 1.5px)',
+    backgroundSize: '18px 18px',
+    zIndex: 0,
+  },
+  ring1: {
+    position: 'absolute',
+    bottom: '120px',
+    right: '-60px',
+    width: '220px',
+    height: '220px',
+    border: '1.5px solid rgba(255,255,255,0.08)',
+    borderRadius: '50%',
+    zIndex: 0,
+  },
+  ring2: {
+    position: 'absolute',
+    bottom: '80px',
+    right: '0px',
+    width: '150px',
+    height: '150px',
+    border: '1.5px solid rgba(255,255,255,0.06)',
+    borderRadius: '50%',
+    zIndex: 0,
+  },
+  accentBlob: {
+    position: 'absolute',
+    bottom: '-100px',
+    right: '-100px',
+    width: '300px',
+    height: '300px',
+    borderRadius: '50%',
+    backgroundColor: 'rgba(37,99,235,0.25)',
+    zIndex: 0,
+  },
+
   logo: {
     display: 'flex',
     alignItems: 'center',
@@ -296,7 +417,7 @@ const styles = {
     marginBottom: '48px',
     position: 'relative',
     zIndex: 1,
-    fontSize: '22px',
+    fontSize: '21px',
     fontWeight: '700',
   },
   leftContent: {
@@ -308,54 +429,35 @@ const styles = {
     display: 'inline-flex',
     alignItems: 'center',
     gap: '6px',
-    border: '1px solid rgba(0,196,154,0.5)',
-    color: '#00C49A',
+    border: '1px solid rgba(37,99,235,0.4)',
+    color: '#7DA8FF',
     borderRadius: '20px',
     padding: '5px 14px',
     fontSize: '12px',
+    fontWeight: '700',
+    letterSpacing: '0.5px',
     marginBottom: '24px',
-    backgroundColor: 'rgba(0,196,154,0.1)',
+    backgroundColor: 'rgba(37,99,235,0.15)',
   },
   badgeDot: {
     width: '6px',
     height: '6px',
     borderRadius: '50%',
-    backgroundColor: '#00C49A',
+    backgroundColor: '#2563EB',
     display: 'inline-block',
   },
   leftTitle: {
     fontSize: '36px',
-    fontWeight: '700',
+    fontWeight: '800',
+    letterSpacing: '-1px',
     lineHeight: 1.2,
     marginBottom: '16px',
   },
   leftSubtitle: {
     fontSize: '14px',
-    color: 'rgba(255,255,255,0.7)',
+    color: 'rgba(255,255,255,0.55)',
     lineHeight: 1.7,
-  },
-  decoration: {
-    position: 'absolute',
-    bottom: '-40px',
-    right: '-40px',
-  },
-  circle1: {
-    width: '200px',
-    height: '200px',
-    borderRadius: '50%',
-    backgroundColor: 'rgba(0,196,154,0.1)',
-    position: 'absolute',
-    bottom: 0,
-    right: 0,
-  },
-  circle2: {
-    width: '140px',
-    height: '140px',
-    borderRadius: '50%',
-    backgroundColor: 'rgba(0,196,154,0.08)',
-    position: 'absolute',
-    bottom: '60px',
-    right: '60px',
+    maxWidth: '340px',
   },
   features: {
     display: 'flex',
@@ -372,30 +474,30 @@ const styles = {
   featureNum: {
     width: '24px',
     height: '24px',
-    borderRadius: '50%',
-    backgroundColor: 'rgba(0,196,154,0.2)',
-    border: '1px solid rgba(0,196,154,0.5)',
+    borderRadius: '8px',
+    backgroundColor: 'rgba(37,99,235,0.15)',
+    border: '1px solid rgba(37,99,235,0.3)',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
     fontSize: '11px',
     fontWeight: '700',
-    color: '#00C49A',
+    color: '#7DA8FF',
     flexShrink: 0,
   },
   featureTitle: {
     fontSize: '13px',
-    fontWeight: '600',
+    fontWeight: '700',
     color: '#fff',
     marginBottom: '2px',
   },
   featureDesc: {
     fontSize: '12px',
-    color: 'rgba(255,255,255,0.6)',
+    color: 'rgba(255,255,255,0.45)',
   },
   right: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: 'var(--color-white)',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
@@ -408,21 +510,24 @@ const styles = {
   },
   rightTitle: {
     fontSize: '28px',
-    fontWeight: '700',
+    fontWeight: '800',
+    letterSpacing: '-0.5px',
     marginBottom: '6px',
-    color: '#1a1a1a',
+    color: 'var(--color-text)',
   },
   rightSubtitle: {
     fontSize: '14px',
-    color: '#6b7280',
+    color: 'var(--color-text-light)',
     marginBottom: '28px',
+    fontWeight: '500',
   },
   error: {
-    backgroundColor: '#fde8e8',
-    color: '#ef4444',
+    backgroundColor: '#FEF2F2',
+    color: '#DC2626',
     padding: '12px 16px',
     borderRadius: '10px',
     fontSize: '13px',
+    fontWeight: '600',
     marginBottom: '16px',
   },
   form: {
@@ -443,7 +548,7 @@ const styles = {
   label: {
     fontSize: '11px',
     fontWeight: '700',
-    color: '#374151',
+    color: 'var(--color-text-light)',
     letterSpacing: '0.06em',
   },
   inputWrapper: {
@@ -458,11 +563,13 @@ const styles = {
     zIndex: 1,
   },
   input: {
-    backgroundColor: '#f0f4f3',
-    border: '2px solid transparent',
-    borderRadius: '10px',
+    backgroundColor: 'var(--color-input-bg)',
+    border: '1.5px solid var(--color-border)',
+    borderRadius: '12px',
     padding: '12px 14px 12px 38px',
     fontSize: '14px',
+    fontFamily: 'Montserrat, sans-serif',
+    color: 'var(--color-text)',
     outline: 'none',
     width: '100%',
   },
@@ -481,67 +588,87 @@ const styles = {
     cursor: 'pointer',
   },
   checkbox: {
-    accentColor: '#00C49A',
+    accentColor: '#2563EB',
     width: '15px',
     height: '15px',
     marginTop: '2px',
     flexShrink: 0,
   },
   termsLink: {
-    color: '#00C49A',
-    fontWeight: '600',
+    color: '#2563EB',
+    fontWeight: '700',
     cursor: 'pointer',
   },
   btnPrimary: {
-    backgroundColor: '#00C49A',
+    backgroundColor: '#2563EB',
     color: '#fff',
     border: 'none',
-    borderRadius: '10px',
+    borderRadius: '12px',
     padding: '14px',
     fontWeight: '700',
     fontSize: '15px',
+    fontFamily: 'Montserrat, sans-serif',
     cursor: 'pointer',
     letterSpacing: '0.02em',
-  },
-  divider: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '12px',
-    margin: '20px 0',
-  },
-  dividerLine: {
-    flex: 1,
-    height: '1px',
-    backgroundColor: '#e5e7eb',
-  },
-  dividerText: {
-    fontSize: '12px',
-    color: '#9ca3af',
-    whiteSpace: 'nowrap',
-  },
-  btnGoogle: {
-    width: '100%',
-    backgroundColor: '#fff',
-    border: '2px solid #e5e7eb',
-    borderRadius: '10px',
-    padding: '13px',
-    fontWeight: '600',
-    fontSize: '14px',
-    cursor: 'pointer',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: '10px',
-    color: '#374151',
-    marginBottom: '20px',
+    boxShadow: '0 10px 24px -8px rgba(37,99,235,0.4)',
   },
   switchText: {
     textAlign: 'center',
     fontSize: '13px',
-    color: '#6b7280',
+    color: 'var(--color-text-light)',
+    fontWeight: '500',
+    marginTop: '20px',
   },
   link: {
-    color: '#00C49A',
+    color: '#2563EB',
     fontWeight: '700',
+  },
+  strengthWrapper: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '10px',
+    marginTop: '-6px',
+  },
+  strengthBars: {
+    display: 'flex',
+    gap: '4px',
+    flex: 1,
+  },
+  strengthBar: {
+    flex: 1,
+    height: '4px',
+    borderRadius: '999px',
+    transition: 'background-color 0.2s',
+  },
+  strengthLabel: {
+    fontSize: '11px',
+    fontWeight: '700',
+    minWidth: '44px',
+    textAlign: 'right',
+  },
+  genderGroup: {
+    display: 'grid',
+    gridTemplateColumns: '1fr 1fr',
+    gap: '8px',
+  },
+  genderBtn: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+    padding: '10px 14px',
+    borderRadius: '12px',
+    border: '1.5px solid var(--color-border)',
+    backgroundColor: 'var(--color-input-bg)',
+    color: 'var(--color-text-light)',
+    fontSize: '13px',
+    fontWeight: '600',
+    fontFamily: 'Montserrat, sans-serif',
+    cursor: 'pointer',
+    transition: 'border-color 0.15s, color 0.15s, background 0.15s',
+  },
+  genderBtnActive: {
+    borderColor: '#2563EB',
+    backgroundColor: 'rgba(37,99,235,0.08)',
+    color: '#2563EB',
   },
 };

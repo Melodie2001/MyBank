@@ -1,9 +1,36 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import {
+  PieChart, Pie, Cell, ResponsiveContainer,
+  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip
+} from 'recharts';
 import { getDashboard } from '../services/operationService';
 import { getMyCategories } from '../services/categoryService';
+import { useTheme } from '../context/ThemeContext';
+
+const CHART_COLORS = ['#2563EB', '#16A34A', '#D97706', '#DC2626', '#7C3AED', '#0EA5E9'];
+
+function getCategoryEmoji(categoryName) {
+  const n = (categoryName || '').toLowerCase();
+  if (n.includes('work') || n.includes('salary') || n.includes('emploi')) return '💼';
+  if (n.includes('food') || n.includes('eat') || n.includes('nourriture') || n.includes('repas')) return '🍔';
+  if (n.includes('coffee') || n.includes('café') || n.includes('cafe')) return '☕';
+  if (n.includes('shop') || n.includes('achat') || n.includes('cloth') || n.includes('mode')) return '🛍️';
+  if (n.includes('travel') || n.includes('voyage') || n.includes('vacation') || n.includes('trip')) return '✈️';
+  if (n.includes('transport') || n.includes('voiture') || n.includes('car') || n.includes('taxi')) return '🚗';
+  if (n.includes('health') || n.includes('santé') || n.includes('doctor') || n.includes('médecin')) return '💊';
+  if (n.includes('sport') || n.includes('gym') || n.includes('fitness')) return '🏃';
+  if (n.includes('entertain') || n.includes('cinema') || n.includes('film') || n.includes('movie')) return '🎬';
+  if (n.includes('home') || n.includes('loyer') || n.includes('rent') || n.includes('maison')) return '🏠';
+  if (n.includes('education') || n.includes('school') || n.includes('livre') || n.includes('book')) return '📚';
+  if (n.includes('tech') || n.includes('computer') || n.includes('phone') || n.includes('ordi')) return '💻';
+  if (n.includes('sub') || n.includes('abonn') || n.includes('netflix') || n.includes('spotify')) return '📱';
+  if (n.includes('income') || n.includes('revenu') || n.includes('salaire')) return '💰';
+  return '💳';
+}
 
 export default function Dashboard() {
+  const { dark } = useTheme();
   const [data, setData] = useState(null);
   const [categories, setCategories] = useState([]);
   const [filter, setFilter] = useState('all');
@@ -28,7 +55,9 @@ export default function Dashboard() {
     fetchData();
   }, []);
 
-  const filteredOperations = (data?.recent_operations || []).filter(op => {
+  const operations = data?.recent_operations || [];
+
+  const filteredOperations = operations.filter(op => {
     const matchFilter =
       filter === 'all' ||
       (filter === 'income' && op.type === 'income') ||
@@ -37,48 +66,124 @@ export default function Dashboard() {
     return matchFilter && matchSearch;
   });
 
-  const budgetByCategory = (data?.recent_operations || [])
+  // Budget breakdown: group expenses by category
+  const budgetByCategory = operations
     .filter(op => op.type === 'expense')
     .reduce((acc, op) => {
       const name = op.category.name;
       const color = op.category.color;
       if (!acc[name]) acc[name] = { total: 0, color };
-      acc[name].total += op.amount;
+      acc[name].total += Number(op.amount);
       return acc;
     }, {});
 
-  const totalExpenses = data?.expenses || 1;
+  const totalExpenses = data?.expenses || 0;
+
+  const donutData = Object.entries(budgetByCategory).map(([name, { total, color }]) => ({
+    name,
+    value: total,
+    color: color || CHART_COLORS[0],
+    pct: totalExpenses > 0 ? Math.round((total / totalExpenses) * 100) : 0
+  })).sort((a, b) => b.value - a.value);
+
+  // Spending over time: group all operations by month
+  const monthlyData = operations.reduce((acc, op) => {
+    const month = op.date.slice(0, 7); // "YYYY-MM"
+    if (!acc[month]) acc[month] = { month, income: 0, expense: 0 };
+    if (op.type === 'income') {
+      acc[month].income += Number(op.amount);
+    } else {
+      acc[month].expense += Number(op.amount);
+    }
+    return acc;
+  }, {});
+
+  const sortedMonths = Object.keys(monthlyData).sort();
+  const chartData = sortedMonths.map(month => {
+    const [year, m] = month.split('-');
+    const label = new Date(year, m - 1).toLocaleDateString('en-US', { month: 'short' });
+    return {
+      label,
+      expense: Number(monthlyData[month].expense.toFixed(2)),
+      income: Number(monthlyData[month].income.toFixed(2)),
+    };
+  });
+
+  // % vs last month (based on expenses)
+  let expenseChangePct = null;
+  if (sortedMonths.length >= 2) {
+    const lastMonth = monthlyData[sortedMonths[sortedMonths.length - 1]].expense;
+    const prevMonth = monthlyData[sortedMonths[sortedMonths.length - 2]].expense;
+    if (prevMonth > 0) {
+      expenseChangePct = Math.round(((lastMonth - prevMonth) / prevMonth) * 100);
+    }
+  }
+
+  let incomeChangePct = null;
+  if (sortedMonths.length >= 2) {
+    const lastMonth = monthlyData[sortedMonths[sortedMonths.length - 1]].income;
+    const prevMonth = monthlyData[sortedMonths[sortedMonths.length - 2]].income;
+    if (prevMonth > 0) {
+      incomeChangePct = Math.round(((lastMonth - prevMonth) / prevMonth) * 100);
+    }
+  }
 
   if (loading) return <div style={styles.loading}>Loading...</div>;
 
   return (
     <div>
       <div style={styles.header}>
-        <div />
+        <div>
+          <h1 style={styles.title}>Good morning 👋</h1>
+          <p style={styles.subtitle}>Here's what's happening with your account today.</p>
+        </div>
         <Link to="/operations" state={{ openModal: true }}>
-     <button style={styles.btnAdd}>+ Add operation</button>
+          <button style={styles.btnAdd}>+ Add operation</button>
         </Link>
       </div>
 
       {/* Stats cards */}
       <div style={styles.statsRow}>
         <div style={styles.statCard}>
-          <div style={styles.statLabel}>BALANCE</div>
+          <div style={styles.statTop}>
+            <span style={styles.statLabel}>Total Balance</span>
+            <div style={{ ...styles.statIcon, backgroundColor: 'var(--color-bg-soft)', color: '#2563EB' }}>👛</div>
+          </div>
           <div style={styles.statValue}>
             {Number(data?.balance || 0).toFixed(2)} €
           </div>
         </div>
+
         <div style={styles.statCard}>
-          <div style={styles.statLabel}>TOTAL INCOME</div>
-          <div style={{ ...styles.statValue, color: '#00C49A' }}>
+          <div style={styles.statTop}>
+            <span style={styles.statLabel}>Total Income</span>
+            <div style={{ ...styles.statIcon, backgroundColor: '#ECFDF5', color: '#16A34A' }}>⬇</div>
+          </div>
+          <div style={{ ...styles.statValue, color: '#16A34A' }}>
             {Number(data?.income || 0).toFixed(2)} €
           </div>
+          {incomeChangePct !== null && (
+            <div style={{ ...styles.statChange, color: incomeChangePct >= 0 ? '#16A34A' : '#DC2626' }}>
+              {incomeChangePct >= 0 ? '▲' : '▼'} {Math.abs(incomeChangePct)}%
+              <span style={styles.statChangeLabel}>vs last month</span>
+            </div>
+          )}
         </div>
+
         <div style={styles.statCard}>
-          <div style={styles.statLabel}>TOTAL EXPENSES</div>
-          <div style={{ ...styles.statValue, color: '#ef4444' }}>
+          <div style={styles.statTop}>
+            <span style={styles.statLabel}>Total Expenses</span>
+            <div style={{ ...styles.statIcon, backgroundColor: '#FEF2F2', color: '#DC2626' }}>⬆</div>
+          </div>
+          <div style={{ ...styles.statValue, color: '#DC2626' }}>
             {Number(data?.expenses || 0).toFixed(2)} €
           </div>
+          {expenseChangePct !== null && (
+            <div style={{ ...styles.statChange, color: expenseChangePct <= 0 ? '#16A34A' : '#DC2626' }}>
+              {expenseChangePct >= 0 ? '▲' : '▼'} {Math.abs(expenseChangePct)}%
+              <span style={styles.statChangeLabel}>vs last month</span>
+            </div>
+          )}
         </div>
       </div>
 
@@ -88,39 +193,45 @@ export default function Dashboard() {
           <div style={styles.card}>
             <div style={styles.cardHeader}>
               <span style={styles.cardTitle}>Recent operations</span>
+              <Link to="/operations" style={styles.seeAll}>View all →</Link>
+            </div>
+
+            {/* Search + Filters row */}
+            <div style={styles.searchRow}>
+              <div style={styles.searchBar}>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ color: 'var(--color-text-light)', flexShrink: 0 }}>
+                  <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                </svg>
+                <input
+                  type="text"
+                  placeholder="Search operations..."
+                  value={search}
+                  onChange={e => setSearch(e.target.value)}
+                  style={styles.searchInput}
+                />
+                <span style={styles.searchKbd}>⌘K</span>
+              </div>
               <div style={styles.filters}>
-                {['all', 'income', 'expense'].map(f => (
+                {['All', 'Income', 'Expense'].map(f => (
                   <button
                     key={f}
-                    onClick={() => setFilter(f)}
+                    onClick={() => setFilter(f.toLowerCase())}
                     style={{
                       ...styles.filterBtn,
-                      ...(filter === f ? styles.filterBtnActive : {})
+                      ...(filter === f.toLowerCase() ? styles.filterBtnActive : {})
                     }}
                   >
-                    {f.charAt(0).toUpperCase() + f.slice(1)}
+                    {f}
                   </button>
                 ))}
               </div>
-              <Link to="/operations" style={styles.seeAll}>See all</Link>
-            </div>
-
-            <div style={styles.searchBar}>
-              <span style={styles.searchIcon}>🔍</span>
-              <input
-                type="text"
-                placeholder="Search operations"
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-                style={styles.searchInput}
-              />
             </div>
 
             <div style={styles.tableHeader}>
-              <span style={styles.col}>DESCRIPTION</span>
+              <span style={{ ...styles.col, gridColumn: 'span 2' }}>DESCRIPTION</span>
               <span style={styles.col}>CATEGORY</span>
               <span style={styles.col}>DATE</span>
-              <span style={styles.col}>AMOUNT</span>
+              <span style={{ ...styles.col, textAlign: 'right' }}>AMOUNT</span>
             </div>
 
             {filteredOperations.length === 0 ? (
@@ -128,7 +239,18 @@ export default function Dashboard() {
             ) : (
               filteredOperations.slice(0, 8).map(op => (
                 <div key={op.id} style={styles.tableRow}>
-                  <span style={styles.col}>{op.label}</span>
+                  {/* Icon */}
+                  <div style={{
+                    ...styles.opIcon,
+                    backgroundColor: op.category.color + '22',
+                  }}>
+                    {getCategoryEmoji(op.category.name)}
+                  </div>
+                  {/* Label + category subtitle */}
+                  <div style={styles.opInfo}>
+                    <span style={styles.opLabel}>{op.label}</span>
+                    <span style={styles.opSub}>{op.category.name}</span>
+                  </div>
                   <span style={styles.col}>
                     <span style={{
                       ...styles.categoryBadge,
@@ -138,11 +260,12 @@ export default function Dashboard() {
                       {op.category.name}
                     </span>
                   </span>
-                  <span style={styles.col}>{op.date}</span>
+                  <span style={{ ...styles.col, color: 'var(--color-text-light)' }}>{op.date}</span>
                   <span style={{
                     ...styles.col,
-                    fontWeight: '600',
-                    color: op.type === 'income' ? '#00C49A' : '#ef4444'
+                    fontWeight: '800',
+                    textAlign: 'right',
+                    color: op.type === 'income' ? '#16A34A' : '#DC2626'
                   }}>
                     {op.type === 'income' ? '+' : '-'}{Number(op.amount).toFixed(2)} €
                   </span>
@@ -154,45 +277,81 @@ export default function Dashboard() {
 
         {/* Right: Budget breakdown + Categories */}
         <div style={styles.rightCol}>
+
+          {/* Donut chart */}
           <div style={styles.card}>
             <div style={styles.cardTitle}>Budget breakdown</div>
-            <div style={{ marginTop: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              {Object.entries(budgetByCategory).map(([name, { total, color }]) => (
-                <div key={name}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', marginBottom: '4px' }}>
-                    <span>{name}</span>
-                    <span>{Number(total).toFixed(2)} €</span>
-                  </div>
-                  <div style={styles.progressBg}>
-                    <div style={{
-                      ...styles.progressBar,
-                      width: `${Math.min((total / totalExpenses) * 100, 100)}%`,
-                      backgroundColor: color
-                    }} />
+            {donutData.length === 0 ? (
+              <div style={styles.empty}>No expenses yet</div>
+            ) : (
+              <div style={styles.donutRow}>
+                <div style={styles.donutWrap}>
+                  <ResponsiveContainer width={140} height={140}>
+                    <PieChart>
+                      <Pie
+                        data={donutData}
+                        dataKey="value"
+                        nameKey="name"
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={48}
+                        outerRadius={64}
+                        paddingAngle={2}
+                        startAngle={90}
+                        endAngle={-270}
+                      >
+                        {donutData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.color || CHART_COLORS[index % CHART_COLORS.length]} />
+                        ))}
+                      </Pie>
+                    </PieChart>
+                  </ResponsiveContainer>
+                  <div style={styles.donutCenter}>
+                    <span style={styles.donutAmount}>{totalExpenses.toFixed(2)} €</span>
+                    <span style={styles.donutLabel}>Spent</span>
                   </div>
                 </div>
-              ))}
-              {Object.keys(budgetByCategory).length === 0 && (
-                <div style={styles.empty}>No expenses yet</div>
-              )}
-            </div>
+
+                <div style={styles.donutLegend}>
+                  {donutData.map((entry, index) => (
+                    <div key={entry.name} style={styles.legendRow}>
+                      <div style={{ ...styles.legendDot, backgroundColor: entry.color || CHART_COLORS[index % CHART_COLORS.length] }} />
+                      <span style={styles.legendName}>{entry.name}</span>
+                      <span style={styles.legendAmount}>{entry.value.toFixed(2)} €</span>
+                      <span style={styles.legendPct}>{entry.pct}%</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
+          {/* Categories list */}
           <div style={{ ...styles.card, marginTop: '16px' }}>
             <div style={styles.cardHeader}>
               <span style={styles.cardTitle}>Categories</span>
               <Link to="/categories" style={styles.seeAll}>Manage</Link>
             </div>
-            <div style={{ marginTop: '12px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              {categories.slice(0, 5).map(cat => (
-                <div key={cat.id} style={styles.catRow}>
-                  <div style={{
-                    ...styles.catDot,
-                    backgroundColor: cat.color
-                  }} />
-                  <span style={{ fontSize: '13px' }}>{cat.name}</span>
-                </div>
-              ))}
+            <div style={{ marginTop: '12px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              {categories.slice(0, 5).map(cat => {
+                const catTotal = budgetByCategory[cat.name]?.total || 0;
+                const pct = totalExpenses > 0 ? Math.round((catTotal / totalExpenses) * 100) : 0;
+                return (
+                  <div key={cat.id} style={styles.categoryRow}>
+                    <div style={{ ...styles.catDot, backgroundColor: cat.color }} />
+                    <div style={{ flex: 1 }}>
+                      <div style={styles.catTop}>
+                        <span style={styles.catName}>{cat.name}</span>
+                        <span style={styles.catAmount}>{catTotal.toFixed(2)} €</span>
+                      </div>
+                      <div style={styles.progressBg}>
+                        <div style={{ ...styles.progressBar, width: `${pct}%`, backgroundColor: cat.color }} />
+                      </div>
+                    </div>
+                    <span style={styles.catPct}>{pct}%</span>
+                  </div>
+                );
+              })}
               {categories.length === 0 && (
                 <div style={styles.empty}>No categories yet</div>
               )}
@@ -200,6 +359,58 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
+
+      {/* Spending over time */}
+      {chartData.length > 0 && (
+        <div style={{ ...styles.card, marginTop: '16px' }}>
+          <div style={styles.cardTitle}>Spending over time</div>
+          <div style={{ marginTop: '16px' }}>
+            <ResponsiveContainer width="100%" height={220}>
+              <AreaChart data={chartData}>
+                <defs>
+                  <linearGradient id="colorExpense" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#2563EB" stopOpacity={0.15} />
+                    <stop offset="100%" stopColor="#2563EB" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid vertical={false} stroke={dark ? '#334155' : '#F1F5F9'} />
+                <XAxis
+                  dataKey="label"
+                  tick={{ fontSize: 12, fill: '#94A3B8', fontFamily: 'Montserrat' }}
+                  axisLine={false}
+                  tickLine={false}
+                />
+                <YAxis
+                  tick={{ fontSize: 12, fill: '#94A3B8', fontFamily: 'Montserrat' }}
+                  axisLine={false}
+                  tickLine={false}
+                  tickFormatter={(v) => `${v} €`}
+                />
+                <Tooltip
+                  formatter={(value) => [`${value.toFixed(2)} €`, 'Expenses']}
+                  contentStyle={{
+                    borderRadius: '12px',
+                    border: `1px solid ${dark ? '#334155' : '#E2E8F0'}`,
+                    backgroundColor: dark ? '#1E293B' : '#fff',
+                    color: dark ? '#F1F5F9' : '#0B1E3D',
+                    fontFamily: 'Montserrat',
+                    fontSize: '13px',
+                  }}
+                />
+                <Area
+                  type="monotone"
+                  dataKey="expense"
+                  stroke="#2563EB"
+                  strokeWidth={3}
+                  fill="url(#colorExpense)"
+                  dot={{ r: 4, fill: '#2563EB', strokeWidth: 0 }}
+                  activeDot={{ r: 6 }}
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -211,60 +422,109 @@ const styles = {
     justifyContent: 'center',
     height: '100%',
     fontSize: '16px',
-    color: '#6b7280',
+    color: 'var(--color-text-light)',
+    fontFamily: 'Montserrat, sans-serif',
   },
   header: {
     display: 'flex',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     marginBottom: '24px',
   },
+  title: {
+    fontSize: '24px',
+    fontWeight: '800',
+    letterSpacing: '-0.5px',
+    color: 'var(--color-text)',
+    fontFamily: 'Montserrat, sans-serif',
+  },
+  subtitle: {
+    fontSize: '13px',
+    color: 'var(--color-text-light)',
+    fontWeight: '500',
+    fontFamily: 'Montserrat, sans-serif',
+    marginTop: '4px',
+  },
   btnAdd: {
-    backgroundColor: '#00C49A',
+    backgroundColor: '#2563EB',
     color: '#fff',
     border: 'none',
-    borderRadius: '8px',
-    padding: '10px 20px',
-    fontWeight: '600',
+    borderRadius: '12px',
+    padding: '12px 22px',
+    fontWeight: '700',
     fontSize: '13px',
+    fontFamily: 'Montserrat, sans-serif',
     cursor: 'pointer',
+    boxShadow: '0 10px 24px -8px rgba(37,99,235,0.4)',
   },
   statsRow: {
     display: 'grid',
     gridTemplateColumns: 'repeat(3, 1fr)',
     gap: '16px',
-    marginBottom: '24px',
+    marginBottom: '16px',
   },
   statCard: {
-    backgroundColor: '#fff',
-    borderRadius: '10px',
-    padding: '16px 20px',
-    boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
+    backgroundColor: 'var(--color-white)',
+    border: '1px solid var(--color-border)',
+    borderRadius: '16px',
+    padding: '20px 22px',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '12px',
+  },
+  statTop: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  statIcon: {
+    width: '38px',
+    height: '38px',
+    borderRadius: '12px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    fontSize: '17px',
   },
   statLabel: {
-    fontSize: '11px',
-    color: '#6b7280',
+    fontSize: '13px',
     fontWeight: '600',
-    letterSpacing: '0.05em',
-    marginBottom: '8px',
+    color: 'var(--color-text-light)',
+    fontFamily: 'Montserrat, sans-serif',
   },
   statValue: {
-    fontSize: '22px',
+    fontSize: '26px',
+    fontWeight: '800',
+    letterSpacing: '-0.5px',
+    color: 'var(--color-text)',
+    fontFamily: 'Montserrat, sans-serif',
+  },
+  statChange: {
+    fontSize: '12px',
     fontWeight: '700',
-    color: '#1a1a1a',
+    fontFamily: 'Montserrat, sans-serif',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '6px',
+  },
+  statChangeLabel: {
+    fontSize: '11px',
+    color: 'var(--color-text-light)',
+    fontWeight: '600',
   },
   mainGrid: {
     display: 'grid',
-    gridTemplateColumns: '1fr 280px',
+    gridTemplateColumns: '1fr 340px',
     gap: '16px',
   },
   leftCol: {},
   rightCol: {},
   card: {
-    backgroundColor: '#fff',
-    borderRadius: '10px',
-    padding: '20px',
-    boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
+    backgroundColor: 'var(--color-white)',
+    border: '1px solid var(--color-border)',
+    borderRadius: '16px',
+    padding: '24px',
+    fontFamily: 'Montserrat, sans-serif',
   },
   cardHeader: {
     display: 'flex',
@@ -275,104 +535,246 @@ const styles = {
   },
   cardTitle: {
     fontSize: '15px',
-    fontWeight: '700',
+    fontWeight: '800',
+    color: 'var(--color-text)',
     marginRight: 'auto',
   },
   filters: {
     display: 'flex',
-    gap: '6px',
+    gap: '4px',
+    backgroundColor: 'var(--color-bg)',
+    borderRadius: '10px',
+    padding: '4px',
   },
   filterBtn: {
     backgroundColor: 'transparent',
     border: 'none',
-    padding: '4px 10px',
-    borderRadius: '6px',
+    padding: '6px 12px',
+    borderRadius: '8px',
     fontSize: '12px',
-    fontWeight: '500',
-    color: '#6b7280',
+    fontWeight: '600',
+    fontFamily: 'Montserrat, sans-serif',
+    color: 'var(--color-text-light)',
     cursor: 'pointer',
   },
   filterBtnActive: {
-    backgroundColor: '#00C49A',
-    color: '#fff',
+    backgroundColor: 'var(--color-white)',
+    color: '#2563EB',
+    boxShadow: '0 1px 3px rgba(11,30,61,0.08)',
   },
   seeAll: {
     fontSize: '12px',
-    color: '#00C49A',
-    fontWeight: '600',
+    color: '#2563EB',
+    fontWeight: '700',
     textDecoration: 'none',
+  },
+  searchRow: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '10px',
+    marginBottom: '16px',
   },
   searchBar: {
     display: 'flex',
     alignItems: 'center',
     gap: '8px',
-    backgroundColor: '#f3f4f6',
-    borderRadius: '8px',
-    padding: '8px 12px',
-    marginBottom: '16px',
-  },
-  searchIcon: {
-    fontSize: '14px',
+    backgroundColor: 'var(--color-bg)',
+    border: '1.5px solid var(--color-border)',
+    borderRadius: '12px',
+    padding: '9px 14px',
+    flex: 1,
   },
   searchInput: {
     border: 'none',
     background: 'transparent',
     outline: 'none',
     fontSize: '13px',
+    fontFamily: 'Montserrat, sans-serif',
+    color: 'var(--color-text)',
     flex: 1,
+  },
+  searchKbd: {
+    fontSize: '10px',
+    fontWeight: '700',
+    color: 'var(--color-text-light)',
+    backgroundColor: 'var(--color-border)',
+    padding: '2px 6px',
+    borderRadius: '5px',
+    letterSpacing: '0.03em',
   },
   tableHeader: {
     display: 'grid',
-    gridTemplateColumns: '2fr 1fr 1fr 1fr',
-    padding: '8px 0',
-    borderBottom: '1px solid #f3f4f6',
-    marginBottom: '8px',
+    gridTemplateColumns: '36px 2fr 1fr 1fr 1fr',
+    padding: '10px 0',
+    borderBottom: '1px solid var(--color-border)',
+    marginBottom: '4px',
   },
   col: {
-    fontSize: '12px',
-    color: '#6b7280',
-    fontWeight: '600',
-    letterSpacing: '0.03em',
+    fontSize: '11px',
+    color: 'var(--color-text-light)',
+    fontWeight: '700',
+    letterSpacing: '0.05em',
+    fontFamily: 'Montserrat, sans-serif',
   },
   tableRow: {
     display: 'grid',
-    gridTemplateColumns: '2fr 1fr 1fr 1fr',
-    padding: '10px 0',
-    borderBottom: '1px solid #f9fafb',
+    gridTemplateColumns: '36px 2fr 1fr 1fr 1fr',
+    padding: '11px 0',
+    borderBottom: '1px solid var(--color-bg-soft)',
     alignItems: 'center',
+    gap: '4px',
+  },
+  opIcon: {
+    width: '36px',
+    height: '36px',
+    borderRadius: '10px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    fontSize: '16px',
+    flexShrink: 0,
+  },
+  opInfo: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '2px',
+    paddingLeft: '10px',
+  },
+  opLabel: {
+    fontSize: '13px',
+    fontWeight: '700',
+    color: 'var(--color-text)',
+    fontFamily: 'Montserrat, sans-serif',
+  },
+  opSub: {
+    fontSize: '11px',
+    color: 'var(--color-text-light)',
+    fontWeight: '500',
+    fontFamily: 'Montserrat, sans-serif',
   },
   categoryBadge: {
-    padding: '2px 8px',
-    borderRadius: '12px',
+    padding: '4px 10px',
+    borderRadius: '999px',
     fontSize: '11px',
-    fontWeight: '600',
+    fontWeight: '700',
   },
   empty: {
     textAlign: 'center',
-    color: '#9ca3af',
+    color: 'var(--color-text-light)',
     fontSize: '13px',
+    fontFamily: 'Montserrat, sans-serif',
     padding: '24px 0',
   },
-  progressBg: {
-    height: '6px',
-    backgroundColor: '#f3f4f6',
-    borderRadius: '3px',
-    overflow: 'hidden',
+  donutRow: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '20px',
   },
-  progressBar: {
-    height: '100%',
-    borderRadius: '3px',
-    transition: 'width 0.3s',
+  donutWrap: {
+    position: 'relative',
+    width: '140px',
+    height: '140px',
+    flexShrink: 0,
   },
-  catRow: {
+  donutCenter: {
+    position: 'absolute',
+    inset: 0,
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    textAlign: 'center',
+    pointerEvents: 'none',
+  },
+  donutAmount: {
+    fontSize: '17px',
+    fontWeight: '800',
+    letterSpacing: '-0.5px',
+    color: 'var(--color-text)',
+  },
+  donutLabel: {
+    fontSize: '11px',
+    color: 'var(--color-text-light)',
+    fontWeight: '600',
+  },
+  donutLegend: {
+    flex: 1,
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '12px',
+  },
+  legendRow: {
     display: 'flex',
     alignItems: 'center',
     gap: '10px',
+  },
+  legendDot: {
+    width: '10px',
+    height: '10px',
+    borderRadius: '50%',
+    flexShrink: 0,
+  },
+  legendName: {
+    fontSize: '13px',
+    fontWeight: '600',
+    color: 'var(--color-text)',
+    flex: 1,
+  },
+  legendAmount: {
+    fontSize: '13px',
+    fontWeight: '700',
+    color: 'var(--color-text)',
+  },
+  legendPct: {
+    fontSize: '12px',
+    fontWeight: '700',
+    color: 'var(--color-text-light)',
+    width: '36px',
+    textAlign: 'right',
+  },
+  categoryRow: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '12px',
   },
   catDot: {
     width: '10px',
     height: '10px',
     borderRadius: '50%',
     flexShrink: 0,
+  },
+  catTop: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'baseline',
+    marginBottom: '6px',
+  },
+  catName: {
+    fontSize: '13px',
+    fontWeight: '700',
+    color: 'var(--color-text)',
+  },
+  catAmount: {
+    fontSize: '13px',
+    fontWeight: '700',
+    color: 'var(--color-text)',
+  },
+  catPct: {
+    fontSize: '11px',
+    color: 'var(--color-text-light)',
+    fontWeight: '700',
+    width: '32px',
+    textAlign: 'right',
+  },
+  progressBg: {
+    height: '6px',
+    borderRadius: '999px',
+    backgroundColor: 'var(--color-bg-soft)',
+    overflow: 'hidden',
+  },
+  progressBar: {
+    height: '100%',
+    borderRadius: '999px',
+    transition: 'width 0.3s',
   },
 };

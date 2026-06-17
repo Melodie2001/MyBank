@@ -4,8 +4,10 @@ namespace App\Controller;
 
 use App\Entity\Operation;
 use App\Entity\User;
+use App\Repository\BudgetRepository;
 use App\Repository\CategoryRepository;
 use App\Repository\OperationRepository;
+use App\Service\NotificationService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -52,7 +54,10 @@ final class OperationController extends AbstractController
     public function create(
         Request $request,
         EntityManagerInterface $em,
-        CategoryRepository $categoryRepository
+        CategoryRepository $categoryRepository,
+        OperationRepository $operationRepository,
+        BudgetRepository $budgetRepository,
+        NotificationService $notificationService
     ): JsonResponse {
         /** @var User $user */
         $user = $this->getUser();
@@ -79,6 +84,70 @@ final class OperationController extends AbstractController
         $operation->setUser($user);
 
         $em->persist($operation);
+        $em->flush();
+
+        // Notification: operation added
+        $typeLabel = $data['type'] === 'income' ? 'Income' : 'Expense';
+        $notificationService->create(
+            $user,
+            'operation_added',
+            $typeLabel . ' recorded: ' . trim($data['label']),
+            sprintf('%s of %.2f € added to %s.', $typeLabel, (float) $data['amount'], $category->getName()),
+            $operation->getId()
+        );
+
+        // Budget threshold notifications (expense only)
+        if ($data['type'] === 'expense') {
+            $budget = $budgetRepository->findOneBy(['user' => $user, 'category' => $category]);
+            if ($budget) {
+                $now = new \DateTimeImmutable();
+                $monthStart = $now->modify('first day of this month')->setTime(0, 0, 0);
+                $monthEnd   = $now->modify('last day of this month')->setTime(23, 59, 59);
+
+                $allOps = $operationRepository->findBy(['user' => $user]);
+                $monthlySpent = 0.0;
+                foreach ($allOps as $op) {
+                    if (
+                        $op->getType() === 'expense'
+                        && $op->getCategory()->getId() === $category->getId()
+                        && $op->getDate() >= $monthStart
+                        && $op->getDate() <= $monthEnd
+                    ) {
+                        $monthlySpent += $op->getAmount();
+                    }
+                }
+
+                $prevSpent = $monthlySpent - $operation->getAmount();
+                $limit     = $budget->getMonthlyLimit();
+                $prevPct   = $limit > 0 ? ($prevSpent / $limit) * 100 : 0;
+                $newPct    = $limit > 0 ? ($monthlySpent / $limit) * 100 : 0;
+
+                if ($prevPct < 100 && $newPct >= 100) {
+                    $notificationService->create(
+                        $user,
+                        'budget_exceeded',
+                        'Budget exceeded: ' . $category->getName(),
+                        sprintf(
+                            'You have exceeded your %s budget this month (%.2f € spent / %.2f € limit).',
+                            $category->getName(), $monthlySpent, $limit
+                        ),
+                        $budget->getId()
+                    );
+                } elseif ($prevPct < 80 && $newPct >= 80) {
+                    $notificationService->create(
+                        $user,
+                        'budget_warning',
+                        'Budget nearly reached: ' . $category->getName(),
+                        sprintf(
+                            'You have used %.0f%% of your %s budget this month (%.2f € / %.2f €).',
+                            $newPct, $category->getName(), $monthlySpent, $limit
+                        ),
+                        $budget->getId()
+                    );
+                }
+            }
+        }
+
         $em->flush();
 
         return $this->json([

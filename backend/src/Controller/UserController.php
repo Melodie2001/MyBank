@@ -4,6 +4,7 @@ namespace App\Controller;
 
 use App\Entity\User;
 use App\Repository\UserRepository;
+use App\Service\NotificationService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -55,6 +56,112 @@ final class UserController extends AbstractController
         return $this->json($this->formatUser($user));
     }
 
+    #[Route('/api/me', methods: ['PUT'])]
+    public function updateMe(
+        Request $request,
+        EntityManagerInterface $em,
+        UserRepository $userRepository
+    ): JsonResponse {
+        /** @var User $user */
+        $user = $this->getUser();
+
+        $data = json_decode($request->getContent(), true);
+
+        if (!$data) {
+            return $this->json(['message' => 'Invalid JSON body'], 400);
+        }
+
+        if (isset($data['email'])) {
+            $email = strtolower(trim($data['email']));
+
+            if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                return $this->json(['message' => 'Email is invalid'], 400);
+            }
+
+            if ($email !== $user->getEmail()) {
+                $existingUser = $userRepository->findOneBy(['email' => $email]);
+
+                if ($existingUser) {
+                    return $this->json(['message' => 'Email already exists'], 409);
+                }
+
+                $user->setEmail($email);
+            }
+        }
+
+        if (isset($data['firstName'])) {
+            $user->setFirstName(trim($data['firstName']) ?: null);
+        }
+
+        if (isset($data['lastName'])) {
+            $user->setLastName(trim($data['lastName']) ?: null);
+        }
+
+        if (array_key_exists('phone', $data)) {
+            $user->setPhone(!empty($data['phone']) ? trim($data['phone']) : null);
+        }
+
+        if (array_key_exists('birthDate', $data)) {
+            if (!empty($data['birthDate'])) {
+                $birthDate = \DateTime::createFromFormat('Y-m-d', $data['birthDate']);
+                $user->setBirthDate($birthDate ?: null);
+            } else {
+                $user->setBirthDate(null);
+            }
+        }
+
+        $allowedGenders = ['male', 'female', 'non-binary', 'prefer_not_to_say'];
+        if (array_key_exists('gender', $data)) {
+            $user->setGender(in_array($data['gender'], $allowedGenders, true) ? $data['gender'] : null);
+        }
+
+        $em->flush();
+
+        return $this->json([
+            'message' => 'Profile updated',
+            'user' => $this->formatUser($user)
+        ]);
+    }
+
+    #[Route('/api/me/password', methods: ['PUT'])]
+    public function updatePassword(
+        Request $request,
+        EntityManagerInterface $em,
+        UserPasswordHasherInterface $passwordHasher
+    ): JsonResponse {
+        /** @var User $user */
+        $user = $this->getUser();
+
+        $data = json_decode($request->getContent(), true);
+
+        if (!$data) {
+            return $this->json(['message' => 'Invalid JSON body'], 400);
+        }
+
+        if (empty($data['current_password'])) {
+            return $this->json(['message' => 'Current password is required'], 400);
+        }
+
+        if (empty($data['new_password'])) {
+            return $this->json(['message' => 'New password is required'], 400);
+        }
+
+        if (strlen($data['new_password']) < 6) {
+            return $this->json(['message' => 'New password must contain at least 6 characters'], 400);
+        }
+
+        if (!$passwordHasher->isPasswordValid($user, $data['current_password'])) {
+            return $this->json(['message' => 'Current password is incorrect'], 400);
+        }
+
+        $hashedPassword = $passwordHasher->hashPassword($user, $data['new_password']);
+        $user->setPassword($hashedPassword);
+
+        $em->flush();
+
+        return $this->json(['message' => 'Password updated successfully']);
+    }
+
     #[Route('/api/register', methods: ['POST'])]
     public function register(
         Request $request,
@@ -89,6 +196,22 @@ final class UserController extends AbstractController
             $user->setLastName(trim($data['lastName']));
         }
 
+        if (!empty($data['phone'])) {
+            $user->setPhone(trim($data['phone']));
+        }
+
+        if (!empty($data['birthDate'])) {
+            $birthDate = \DateTime::createFromFormat('Y-m-d', $data['birthDate']);
+            if ($birthDate) {
+                $user->setBirthDate($birthDate);
+            }
+        }
+
+        $allowedGenders = ['male', 'female', 'non-binary', 'prefer_not_to_say'];
+        if (!empty($data['gender']) && in_array($data['gender'], $allowedGenders, true)) {
+            $user->setGender($data['gender']);
+        }
+
         $roles = ['ROLE_USER'];
 
         if (isset($data['roles']) && in_array('ROLE_ADMIN', $data['roles'], true)) {
@@ -116,7 +239,8 @@ final class UserController extends AbstractController
         int $id,
         Request $request,
         UserRepository $repository,
-        EntityManagerInterface $em
+        EntityManagerInterface $em,
+        NotificationService $notificationService
     ): JsonResponse {
         if (!$this->isGranted('ROLE_ADMIN')) {
             return $this->json(['message' => 'Access denied'], 403);
@@ -134,7 +258,18 @@ final class UserController extends AbstractController
             return $this->json(['message' => 'Invalid status. Must be active, pending or rejected'], 400);
         }
 
+        $previousStatus = $user->getStatus();
         $user->setStatus($data['status']);
+
+        if ($previousStatus !== 'active' && $data['status'] === 'active') {
+            $notificationService->create(
+                $user,
+                'account_validated',
+                'Your account has been activated!',
+                'Welcome to Nexo Finance! Your account is now active. You can start tracking your finances.'
+            );
+        }
+
         $em->flush();
 
         return $this->json([
@@ -234,46 +369,50 @@ final class UserController extends AbstractController
             'email' => $user->getEmail(),
             'firstName' => $user->getFirstName(),
             'lastName' => $user->getLastName(),
+            'phone' => $user->getPhone(),
+            'birthDate' => $user->getBirthDate()?->format('Y-m-d'),
+            'gender' => $user->getGender(),
             'roles' => $user->getRoles(),
             'status' => $user->getStatus()
         ];
     }
+
     #[Route('/api/users/{id}/role', methods: ['PUT'])]
-public function updateRole(
-    int $id,
-    Request $request,
-    UserRepository $repository,
-    EntityManagerInterface $em
-): JsonResponse {
-    if (!$this->isGranted('ROLE_ADMIN')) {
-        return $this->json(['message' => 'Access denied'], 403);
-    }
-
-    $user = $repository->find($id);
-
-    if (!$user) {
-        return $this->json(['message' => 'User not found'], 404);
-    }
-
-    $data = json_decode($request->getContent(), true);
-
-    if (!isset($data['roles']) || !is_array($data['roles'])) {
-        return $this->json(['message' => 'Roles must be an array'], 400);
-    }
-
-    $validRoles = ['ROLE_USER', 'ROLE_ADMIN'];
-    foreach ($data['roles'] as $role) {
-        if (!in_array($role, $validRoles, true)) {
-            return $this->json(['message' => 'Invalid role: ' . $role], 400);
+    public function updateRole(
+        int $id,
+        Request $request,
+        UserRepository $repository,
+        EntityManagerInterface $em
+    ): JsonResponse {
+        if (!$this->isGranted('ROLE_ADMIN')) {
+            return $this->json(['message' => 'Access denied'], 403);
         }
+
+        $user = $repository->find($id);
+
+        if (!$user) {
+            return $this->json(['message' => 'User not found'], 404);
+        }
+
+        $data = json_decode($request->getContent(), true);
+
+        if (!isset($data['roles']) || !is_array($data['roles'])) {
+            return $this->json(['message' => 'Roles must be an array'], 400);
+        }
+
+        $validRoles = ['ROLE_USER', 'ROLE_ADMIN'];
+        foreach ($data['roles'] as $role) {
+            if (!in_array($role, $validRoles, true)) {
+                return $this->json(['message' => 'Invalid role: ' . $role], 400);
+            }
+        }
+
+        $user->setRoles($data['roles']);
+        $em->flush();
+
+        return $this->json([
+            'message' => 'User role updated',
+            'user' => $this->formatUser($user)
+        ]);
     }
-
-    $user->setRoles($data['roles']);
-    $em->flush();
-
-    return $this->json([
-        'message' => 'User role updated',
-        'user' => $this->formatUser($user)
-    ]);
-}
 }

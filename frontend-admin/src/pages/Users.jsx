@@ -113,41 +113,41 @@ export default function Users() {
         ) : (
           filtered.map(user => (
             <div key={user.id} style={styles.tableRow}>
-              <span style={styles.col}>
+              <span>
                 <div style={styles.userInfo}>
                   <div style={{
                     ...styles.avatar,
-                    backgroundColor: user.roles.includes('ROLE_ADMIN') ? '#156064' : '#00C49A'
+                    backgroundColor: user.roles.includes('ROLE_ADMIN') ? '#0B1E3D' : '#2563EB'
                   }}>
                     {user.firstName?.[0]}{user.lastName?.[0]}
                   </div>
-                  <span style={{ fontSize: '13px' }}>{user.firstName} {user.lastName}</span>
+                  <span style={styles.userName}>{user.firstName} {user.lastName}</span>
                 </div>
               </span>
-              <span style={{ ...styles.col, fontSize: '13px' }}>{user.email}</span>
-              <span style={styles.col}>
+              <span style={styles.userEmail}>{user.email}</span>
+              <span>
                 <span style={{
                   ...styles.roleBadge,
-                  backgroundColor: user.roles.includes('ROLE_ADMIN') ? '#156064' : '#e5e9e8',
-                  color: user.roles.includes('ROLE_ADMIN') ? '#fff' : '#374151',
+                  backgroundColor: user.roles.includes('ROLE_ADMIN') ? '#0B1E3D' : 'var(--color-bg-soft)',
+                  color: user.roles.includes('ROLE_ADMIN') ? '#fff' : 'var(--color-text-light)',
                 }}>
                   {user.roles.includes('ROLE_ADMIN') ? 'Admin' : 'User'}
                 </span>
               </span>
-              <span style={styles.col}>
+              <span>
                 <span style={{
                   ...styles.statusBadge,
                   backgroundColor:
-                    user.status === 'active' ? '#e6faf5' :
-                    user.status === 'pending' ? '#fef9e7' : '#fde8e8',
+                    user.status === 'active' ? '#ECFDF5' :
+                    user.status === 'pending' ? '#FFFBEB' : '#FEF2F2',
                   color:
-                    user.status === 'active' ? '#00C49A' :
-                    user.status === 'pending' ? '#d97706' : '#ef4444',
+                    user.status === 'active' ? '#16A34A' :
+                    user.status === 'pending' ? '#D97706' : '#DC2626',
                 }}>
                   {user.status}
                 </span>
               </span>
-              <span style={{ ...styles.col, display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+              <span style={styles.actions}>
                 {user.status !== 'active' && (
                   <button style={styles.btnApprove} onClick={() => handleStatusChange(user.id, 'active')}>
                     Approve
@@ -183,7 +183,8 @@ const styles = {
     justifyContent: 'center',
     height: '100%',
     fontSize: '16px',
-    color: '#6b7280',
+    color: 'var(--color-text-light)',
+    fontFamily: 'Montserrat, sans-serif',
   },
   header: {
     display: 'flex',
@@ -192,19 +193,25 @@ const styles = {
     marginBottom: '24px',
   },
   title: {
-    fontSize: '22px',
-    fontWeight: '700',
+    fontSize: '24px',
+    fontWeight: '800',
+    letterSpacing: '-0.5px',
+    color: 'var(--color-text)',
+    fontFamily: 'Montserrat, sans-serif',
     marginBottom: '4px',
   },
   subtitle: {
     fontSize: '13px',
-    color: '#6b7280',
+    color: 'var(--color-text-light)',
+    fontWeight: '500',
+    fontFamily: 'Montserrat, sans-serif',
   },
   card: {
-    backgroundColor: '#fff',
-    borderRadius: '10px',
-    padding: '20px',
-    boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
+    backgroundColor: 'var(--color-white)',
+    border: '1px solid var(--color-border)',
+    borderRadius: '16px',
+    padding: '24px',
+    fontFamily: 'Montserrat, sans-serif',
   },
   toolbar: {
     display: 'flex',
@@ -215,29 +222,35 @@ const styles = {
   },
   filters: {
     display: 'flex',
-    gap: '6px',
+    gap: '4px',
+    backgroundColor: 'var(--color-bg)',
+    borderRadius: '10px',
+    padding: '4px',
   },
   filterBtn: {
     backgroundColor: 'transparent',
     border: 'none',
-    padding: '6px 14px',
-    borderRadius: '6px',
+    padding: '8px 16px',
+    borderRadius: '8px',
     fontSize: '13px',
-    fontWeight: '500',
-    color: '#6b7280',
+    fontWeight: '600',
+    fontFamily: 'Montserrat, sans-serif',
+    color: 'var(--color-text-light)',
     cursor: 'pointer',
   },
   filterBtnActive: {
-    backgroundColor: '#156064',
-    color: '#fff',
+    backgroundColor: 'var(--color-white)',
+    color: '#2563EB',
+    boxShadow: '0 1px 3px rgba(11,30,61,0.08)',
   },
   searchBar: {
     display: 'flex',
     alignItems: 'center',
     gap: '8px',
-    backgroundColor: '#f3f4f6',
-    borderRadius: '8px',
-    padding: '8px 12px',
+    backgroundColor: 'var(--color-input-bg)',
+    border: '1.5px solid var(--color-border)',
+    borderRadius: '12px',
+    padding: '10px 14px',
     flex: 1,
   },
   searchInput: {
@@ -245,26 +258,28 @@ const styles = {
     background: 'transparent',
     outline: 'none',
     fontSize: '13px',
+    fontFamily: 'Montserrat, sans-serif',
+    color: 'var(--color-text)',
     flex: 1,
   },
   tableHeader: {
     display: 'grid',
-    gridTemplateColumns: '1.5fr 1.5fr 1fr 1fr 2fr',
-    padding: '8px 0',
-    borderBottom: '1px solid #f3f4f6',
+    gridTemplateColumns: '1.5fr 1.5fr 1fr 1fr 2.2fr',
+    padding: '12px 0',
+    borderBottom: '1px solid var(--color-border)',
     marginBottom: '8px',
   },
   col: {
     fontSize: '11px',
-    color: '#6b7280',
-    fontWeight: '600',
-    letterSpacing: '0.05em',
+    color: 'var(--color-text-light)',
+    fontWeight: '700',
+    letterSpacing: '0.06em',
   },
   tableRow: {
     display: 'grid',
-    gridTemplateColumns: '1.5fr 1.5fr 1fr 1fr 2fr',
-    padding: '12px 0',
-    borderBottom: '1px solid #f9fafb',
+    gridTemplateColumns: '1.5fr 1.5fr 1fr 1fr 2.2fr',
+    padding: '13px 0',
+    borderBottom: '1px solid var(--color-bg-soft)',
     alignItems: 'center',
   },
   userInfo: {
@@ -273,75 +288,96 @@ const styles = {
     gap: '10px',
   },
   avatar: {
-    width: '32px',
-    height: '32px',
-    borderRadius: '50%',
+    width: '34px',
+    height: '34px',
+    borderRadius: '10px',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    fontSize: '11px',
+    fontSize: '12px',
     fontWeight: '700',
     color: '#fff',
     flexShrink: 0,
     textTransform: 'uppercase',
   },
+  userName: {
+    fontSize: '13px',
+    fontWeight: '700',
+    color: 'var(--color-text)',
+  },
+  userEmail: {
+    fontSize: '13px',
+    color: 'var(--color-text-light)',
+    fontWeight: '500',
+  },
   roleBadge: {
-    padding: '3px 10px',
-    borderRadius: '12px',
+    padding: '4px 10px',
+    borderRadius: '999px',
     fontSize: '11px',
-    fontWeight: '600',
+    fontWeight: '700',
   },
   statusBadge: {
-    padding: '3px 10px',
-    borderRadius: '12px',
+    padding: '4px 10px',
+    borderRadius: '999px',
     fontSize: '11px',
-    fontWeight: '600',
+    fontWeight: '700',
     textTransform: 'capitalize',
   },
+  actions: {
+    display: 'flex',
+    gap: '6px',
+    flexWrap: 'wrap',
+  },
   btnApprove: {
-    backgroundColor: '#e6faf5',
-    color: '#00C49A',
+    backgroundColor: '#ECFDF5',
+    color: '#16A34A',
     border: 'none',
-    borderRadius: '6px',
-    padding: '5px 10px',
+    borderRadius: '8px',
+    padding: '6px 12px',
     fontSize: '11px',
-    fontWeight: '600',
+    fontWeight: '700',
+    fontFamily: 'Montserrat, sans-serif',
     cursor: 'pointer',
   },
   btnReject: {
-    backgroundColor: '#fef9e7',
-    color: '#d97706',
+    backgroundColor: '#FFFBEB',
+    color: '#D97706',
     border: 'none',
-    borderRadius: '6px',
-    padding: '5px 10px',
+    borderRadius: '8px',
+    padding: '6px 12px',
     fontSize: '11px',
-    fontWeight: '600',
+    fontWeight: '700',
+    fontFamily: 'Montserrat, sans-serif',
     cursor: 'pointer',
   },
   btnRole: {
-    backgroundColor: '#ede9fe',
-    color: '#7c3aed',
+    backgroundColor: 'var(--color-bg-soft)',
+    color: '#2563EB',
     border: 'none',
-    borderRadius: '6px',
-    padding: '5px 10px',
+    borderRadius: '8px',
+    padding: '6px 12px',
     fontSize: '11px',
-    fontWeight: '600',
+    fontWeight: '700',
+    fontFamily: 'Montserrat, sans-serif',
     cursor: 'pointer',
   },
   btnDelete: {
-    backgroundColor: '#fde8e8',
-    color: '#ef4444',
+    backgroundColor: '#FEF2F2',
+    color: '#DC2626',
     border: 'none',
-    borderRadius: '6px',
-    padding: '5px 10px',
+    borderRadius: '8px',
+    padding: '6px 12px',
     fontSize: '11px',
-    fontWeight: '600',
+    fontWeight: '700',
+    fontFamily: 'Montserrat, sans-serif',
     cursor: 'pointer',
   },
   empty: {
     textAlign: 'center',
-    color: '#9ca3af',
+    color: 'var(--color-text-light)',
     fontSize: '13px',
+    fontWeight: '500',
+    fontFamily: 'Montserrat, sans-serif',
     padding: '40px 0',
   },
 };

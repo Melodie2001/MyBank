@@ -1,43 +1,38 @@
 import { useState, useEffect } from 'react';
 import { getCategories, getMyCategories, addToMyCategories, removeFromMyCategories } from '../services/categoryService';
 import { getOperations } from '../services/operationService';
+import { getBudgets, createBudget, updateBudget } from '../services/budgetService';
 
 const ICONS = {
-  'house.png': '🏠',
-  'train.png': '🚆',
-  'healthcare.png': '❤️',
-  'books.png': '📚',
-  'plane.png': '✈️',
-  'dog.png': '🐾',
-  'briefcase.png': '💼',
-  'gamepad.png': '🎮',
-  'burger.png': '🍔',
-  'pills.png': '💊',
-  'entertainment.png': '🎬',
-  'cart.png': '🛒',
+  'house.png': '🏠', 'train.png': '🚆', 'healthcare.png': '❤️',
+  'books.png': '📚', 'plane.png': '✈️', 'dog.png': '🐾',
+  'briefcase.png': '💼', 'gamepad.png': '🎮', 'burger.png': '🍔',
+  'pills.png': '💊', 'entertainment.png': '🎬', 'cart.png': '🛒',
 };
 
 export default function Categories() {
   const [myCategories, setMyCategories] = useState([]);
   const [allCategories, setAllCategories] = useState([]);
   const [operations, setOperations] = useState([]);
+  const [budgets, setBudgets] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [showModal, setShowModal] = useState(false);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [budgetEdit, setBudgetEdit] = useState(null); // { catId, value }
 
-  useEffect(() => {
-    fetchData();
-  }, []);
+  useEffect(() => { fetchData(); }, []);
 
   async function fetchData() {
     try {
-      const [mine, all, ops] = await Promise.all([
+      const [mine, all, ops, bdgs] = await Promise.all([
         getMyCategories(),
         getCategories(),
-        getOperations()
+        getOperations(),
+        getBudgets().catch(() => []),
       ]);
       setMyCategories(mine);
       setAllCategories(all);
       setOperations(ops);
+      setBudgets(Array.isArray(bdgs) ? bdgs : []);
     } catch (err) {
       console.error(err);
     } finally {
@@ -45,17 +40,54 @@ export default function Categories() {
     }
   }
 
-  function getCategoryStats(catId) {
+  const now = new Date();
+  const thisMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+
+  function getCatStats(catId) {
     const catOps = operations.filter(op => op.category.id === catId);
-    const total = catOps.reduce((sum, op) => sum + Number(op.amount), 0);
-    return { count: catOps.length, total };
+    const monthlyTotal = catOps
+      .filter(op => op.date?.startsWith(thisMonth))
+      .reduce((s, op) => s + Number(op.amount), 0);
+    return { count: catOps.length, monthlyTotal };
+  }
+
+  function getCatBudget(catId) {
+    return budgets.find(b => (b.category?.id ?? b.category) === catId) ?? null;
+  }
+
+  const cardData = myCategories.map(cat => ({
+    ...cat,
+    ...getCatStats(cat.id),
+    budget: getCatBudget(cat.id),
+  }));
+
+  const mostSpent = cardData.length
+    ? cardData.reduce((m, c) => c.monthlyTotal > m.monthlyTotal ? c : m, cardData[0])
+    : null;
+  const budgetsSetCount = cardData.filter(c => c.budget).length;
+  const alertsCount = cardData.filter(c => c.budget && c.budget.percentage >= 80).length;
+
+  async function handleSaveBudget(cat, existingBudget) {
+    if (!budgetEdit?.value || parseFloat(budgetEdit.value) <= 0) return;
+    const limit = parseFloat(budgetEdit.value);
+    try {
+      if (existingBudget) {
+        await updateBudget(existingBudget.id, limit);
+      } else {
+        await createBudget(cat.id, limit);
+      }
+      setBudgetEdit(null);
+      await fetchData();
+    } catch (err) {
+      console.error(err);
+    }
   }
 
   async function handleAdd(categoryId) {
     try {
       await addToMyCategories(categoryId);
       await fetchData();
-      setShowModal(false);
+      setShowAddModal(false);
     } catch (err) {
       alert(err.response?.data?.message || 'An error occurred');
     }
@@ -75,69 +107,157 @@ export default function Categories() {
     cat => !myCategories.some(mine => mine.id === cat.id)
   );
 
-  if (loading) return <div style={styles.loading}>Loading...</div>;
+  if (loading) return <div style={s.loading}>Loading...</div>;
 
   return (
     <div>
-      <div style={styles.header}>
+      {/* Header */}
+      <div style={s.header}>
         <div>
-          <h1 style={styles.title}>Categories</h1>
-          <p style={styles.subtitle}>Manage your expense categories</p>
+          <h1 style={s.title}>Categories</h1>
+          <p style={s.subtitle}>Manage your expense categories and monthly budgets</p>
         </div>
-        <button style={styles.btnAdd} onClick={() => setShowModal(true)}>
-          + Add category
-        </button>
+        <button style={s.btnAdd} onClick={() => setShowAddModal(true)}>+ Add category</button>
       </div>
 
+      {/* Stats row */}
+      <div style={s.statsRow}>
+        <StatCard label="TOTAL CATEGORIES" value={myCategories.length} sub="In your list" />
+        <StatCard
+          label="BUDGETS SET"
+          value={`${budgetsSetCount} / ${myCategories.length}`}
+          sub="Categories with a limit"
+        />
+        <StatCard
+          label="MOST SPENT"
+          value={mostSpent?.monthlyTotal > 0 ? mostSpent.name : '—'}
+          sub={mostSpent?.monthlyTotal > 0 ? `${mostSpent.monthlyTotal.toFixed(2)} € this month` : 'No expenses yet'}
+          valueColor={mostSpent?.monthlyTotal > 0 ? '#DC2626' : 'var(--color-text)'}
+        />
+        <StatCard
+          label="BUDGET ALERTS"
+          value={alertsCount}
+          sub={alertsCount === 1 ? 'Category over 80%' : 'Categories over 80%'}
+          valueColor={alertsCount > 0 ? '#D97706' : 'var(--color-text)'}
+        />
+      </div>
+
+      {/* Grid */}
       {myCategories.length === 0 ? (
-        <div style={styles.empty}>
-          No categories yet. Click "+ Add category" to add one.
-        </div>
+        <div style={s.empty}>No categories yet. Click "+ Add category" to add one.</div>
       ) : (
-        <div style={styles.grid}>
-          {myCategories.map(cat => {
-            const { count, total } = getCategoryStats(cat.id);
+        <div style={s.grid}>
+          {cardData.map(cat => {
+            const isEditing = budgetEdit?.catId === cat.id;
+            const budget = cat.budget;
+            const isOver = budget && budget.percentage > 100;
+            const barPct = budget ? Math.min(budget.percentage, 100) : 0;
+            const barColor = isOver ? '#DC2626' : budget?.percentage >= 80 ? '#D97706' : '#16A34A';
+
             return (
-              <div key={cat.id} style={styles.card}>
-                <div style={styles.cardTop}>
-                  <div style={{
-                    ...styles.iconBox,
-                    backgroundColor: cat.color + '22',
-                  }}>
-                    <span style={styles.iconEmoji}>
-                      {ICONS[cat.icon] || '💰'}
-                    </span>
+              <div key={cat.id} style={s.card}>
+                {/* Top */}
+                <div style={s.cardTop}>
+                  <div style={{ ...s.iconBox, backgroundColor: cat.color + '22' }}>
+                    <span style={{ fontSize: '24px' }}>{ICONS[cat.icon] || '💰'}</span>
                   </div>
-                  <div style={{
-                    ...styles.colorDot,
-                    backgroundColor: cat.color
-                  }} />
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    {isOver && <span style={s.overBadge}>⚠ Over budget</span>}
+                    <div style={{ ...s.dot, backgroundColor: cat.color }} />
+                  </div>
                 </div>
-                <div style={styles.catName}>{cat.name}</div>
-                <div style={styles.catOps}>
-                  {count} {count === 1 ? 'operation' : 'operations'}
+
+                <div style={s.catName}>{cat.name}</div>
+                <div style={s.catOps}>{cat.count} {cat.count === 1 ? 'operation' : 'operations'}</div>
+                <div style={{ ...s.catTotal, color: isOver ? '#DC2626' : 'var(--color-text)' }}>
+                  €{cat.monthlyTotal.toFixed(2)}
                 </div>
-                <div style={styles.catTotal}>
-                  €{total.toFixed(2)}
-                </div>
-                <div style={styles.cardActions}>
+
+                {/* Budget */}
+                {budget ? (
+                  <div style={s.budgetBox}>
+                    <div style={s.budgetHeader}>
+                      <span style={s.budgetLabel}>🎯 Monthly budget</span>
+                      {!isEditing && (
+                        <button
+                          style={s.btnEdit}
+                          onClick={() => setBudgetEdit({ catId: cat.id, value: String(budget.monthly_limit) })}
+                        >
+                          Edit
+                        </button>
+                      )}
+                    </div>
+
+                    {isEditing ? (
+                      <div style={s.editRow}>
+                        <input
+                          type="number"
+                          value={budgetEdit.value}
+                          onChange={e => setBudgetEdit(p => ({ ...p, value: e.target.value }))}
+                          style={s.budgetInput}
+                          min="0.01"
+                          step="0.01"
+                          autoFocus
+                        />
+                        <button style={s.btnSave} onClick={() => handleSaveBudget(cat, budget)}>Save</button>
+                        <button style={s.btnX} onClick={() => setBudgetEdit(null)}>✕</button>
+                      </div>
+                    ) : (
+                      <>
+                        <div style={s.budgetAmounts}>
+                          <span style={{ ...s.budgetSpent, color: isOver ? '#DC2626' : 'var(--color-text)' }}>
+                            {Number(budget.spent).toFixed(2)} €
+                          </span>
+                          <span style={s.budgetLimit}>/ {Number(budget.monthly_limit).toFixed(2)} € limit</span>
+                        </div>
+                        <div style={s.bar}>
+                          <div style={{ ...s.barFill, width: `${barPct}%`, backgroundColor: barColor }} />
+                        </div>
+                        <div style={{ color: barColor, fontSize: '12px', fontWeight: '700', fontFamily: 'Montserrat, sans-serif' }}>
+                          {isOver
+                            ? `${Math.round(budget.percentage)}% — Over by ${Math.abs(Number(budget.remaining)).toFixed(2)} €`
+                            : `${Math.round(budget.percentage)}% used — ${Number(budget.remaining).toFixed(2)} € remaining`}
+                        </div>
+                      </>
+                    )}
+                  </div>
+                ) : isEditing ? (
+                  <div style={s.budgetBox}>
+                    <div style={s.editRow}>
+                      <input
+                        type="number"
+                        value={budgetEdit.value}
+                        onChange={e => setBudgetEdit(p => ({ ...p, value: e.target.value }))}
+                        style={s.budgetInput}
+                        min="0.01"
+                        step="0.01"
+                        placeholder="e.g. 200"
+                        autoFocus
+                      />
+                      <button style={s.btnSave} onClick={() => handleSaveBudget(cat, null)}>Save</button>
+                      <button style={s.btnX} onClick={() => setBudgetEdit(null)}>✕</button>
+                    </div>
+                  </div>
+                ) : (
                   <button
-                    style={styles.btnRemove}
-                    onClick={() => handleRemove(cat.id)}
+                    style={s.btnSetBudget}
+                    onClick={() => setBudgetEdit({ catId: cat.id, value: '' })}
                   >
-                    Remove
+                    + Set a monthly budget
                   </button>
-                </div>
+                )}
+
+                <button style={s.btnRemove} onClick={() => handleRemove(cat.id)}>Remove</button>
               </div>
             );
           })}
         </div>
       )}
 
-      {showModal && (
+      {showAddModal && (
         <SelectCategoryModal
           categories={availableCategories}
-          onClose={() => setShowModal(false)}
+          onClose={() => setShowAddModal(false)}
           onAdd={handleAdd}
         />
       )}
@@ -145,263 +265,223 @@ export default function Categories() {
   );
 }
 
+function StatCard({ label, value, sub, valueColor }) {
+  return (
+    <div style={s.statCard}>
+      <div style={s.statLabel}>{label}</div>
+      <div style={{ ...s.statValue, color: valueColor || 'var(--color-text)' }}>{value}</div>
+      <div style={s.statSub}>{sub}</div>
+    </div>
+  );
+}
+
 function SelectCategoryModal({ categories, onClose, onAdd }) {
   return (
-    <div style={styles.overlay}>
-      <div style={styles.modal}>
-        <div style={styles.modalHeader}>
+    <div style={s.overlay}>
+      <div style={s.modal}>
+        <div style={s.modalHeader}>
           <div>
-            <h2 style={styles.modalTitle}>Add a category</h2>
-            <p style={styles.modalSubtitle}>Select a category to add to your list</p>
+            <h2 style={s.modalTitle}>Add a category</h2>
+            <p style={s.modalSubtitle}>Select a category to add to your list</p>
           </div>
-          <button onClick={onClose} style={styles.closeBtn}>✕</button>
+          <button onClick={onClose} style={s.closeBtn}>✕</button>
         </div>
 
         {categories.length === 0 ? (
-          <div style={styles.emptyModal}>
-            All available categories are already in your list.
-          </div>
+          <div style={s.emptyModal}>All available categories are already in your list.</div>
         ) : (
-          <div style={styles.categoriesGrid}>
+          <div style={s.catGrid}>
             {categories.map(cat => (
-              <div
-                key={cat.id}
-                style={styles.categoryOption}
-                onClick={() => onAdd(cat.id)}
-              >
-                <div style={{
-                  ...styles.optionIcon,
-                  backgroundColor: cat.color + '22',
-                }}>
-                  <span style={{ fontSize: '24px' }}>
-                    {ICONS[cat.icon] || '💰'}
-                  </span>
+              <div key={cat.id} style={s.catOption} onClick={() => onAdd(cat.id)}>
+                <div style={{ ...s.iconBox, backgroundColor: cat.color + '22' }}>
+                  <span style={{ fontSize: '24px' }}>{ICONS[cat.icon] || '💰'}</span>
                 </div>
-                <span style={styles.optionName}>{cat.name}</span>
-                <div style={{
-                  ...styles.optionDot,
-                  backgroundColor: cat.color
-                }} />
+                <span style={s.optionName}>{cat.name}</span>
+                <div style={{ ...s.dot, backgroundColor: cat.color }} />
               </div>
             ))}
           </div>
         )}
 
-        <div style={styles.modalActions}>
-          <button onClick={onClose} style={styles.btnCancel}>Cancel</button>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '8px' }}>
+          <button onClick={onClose} style={s.btnCancel}>Cancel</button>
         </div>
       </div>
     </div>
   );
 }
 
-const styles = {
+const s = {
   loading: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    height: '100%',
-    fontSize: '16px',
-    color: '#6b7280',
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    height: '200px', fontSize: '16px', color: 'var(--color-text-light)',
+    fontFamily: 'Montserrat, sans-serif',
   },
   header: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
+    display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start',
     marginBottom: '24px',
   },
   title: {
-    fontSize: '22px',
-    fontWeight: '700',
-    marginBottom: '4px',
+    fontSize: '26px', fontWeight: '800', letterSpacing: '-0.5px',
+    color: 'var(--color-text)', fontFamily: 'Montserrat, sans-serif', marginBottom: '4px',
   },
   subtitle: {
-    fontSize: '13px',
-    color: '#6b7280',
+    fontSize: '13px', color: 'var(--color-text-light)', fontWeight: '500',
+    fontFamily: 'Montserrat, sans-serif',
   },
   btnAdd: {
-    backgroundColor: '#00C49A',
-    color: '#fff',
-    border: 'none',
-    borderRadius: '8px',
-    padding: '10px 20px',
-    fontWeight: '600',
-    fontSize: '13px',
-    cursor: 'pointer',
+    backgroundColor: '#2563EB', color: '#fff', border: 'none',
+    borderRadius: '12px', padding: '11px 22px', fontWeight: '700',
+    fontSize: '13px', fontFamily: 'Montserrat, sans-serif', cursor: 'pointer',
+    boxShadow: '0 10px 24px -8px rgba(37,99,235,0.4)',
   },
-  empty: {
-    textAlign: 'center',
-    color: '#9ca3af',
-    fontSize: '14px',
-    padding: '60px 0',
-    backgroundColor: '#fff',
-    borderRadius: '10px',
-    boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
+
+  /* Stats */
+  statsRow: {
+    display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', marginBottom: '28px',
   },
+  statCard: {
+    backgroundColor: 'var(--color-white)', border: '1px solid var(--color-border)',
+    borderRadius: '16px', padding: '20px 22px', fontFamily: 'Montserrat, sans-serif',
+  },
+  statLabel: {
+    fontSize: '11px', fontWeight: '700', color: 'var(--color-text-light)',
+    letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: '8px',
+  },
+  statValue: {
+    fontSize: '22px', fontWeight: '800', letterSpacing: '-0.5px',
+    color: 'var(--color-text)', marginBottom: '4px',
+  },
+  statSub: {
+    fontSize: '12px', fontWeight: '500', color: 'var(--color-text-light)',
+  },
+
+  /* Grid */
   grid: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))',
-    gap: '16px',
+    display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: '16px',
   },
   card: {
-    backgroundColor: '#fff',
-    borderRadius: '12px',
-    padding: '24px 20px 16px',
-    boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '8px',
+    backgroundColor: 'var(--color-white)', border: '1px solid var(--color-border)',
+    borderRadius: '18px', padding: '22px 20px 16px', display: 'flex',
+    flexDirection: 'column', gap: '6px', fontFamily: 'Montserrat, sans-serif',
   },
   cardTop: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: '4px',
+    display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px',
   },
   iconBox: {
-    width: '52px',
-    height: '52px',
-    borderRadius: '12px',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
+    width: '52px', height: '52px', borderRadius: '14px',
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
   },
-  iconEmoji: {
-    fontSize: '24px',
+  dot: { width: '10px', height: '10px', borderRadius: '50%' },
+  overBadge: {
+    fontSize: '11px', fontWeight: '700', color: '#DC2626',
+    backgroundColor: '#FEF2F2', borderRadius: '8px', padding: '3px 8px',
   },
-  colorDot: {
-    width: '10px',
-    height: '10px',
-    borderRadius: '50%',
-  },
-  catName: {
-    fontSize: '16px',
-    fontWeight: '700',
-    color: '#1a1a1a',
-  },
-  catOps: {
-    fontSize: '12px',
-    color: '#6b7280',
-  },
+  catName: { fontSize: '16px', fontWeight: '800', color: 'var(--color-text)' },
+  catOps: { fontSize: '12px', color: 'var(--color-text-light)', fontWeight: '500' },
   catTotal: {
-    fontSize: '20px',
-    fontWeight: '700',
-    color: '#1a1a1a',
-    marginTop: '4px',
-    marginBottom: '8px',
+    fontSize: '24px', fontWeight: '800', letterSpacing: '-0.5px',
+    marginTop: '4px', marginBottom: '6px',
   },
-  cardActions: {
-    display: 'flex',
-    gap: '8px',
-    marginTop: '4px',
-  },
-  btnRemove: {
-    flex: 1,
-    backgroundColor: '#fde8e8',
-    color: '#ef4444',
-    border: 'none',
-    borderRadius: '6px',
-    padding: '8px 0',
-    fontSize: '12px',
-    fontWeight: '500',
-    cursor: 'pointer',
-  },
-  overlay: {
-    position: 'fixed',
-    inset: 0,
-    backgroundColor: 'rgba(0,0,0,0.3)',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    zIndex: 1000,
-  },
-  modal: {
-    backgroundColor: '#fff',
-    borderRadius: '12px',
-    padding: '32px',
-    width: '100%',
-    maxWidth: '500px',
-    boxShadow: '0 8px 32px rgba(0,0,0,0.12)',
-  },
-  modalHeader: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: '24px',
-  },
-  modalTitle: {
-    fontSize: '18px',
-    fontWeight: '700',
+
+  /* Budget box */
+  budgetBox: {
+    backgroundColor: 'var(--color-bg)', borderRadius: '12px',
+    padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: '8px',
     marginBottom: '4px',
   },
-  modalSubtitle: {
-    fontSize: '13px',
-    color: '#6b7280',
+  budgetHeader: {
+    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
   },
+  budgetLabel: {
+    fontSize: '12px', fontWeight: '700', color: 'var(--color-text-light)',
+  },
+  btnEdit: {
+    background: 'none', border: 'none', color: '#2563EB', fontSize: '12px',
+    fontWeight: '700', fontFamily: 'Montserrat, sans-serif', cursor: 'pointer', padding: 0,
+  },
+  budgetAmounts: { display: 'flex', alignItems: 'baseline', gap: '6px' },
+  budgetSpent: { fontSize: '16px', fontWeight: '800' },
+  budgetLimit: { fontSize: '12px', fontWeight: '500', color: 'var(--color-text-light)' },
+  bar: {
+    height: '7px', borderRadius: '999px', backgroundColor: 'var(--color-border)',
+    overflow: 'hidden',
+  },
+  barFill: { height: '100%', borderRadius: '999px', transition: 'width 0.3s ease' },
+  editRow: { display: 'flex', gap: '6px', alignItems: 'center' },
+  budgetInput: {
+    flex: 1, padding: '7px 10px', borderRadius: '8px', border: '1.5px solid var(--color-border)',
+    fontSize: '13px', fontFamily: 'Montserrat, sans-serif', fontWeight: '600',
+    backgroundColor: 'var(--color-white)', color: 'var(--color-text)', outline: 'none',
+  },
+  btnSave: {
+    backgroundColor: '#2563EB', color: '#fff', border: 'none', borderRadius: '8px',
+    padding: '7px 12px', fontSize: '12px', fontWeight: '700',
+    fontFamily: 'Montserrat, sans-serif', cursor: 'pointer', whiteSpace: 'nowrap',
+  },
+  btnX: {
+    background: 'none', border: '1px solid var(--color-border)', borderRadius: '8px',
+    width: '30px', height: '30px', cursor: 'pointer', color: 'var(--color-text-light)',
+    fontSize: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center',
+  },
+  btnSetBudget: {
+    backgroundColor: 'transparent', color: 'var(--color-text-light)',
+    border: '1.5px dashed var(--color-border)', borderRadius: '10px',
+    padding: '9px 0', fontSize: '12px', fontWeight: '700',
+    fontFamily: 'Montserrat, sans-serif', cursor: 'pointer', marginBottom: '4px',
+    transition: 'border-color 0.15s, color 0.15s',
+  },
+  btnRemove: {
+    flex: 1, backgroundColor: '#FEF2F2', color: '#DC2626', border: 'none',
+    borderRadius: '10px', padding: '9px 0', fontSize: '12px', fontWeight: '700',
+    fontFamily: 'Montserrat, sans-serif', cursor: 'pointer', marginTop: '4px',
+  },
+
+  /* Empty */
+  empty: {
+    textAlign: 'center', color: 'var(--color-text-light)', fontSize: '14px',
+    fontWeight: '500', fontFamily: 'Montserrat, sans-serif', padding: '60px 0',
+    backgroundColor: 'var(--color-white)', border: '1px solid var(--color-border)',
+    borderRadius: '16px',
+  },
+
+  /* Modal */
+  overlay: {
+    position: 'fixed', inset: 0, backgroundColor: 'rgba(11,30,61,0.4)',
+    display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000,
+  },
+  modal: {
+    backgroundColor: 'var(--color-white)', borderRadius: '20px', padding: '32px',
+    width: '100%', maxWidth: '500px', boxShadow: '0 20px 60px -20px rgba(11,30,61,0.3)',
+    fontFamily: 'Montserrat, sans-serif',
+  },
+  modalHeader: {
+    display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '24px',
+  },
+  modalTitle: {
+    fontSize: '20px', fontWeight: '800', letterSpacing: '-0.5px',
+    color: 'var(--color-text)', marginBottom: '4px',
+  },
+  modalSubtitle: { fontSize: '13px', color: 'var(--color-text-light)', fontWeight: '500' },
   closeBtn: {
-    background: 'none',
-    border: '1px solid #e5e7eb',
-    borderRadius: '6px',
-    width: '28px',
-    height: '28px',
-    cursor: 'pointer',
-    fontSize: '12px',
-    color: '#6b7280',
+    background: 'none', border: '1.5px solid var(--color-border)', borderRadius: '10px',
+    width: '30px', height: '30px', cursor: 'pointer', fontSize: '12px',
+    color: 'var(--color-text-light)',
   },
   emptyModal: {
-    textAlign: 'center',
-    color: '#9ca3af',
-    fontSize: '13px',
-    padding: '24px 0',
+    textAlign: 'center', color: 'var(--color-text-light)', fontSize: '13px',
+    fontWeight: '500', padding: '24px 0',
   },
-  categoriesGrid: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(3, 1fr)',
-    gap: '12px',
-    marginBottom: '24px',
+  catGrid: { display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', marginBottom: '24px' },
+  catOption: {
+    display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px',
+    padding: '16px 12px', borderRadius: '14px', border: '1.5px solid var(--color-border)',
+    cursor: 'pointer', position: 'relative', transition: 'border-color 0.15s',
   },
-  categoryOption: {
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    gap: '8px',
-    padding: '16px 12px',
-    borderRadius: '10px',
-    border: '2px solid #f3f4f6',
-    cursor: 'pointer',
-    position: 'relative',
-  },
-  optionIcon: {
-    width: '52px',
-    height: '52px',
-    borderRadius: '12px',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  optionName: {
-    fontSize: '13px',
-    fontWeight: '600',
-    color: '#1a1a1a',
-    textAlign: 'center',
-  },
-  optionDot: {
-    width: '8px',
-    height: '8px',
-    borderRadius: '50%',
-  },
-  modalActions: {
-    display: 'flex',
-    justifyContent: 'flex-end',
-  },
+  optionName: { fontSize: '13px', fontWeight: '700', color: 'var(--color-text)', textAlign: 'center' },
   btnCancel: {
-    backgroundColor: '#f3f4f6',
-    color: '#374151',
-    border: 'none',
-    borderRadius: '8px',
-    padding: '10px 20px',
-    fontWeight: '500',
-    fontSize: '13px',
-    cursor: 'pointer',
+    backgroundColor: 'transparent', color: 'var(--color-text-light)', border: 'none',
+    borderRadius: '12px', padding: '11px 22px', fontWeight: '700', fontSize: '13px',
+    fontFamily: 'Montserrat, sans-serif', cursor: 'pointer',
   },
 };

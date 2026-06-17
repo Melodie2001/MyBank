@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap');
 
 *, *::before, *::after {
   box-sizing: border-box;
@@ -7,19 +7,35 @@
 }
 
 :root {
-  --color-primary: #156064;
-  --color-accent: #00C49A;
-  --color-yellow: #F8E16C;
-  --color-bg: #E8F0EF;
+  --color-primary: #0B1E3D;
+  --color-accent: #2563EB;
+  --color-accent-light: #7DA8FF;
+  --color-bg: #F4F7FB;
+  --color-bg-soft: #EFF3F9;
   --color-white: #ffffff;
-  --color-text: #1a1a1a;
-  --color-text-light: #6b7280;
-  --color-danger: #ef4444;
-  --color-border: #d1d5db;
-  --color-input-bg: #e5e9e8;
-  --sidebar-width: 180px;
-  --radius: 8px;
-  --shadow: 0 2px 8px rgba(0,0,0,0.08);
+  --color-text: #0B1E3D;
+  --color-text-light: #94A3B8;
+  --color-success: #16A34A;
+  --color-danger: #DC2626;
+  --color-warning: #D97706;
+  --color-border: #E2E8F0;
+  --color-input-bg: #FAFBFD;
+  --sidebar-width: 260px;
+  --radius: 12px;
+  --radius-lg: 16px;
+  --shadow: 0 10px 24px -8px rgba(37,99,235,0.4);
+  --shadow-card: 0 12px 40px -16px rgba(11,30,61,0.15);
+}
+
+body.dark {
+  --color-bg: #0F172A;
+  --color-bg-soft: #1E293B;
+  --color-white: #1E293B;
+  --color-text: #F1F5F9;
+  --color-text-light: #94A3B8;
+  --color-border: #334155;
+  --color-input-bg: #0F172A;
+  --shadow-card: 0 12px 40px -16px rgba(0,0,0,0.5);
 }
 
 body {
@@ -27,6 +43,7 @@ body {
   background-color: var(--color-bg);
   color: var(--color-text);
   font-size: 14px;
+  transition: background-color 0.2s, color 0.2s;
 }
 
 button {

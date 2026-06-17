@@ -32,16 +32,17 @@ const styles = {
     display: 'grid',
     gridTemplateColumns: '2fr 1fr 1fr 1fr 80px',
     padding: '12px 0',
-    borderBottom: '1px solid #f9fafb',
+    borderBottom: '1px solid var(--color-bg-soft)',
     alignItems: 'center',
   },
   label: {
     fontSize: '13px',
     fontWeight: '500',
+    color: 'var(--color-text)',
   },
   col: {
     fontSize: '13px',
-    color: '#374151',
+    color: 'var(--color-text)',
   },
   badge: {
     padding: '2px 8px',
@@ -54,8 +55,8 @@ const styles = {
     gap: '6px',
   },
   btnEdit: {
-    backgroundColor: '#e5e9e8',
-    color: '#374151',
+    backgroundColor: 'var(--color-bg-soft)',
+    color: 'var(--color-text)',
     border: 'none',
     borderRadius: '6px',
     padding: '4px 10px',

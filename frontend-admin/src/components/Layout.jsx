@@ -31,7 +31,7 @@ export default function Layout() {
         flex: 1,
         padding: '32px',
         overflowY: 'auto',
-        backgroundColor: '#E8F0EF',
+        backgroundColor: 'var(--color-bg)',
       }}>
         <Outlet />
       </main>

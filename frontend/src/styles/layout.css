@@ -1,15 +1,17 @@
 .app-layout {
   display: flex;
-  height: 100vh;
-  overflow: hidden;
+  flex-direction: column;
+  min-height: 100vh;
 }
 
 .app-content {
   flex: 1;
-  margin-left: var(--sidebar-width);
+  margin-left: 0;
   padding: 32px;
+  padding-top: 94px;
   overflow-y: auto;
   background-color: var(--color-bg);
+  min-height: 100vh;
 }
 
 .page-header {
@@ -21,68 +23,72 @@
 
 .page-title {
   font-size: 22px;
-  font-weight: 700;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  color: var(--color-text);
 }
 
 .btn-primary {
   background-color: var(--color-accent);
-  color: var(--color-white);
+  color: #fff;
   border: none;
-  padding: 10px 20px;
+  padding: 11px 22px;
   border-radius: var(--radius);
-  font-weight: 600;
+  font-weight: 700;
   font-size: 13px;
-  transition: opacity 0.2s;
+  transition: background 0.2s;
   cursor: pointer;
+  box-shadow: var(--shadow);
 }
 
 .btn-primary:hover {
-  opacity: 0.85;
+  background-color: #1D4ED8;
 }
 
 .btn-secondary {
-  background-color: var(--color-input-bg);
+  background-color: var(--color-white);
   color: var(--color-text);
-  border: none;
-  padding: 10px 20px;
+  border: 1px solid var(--color-border);
+  padding: 11px 22px;
   border-radius: var(--radius);
-  font-weight: 500;
+  font-weight: 700;
   font-size: 13px;
-  transition: opacity 0.2s;
+  transition: border-color 0.2s;
   cursor: pointer;
 }
 
 .btn-secondary:hover {
-  opacity: 0.75;
+  border-color: var(--color-accent);
+  color: var(--color-accent);
 }
 
 .btn-danger {
-  background-color: #fde8e8;
+  background-color: #FEF2F2;
   color: var(--color-danger);
   border: none;
-  padding: 6px 14px;
+  padding: 8px 16px;
   border-radius: var(--radius);
-  font-weight: 500;
+  font-weight: 700;
   font-size: 12px;
   cursor: pointer;
 }
 
 .btn-edit {
-  background-color: var(--color-input-bg);
-  color: var(--color-text);
-  border: none;
-  padding: 6px 14px;
+  background-color: transparent;
+  color: var(--color-text-light);
+  border: 1px solid var(--color-border);
+  padding: 8px 16px;
   border-radius: var(--radius);
-  font-weight: 500;
+  font-weight: 700;
   font-size: 12px;
   cursor: pointer;
 }
 
 .card {
   background-color: var(--color-white);
-  border-radius: var(--radius);
-  padding: 20px;
-  box-shadow: var(--shadow);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 22px;
 }
 
 /* Hamburger menu button - hidden on desktop */
@@ -92,7 +98,12 @@
   border: none;
   cursor: pointer;
   padding: 8px;
+  border-radius: var(--radius);
   color: var(--color-primary);
+}
+
+.hamburger:hover {
+  background-color: var(--color-bg-soft);
 }
 
 /* Overlay for mobile sidebar */
@@ -100,7 +111,7 @@
   display: none;
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,0.4);
+  background: rgba(11, 30, 61, 0.4);
   z-index: 99;
 }
 
@@ -111,13 +122,7 @@
 /* Responsive */
 @media (max-width: 768px) {
   .app-content {
-    margin-left: 0;
     padding: 16px;
-  }
-
-  .hamburger {
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    padding-top: 78px;
   }
 }

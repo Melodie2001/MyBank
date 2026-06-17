@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { lazy, Suspense } from 'react';
 import ProtectedRoute from './components/ProtectedRoute';
 import Layout from './components/Layout';
+import { ThemeProvider } from './context/ThemeContext';
 import './styles/global.css';
 
 const Login = lazy(() => import('./pages/Login'));
@@ -18,9 +19,9 @@ function PageLoader() {
       alignItems: 'center',
       justifyContent: 'center',
       height: '100vh',
-      backgroundColor: '#E8F0EF',
+      backgroundColor: 'var(--color-bg)',
       fontSize: '14px',
-      color: '#6b7280',
+      color: 'var(--color-text-light)',
       fontFamily: 'Montserrat, sans-serif',
     }}>
       Loading...
@@ -30,6 +31,7 @@ function PageLoader() {
 
 export default function App() {
   return (
+    <ThemeProvider>
     <BrowserRouter>
       <Suspense fallback={<PageLoader />}>
         <Routes>
@@ -56,5 +58,6 @@ export default function App() {
         </Routes>
       </Suspense>
     </BrowserRouter>
+    </ThemeProvider>
   );
 }
