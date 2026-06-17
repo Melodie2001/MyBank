@@ -1,4 +1,4 @@
-name: MyBank CI
+name: Nexo Finance CI
 
 on:
   push:
@@ -13,6 +13,7 @@ jobs:
   # BACKEND (Symfony)
   # =====================
   symfony-tests:
+    name: Backend — Symfony tests (Unit + Integration)
     runs-on: ubuntu-latest
     services:
       mysql:
@@ -83,9 +84,10 @@ jobs:
         run: DATABASE_URL="mysql://root:root@127.0.0.1:3306/mybank_test?serverVersion=8.0" php bin/phpunit tests/Integration/ApiIntegrationTest.php
 
   # =====================
-  # FRONTEND (Vue/React)
+  # FRONTEND (React)
   # =====================
   frontend-tests:
+    name: Frontend — React tests & build
     runs-on: ubuntu-latest
 
     steps:
@@ -115,6 +117,7 @@ jobs:
   # FRONTEND ADMIN
   # =====================
   frontend-admin-tests:
+    name: Frontend Admin — React tests & build
     runs-on: ubuntu-latest
 
     steps:

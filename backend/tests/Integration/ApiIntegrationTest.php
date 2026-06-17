@@ -287,6 +287,502 @@ class ApiIntegrationTest extends WebTestCase
     }
 
     // =====================
+    // BUDGET TESTS
+    // =====================
+
+    public function testGetBudgetsWithoutAuth(): void
+    {
+        $this->client->request('GET', '/api/budgets');
+        $this->assertResponseStatusCodeSame(401);
+    }
+
+    public function testGetBudgetsWithAuth(): void
+    {
+        $token = $this->getAuthToken();
+
+        $this->client->request(
+            'GET',
+            '/api/budgets',
+            [],
+            [],
+            [
+                'CONTENT_TYPE' => 'application/json',
+                'HTTP_AUTHORIZATION' => 'Bearer ' . $token
+            ]
+        );
+
+        $this->assertResponseStatusCodeSame(200);
+        $response = json_decode($this->client->getResponse()->getContent(), true);
+        $this->assertIsArray($response);
+    }
+
+    public function testCreateBudgetWithAuth(): void
+    {
+        $token = $this->getAuthToken();
+
+        $this->client->request(
+            'GET',
+            '/api/categories',
+            [],
+            [],
+            [
+                'CONTENT_TYPE' => 'application/json',
+                'HTTP_AUTHORIZATION' => 'Bearer ' . $token
+            ]
+        );
+
+        $categories = json_decode($this->client->getResponse()->getContent(), true);
+
+        if (empty($categories)) {
+            $this->markTestSkipped('No categories available for testing');
+        }
+
+        $categoryId = $categories[0]['id'];
+
+        $this->client->request(
+            'POST',
+            '/api/budgets',
+            [],
+            [],
+            [
+                'CONTENT_TYPE' => 'application/json',
+                'HTTP_AUTHORIZATION' => 'Bearer ' . $token
+            ],
+            json_encode([
+                'category_id' => $categoryId,
+                'monthly_limit' => 300.00
+            ])
+        );
+
+        $statusCode = $this->client->getResponse()->getStatusCode();
+        $this->assertContains($statusCode, [201, 409]);
+
+        if ($statusCode === 201) {
+            $response = json_decode($this->client->getResponse()->getContent(), true);
+            $this->assertEquals('Budget created', $response['message']);
+            $this->assertEquals(300.00, $response['budget']['monthly_limit']);
+            $this->assertArrayHasKey('spent', $response['budget']);
+            $this->assertArrayHasKey('remaining', $response['budget']);
+            $this->assertArrayHasKey('percentage', $response['budget']);
+        }
+    }
+
+    public function testCreateBudgetWithNegativeLimit(): void
+    {
+        $token = $this->getAuthToken();
+
+        $this->client->request(
+            'POST',
+            '/api/budgets',
+            [],
+            [],
+            [
+                'CONTENT_TYPE' => 'application/json',
+                'HTTP_AUTHORIZATION' => 'Bearer ' . $token
+            ],
+            json_encode([
+                'category_id' => 1,
+                'monthly_limit' => -100
+            ])
+        );
+
+        $this->assertResponseStatusCodeSame(400);
+    }
+
+    public function testCreateBudgetWithoutCategory(): void
+    {
+        $token = $this->getAuthToken();
+
+        $this->client->request(
+            'POST',
+            '/api/budgets',
+            [],
+            [],
+            [
+                'CONTENT_TYPE' => 'application/json',
+                'HTTP_AUTHORIZATION' => 'Bearer ' . $token
+            ],
+            json_encode([
+                'monthly_limit' => 200.00
+            ])
+        );
+
+        $this->assertResponseStatusCodeSame(400);
+    }
+
+    public function testUpdateBudgetWithAuth(): void
+    {
+        $token = $this->getAuthToken();
+
+        $this->client->request(
+            'GET',
+            '/api/budgets',
+            [],
+            [],
+            [
+                'CONTENT_TYPE' => 'application/json',
+                'HTTP_AUTHORIZATION' => 'Bearer ' . $token
+            ]
+        );
+
+        $budgets = json_decode($this->client->getResponse()->getContent(), true);
+
+        if (empty($budgets)) {
+            $this->markTestSkipped('No budgets available for testing');
+        }
+
+        $budgetId = $budgets[0]['id'];
+
+        $this->client->request(
+            'PUT',
+            '/api/budgets/' . $budgetId,
+            [],
+            [],
+            [
+                'CONTENT_TYPE' => 'application/json',
+                'HTTP_AUTHORIZATION' => 'Bearer ' . $token
+            ],
+            json_encode([
+                'monthly_limit' => 500.00
+            ])
+        );
+
+        $this->assertResponseStatusCodeSame(200);
+        $response = json_decode($this->client->getResponse()->getContent(), true);
+        $this->assertEquals('Budget updated', $response['message']);
+        $this->assertEquals(500.00, $response['budget']['monthly_limit']);
+    }
+
+    public function testDeleteBudgetWithAuth(): void
+    {
+        $token = $this->getAuthToken();
+
+        $this->client->request(
+            'GET',
+            '/api/categories',
+            [],
+            [],
+            [
+                'CONTENT_TYPE' => 'application/json',
+                'HTTP_AUTHORIZATION' => 'Bearer ' . $token
+            ]
+        );
+
+        $categories = json_decode($this->client->getResponse()->getContent(), true);
+
+        if (empty($categories)) {
+            $this->markTestSkipped('No categories available for testing');
+        }
+
+        $this->client->request(
+            'POST',
+            '/api/budgets',
+            [],
+            [],
+            [
+                'CONTENT_TYPE' => 'application/json',
+                'HTTP_AUTHORIZATION' => 'Bearer ' . $token
+            ],
+            json_encode([
+                'category_id' => $categories[count($categories) - 1]['id'],
+                'monthly_limit' => 100.00
+            ])
+        );
+
+        $createResponse = json_decode($this->client->getResponse()->getContent(), true);
+
+        if ($this->client->getResponse()->getStatusCode() !== 201) {
+            $this->markTestSkipped('Could not create budget for delete test');
+        }
+
+        $budgetId = $createResponse['budget']['id'];
+
+        $this->client->request(
+            'DELETE',
+            '/api/budgets/' . $budgetId,
+            [],
+            [],
+            [
+                'CONTENT_TYPE' => 'application/json',
+                'HTTP_AUTHORIZATION' => 'Bearer ' . $token
+            ]
+        );
+
+        $this->assertResponseStatusCodeSame(200);
+        $response = json_decode($this->client->getResponse()->getContent(), true);
+        $this->assertEquals('Budget deleted', $response['message']);
+    }
+
+    // =====================
+    // PROFILE TESTS
+    // =====================
+
+    public function testGetMeWithAuth(): void
+    {
+        $token = $this->getAuthToken();
+
+        $this->client->request(
+            'GET',
+            '/api/me',
+            [],
+            [],
+            [
+                'CONTENT_TYPE' => 'application/json',
+                'HTTP_AUTHORIZATION' => 'Bearer ' . $token
+            ]
+        );
+
+        $this->assertResponseStatusCodeSame(200);
+        $response = json_decode($this->client->getResponse()->getContent(), true);
+        $this->assertArrayHasKey('email', $response);
+        $this->assertArrayHasKey('firstName', $response);
+        $this->assertArrayHasKey('lastName', $response);
+        $this->assertEquals('active_test@test.com', $response['email']);
+    }
+
+    public function testGetMeWithoutAuth(): void
+    {
+        $this->client->request('GET', '/api/me');
+        $this->assertResponseStatusCodeSame(401);
+    }
+
+    public function testUpdateProfileWithAuth(): void
+    {
+        $token = $this->getAuthToken();
+
+        $this->client->request(
+            'PUT',
+            '/api/me',
+            [],
+            [],
+            [
+                'CONTENT_TYPE' => 'application/json',
+                'HTTP_AUTHORIZATION' => 'Bearer ' . $token
+            ],
+            json_encode([
+                'firstName' => 'Updated',
+                'lastName' => 'Name'
+            ])
+        );
+
+        $this->assertResponseStatusCodeSame(200);
+        $response = json_decode($this->client->getResponse()->getContent(), true);
+        $this->assertEquals('Profile updated', $response['message']);
+        $this->assertEquals('Updated', $response['user']['firstName']);
+        $this->assertEquals('Name', $response['user']['lastName']);
+    }
+
+    public function testUpdateProfileWithInvalidEmail(): void
+    {
+        $token = $this->getAuthToken();
+
+        $this->client->request(
+            'PUT',
+            '/api/me',
+            [],
+            [],
+            [
+                'CONTENT_TYPE' => 'application/json',
+                'HTTP_AUTHORIZATION' => 'Bearer ' . $token
+            ],
+            json_encode([
+                'email' => 'not-valid-email'
+            ])
+        );
+
+        $this->assertResponseStatusCodeSame(400);
+    }
+
+    public function testUpdatePasswordWithWrongCurrentPassword(): void
+    {
+        $token = $this->getAuthToken();
+
+        $this->client->request(
+            'PUT',
+            '/api/me/password',
+            [],
+            [],
+            [
+                'CONTENT_TYPE' => 'application/json',
+                'HTTP_AUTHORIZATION' => 'Bearer ' . $token
+            ],
+            json_encode([
+                'current_password' => 'wrongpassword',
+                'new_password' => 'newpassword123'
+            ])
+        );
+
+        $this->assertResponseStatusCodeSame(400);
+        $response = json_decode($this->client->getResponse()->getContent(), true);
+        $this->assertEquals('Current password is incorrect', $response['message']);
+    }
+
+    public function testUpdatePasswordWithShortNewPassword(): void
+    {
+        $token = $this->getAuthToken();
+
+        $this->client->request(
+            'PUT',
+            '/api/me/password',
+            [],
+            [],
+            [
+                'CONTENT_TYPE' => 'application/json',
+                'HTTP_AUTHORIZATION' => 'Bearer ' . $token
+            ],
+            json_encode([
+                'current_password' => 'password123',
+                'new_password' => '123'
+            ])
+        );
+
+        $this->assertResponseStatusCodeSame(400);
+    }
+
+    public function testUpdatePasswordWithAuth(): void
+    {
+        $token = $this->getAuthToken();
+
+        $this->client->request(
+            'PUT',
+            '/api/me/password',
+            [],
+            [],
+            [
+                'CONTENT_TYPE' => 'application/json',
+                'HTTP_AUTHORIZATION' => 'Bearer ' . $token
+            ],
+            json_encode([
+                'current_password' => 'password123',
+                'new_password' => 'newpassword123'
+            ])
+        );
+
+        $this->assertResponseStatusCodeSame(200);
+        $response = json_decode($this->client->getResponse()->getContent(), true);
+        $this->assertEquals('Password updated successfully', $response['message']);
+
+        // Reset password back pour ne pas casser les autres tests
+        $em = static::getContainer()->get(EntityManagerInterface::class);
+        $userRepo = $em->getRepository(User::class);
+        $user = $userRepo->findOneBy(['email' => 'active_test@test.com']);
+        $hasher = static::getContainer()->get('security.user_password_hasher');
+        $user->setPassword($hasher->hashPassword($user, 'password123'));
+        $em->flush();
+        self::$staticToken = '';
+    }
+
+    // =====================
+    // NOTIFICATIONS TESTS
+    // =====================
+
+    public function testGetNotificationsWithoutAuth(): void
+    {
+        $this->client->request('GET', '/api/notifications');
+        $this->assertResponseStatusCodeSame(401);
+    }
+
+    public function testGetNotificationsWithAuth(): void
+    {
+        $token = $this->getAuthToken();
+
+        $this->client->request(
+            'GET',
+            '/api/notifications',
+            [],
+            [],
+            [
+                'CONTENT_TYPE' => 'application/json',
+                'HTTP_AUTHORIZATION' => 'Bearer ' . $token
+            ]
+        );
+
+        $this->assertResponseStatusCodeSame(200);
+        $response = json_decode($this->client->getResponse()->getContent(), true);
+        $this->assertIsArray($response);
+    }
+
+    public function testGetUnreadCountWithAuth(): void
+    {
+        $token = $this->getAuthToken();
+
+        $this->client->request(
+            'GET',
+            '/api/notifications/unread-count',
+            [],
+            [],
+            [
+                'CONTENT_TYPE' => 'application/json',
+                'HTTP_AUTHORIZATION' => 'Bearer ' . $token
+            ]
+        );
+
+        $this->assertResponseStatusCodeSame(200);
+        $response = json_decode($this->client->getResponse()->getContent(), true);
+        $this->assertArrayHasKey('count', $response);
+        $this->assertIsInt($response['count']);
+    }
+
+    public function testMarkAllNotificationsAsRead(): void
+    {
+        $token = $this->getAuthToken();
+
+        $this->client->request(
+            'PUT',
+            '/api/notifications/read-all',
+            [],
+            [],
+            [
+                'CONTENT_TYPE' => 'application/json',
+                'HTTP_AUTHORIZATION' => 'Bearer ' . $token
+            ]
+        );
+
+        $this->assertResponseStatusCodeSame(200);
+        $response = json_decode($this->client->getResponse()->getContent(), true);
+        $this->assertArrayHasKey('message', $response);
+    }
+
+    public function testMarkSingleNotificationAsRead(): void
+    {
+        $token = $this->getAuthToken();
+
+        $this->client->request(
+            'GET',
+            '/api/notifications',
+            [],
+            [],
+            [
+                'CONTENT_TYPE' => 'application/json',
+                'HTTP_AUTHORIZATION' => 'Bearer ' . $token
+            ]
+        );
+
+        $notifications = json_decode($this->client->getResponse()->getContent(), true);
+
+        if (empty($notifications)) {
+            $this->markTestSkipped('No notifications available for testing');
+        }
+
+        $notifId = $notifications[0]['id'];
+
+        $this->client->request(
+            'PUT',
+            '/api/notifications/' . $notifId . '/read',
+            [],
+            [],
+            [
+                'CONTENT_TYPE' => 'application/json',
+                'HTTP_AUTHORIZATION' => 'Bearer ' . $token
+            ]
+        );
+
+        $this->assertResponseStatusCodeSame(200);
+        $response = json_decode($this->client->getResponse()->getContent(), true);
+        $this->assertTrue($response['notification']['isRead']);
+    }
+
+    // =====================
     // HELPER
     // =====================
 
@@ -334,8 +830,6 @@ class ApiIntegrationTest extends WebTestCase
         }
 
         self::$staticToken = $response['token'];
-
-        // Vide l'historique du client sans rebooter le kernel
         $this->client->restart();
 
         return self::$staticToken;
