@@ -297,6 +297,11 @@ export default function LandingPage() {
           <a href="/login">Log in</a>
           <a href="/register">Sign up</a>
           <a href="#about">Contact</a>
+          <span className="footer-sep" />
+          <a href="http://localhost:5174/login" className="footer-admin-link" target="_blank" rel="noopener noreferrer">
+            <span className="admin-dot" />
+            Administrator
+          </a>
         </div>
       </footer>
     </div>

@@ -1,6 +1,6 @@
 # MyBank — Personal Expense Manager
 
-MyBank is a full-stack personal finance management application developed with Symfony, React, Docker and MySQL. It allows users to track their expenses and income, organize them by custom categories, set monthly budgets per category, and receive real-time notifications for budget alerts and account events.
+MyBank is a full-stack personal finance management application developed with Symfony, React, Docker, MySQL, and MongoDB. It allows users to track their expenses and income, organize them by custom categories, set monthly budgets per category, visualize their financial history through interactive charts, and receive real-time notifications for budget alerts and account events.
 
 ---
 
@@ -8,10 +8,11 @@ MyBank is a full-stack personal finance management application developed with Sy
 
 | Layer | Technology |
 |-------|-----------|
-| Frontend User | React 19, Vite, React Router DOM, Axios |
+| Frontend User | React 19, Vite, React Router DOM, Axios, Recharts |
 | Frontend Admin | React 19, Vite, React Router DOM, Axios |
-| Backend | Symfony 7, PHP 8.3, Doctrine ORM |
-| Database | MySQL 8.0 |
+| Backend | Symfony 7, PHP 8.3, Doctrine ORM, Doctrine ODM |
+| Database (relational) | MySQL 8.0 |
+| Database (NoSQL) | MongoDB 7 |
 | Authentication | JWT (LexikJWTAuthenticationBundle) |
 | Containerization | Docker & Docker Compose |
 | CI/CD | GitHub Actions |
@@ -106,6 +107,10 @@ docker-compose down
 | Backend API | http://localhost:8000 |
 | phpMyAdmin | http://localhost:8081 |
 | MySQL | localhost:3307 |
+| MongoDB | localhost:27017 |
+| Mongo Express | http://localhost:8082 |
+
+> Mongo Express credentials: `admin` / `admin`
 
 ---
 
@@ -116,41 +121,55 @@ MyBank/
 ├── backend/                    # Symfony API
 │   ├── src/
 │   │   ├── Controller/         # API Controllers
+│   │   │   ├── AnalyticsController.php
 │   │   │   ├── AuthController.php
 │   │   │   ├── BudgetController.php
 │   │   │   ├── CategoryController.php
 │   │   │   ├── NotificationController.php
 │   │   │   ├── OperationController.php
 │   │   │   └── UserController.php
-│   │   ├── Entity/             # Doctrine entities
+│   │   ├── Document/           # MongoDB ODM documents
+│   │   │   ├── ActivityLog.php
+│   │   │   └── BalanceSnapshot.php
+│   │   ├── Entity/             # Doctrine ORM entities
 │   │   │   ├── Budget.php
 │   │   │   ├── Category.php
 │   │   │   ├── Notification.php
 │   │   │   ├── Operation.php
 │   │   │   └── User.php
+│   │   ├── EventListener/
+│   │   │   └── JWTCreatedListener.php
 │   │   ├── Repository/         # Database repositories
-│   │   ├── Service/
-│   │   │   └── NotificationService.php
-│   │   └── EventListener/      # JWT event listeners
-│   ├── migrations/             # Database migrations
+│   │   └── Service/
+│   │       ├── ActivityLogService.php
+│   │       ├── BalanceSnapshotService.php
+│   │       └── NotificationService.php
+│   ├── migrations/             # MySQL migrations
 │   └── config/
+│       └── packages/
+│           └── doctrine_mongodb.yaml
 │
 ├── frontend/                   # React user application
 │   ├── src/
 │   │   ├── api/                # Axios configuration
 │   │   ├── components/
 │   │   │   └── Sidebar.jsx     # Horizontal topbar
+│   │   ├── context/
+│   │   │   └── ThemeContext.jsx
 │   │   ├── layouts/
 │   │   ├── pages/
 │   │   │   ├── Dashboard.jsx
 │   │   │   ├── Operations.jsx
 │   │   │   ├── Categories.jsx
+│   │   │   ├── Budgets.jsx
 │   │   │   ├── Notifications.jsx
 │   │   │   ├── Profile.jsx
 │   │   │   ├── LandingPage.jsx
 │   │   │   ├── Login.jsx
-│   │   │   └── Register.jsx
+│   │   │   ├── Register.jsx
+│   │   │   └── PrivacyPolicy.jsx
 │   │   ├── services/
+│   │   │   ├── analyticsService.js
 │   │   │   ├── authService.js
 │   │   │   ├── budgetService.js
 │   │   │   ├── categoryService.js
@@ -160,6 +179,20 @@ MyBank/
 │   │   └── styles/
 │
 ├── frontend-admin/             # React admin portal
+│   ├── src/
+│   │   ├── components/
+│   │   │   └── Sidebar.jsx     # Dark navy sidebar with dark mode toggle
+│   │   ├── context/
+│   │   │   └── ThemeContext.jsx
+│   │   ├── pages/
+│   │   │   ├── ActivityLogs.jsx
+│   │   │   ├── Dashboard.jsx
+│   │   │   ├── Login.jsx
+│   │   │   ├── Operations.jsx
+│   │   │   ├── Pending.jsx
+│   │   │   └── Users.jsx
+│   │   └── services/
+│   │       └── adminService.js
 │
 ├── .github/
 │   └── workflows/
@@ -180,9 +213,12 @@ MyBank/
 - JWT Login / Register (with email, password, first name, last name, phone, date of birth, gender)
 - Account pending approval system — new accounts require admin validation before access
 - Account validated notification sent automatically on approval
+- Privacy Policy page linked from the registration form (`/privacy-policy`)
 
 #### Dashboard
 - Balance, total income and total expenses overview
+- **Donut / Pie chart** — spending distribution by category (Recharts)
+- **Area chart** — balance history over the last 90 days from MongoDB snapshots (Recharts)
 - Recent operations with category emojis
 - Search bar with combined filters
 
@@ -217,13 +253,22 @@ MyBank/
 #### Profile
 - View and edit all personal information: first name, last name, email, phone, date of birth, gender
 - Change password section
+- Danger zone: delete account permanently
+
+#### Privacy Policy
+- Dedicated page at `/privacy-policy` explaining what data is collected (operations, categories, budgets, activity logs), how it is protected, data retention policy, and how to delete the account
 
 ### Admin Portal (http://localhost:5174)
 - Admin-only access
 - Dashboard with global platform statistics
+- **Dark mode toggle** in the sidebar
 - User management (approve, reject, delete, change role)
 - Pending registrations approval
 - View all operations from all users
+- **Activity Logs page** (`/activity-logs`) — real-time audit trail of all user actions stored in MongoDB:
+  - Stats cards per action type (login, operation created/updated/deleted, profile updated)
+  - Filter by action type and search by email
+  - Relative timestamps (e.g. "2h ago")
 
 ---
 
@@ -231,8 +276,8 @@ MyBank/
 
 | Role | Permissions |
 |------|------------|
-| `ROLE_USER` | Manage own operations, categories, budgets; receive notifications; view dashboard |
-| `ROLE_ADMIN` | Access admin portal, manage all users, validate registrations, view all operations |
+| `ROLE_USER` | Manage own operations, categories, budgets; receive notifications; view dashboard with charts |
+| `ROLE_ADMIN` | Access admin portal, manage all users, validate registrations, view all operations, view activity logs |
 
 ---
 
@@ -242,7 +287,7 @@ MyBank/
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | POST | `/api/register` | Register a new user (with gender field) |
-| POST | `/api/login` | Login and get JWT token |
+| POST | `/api/login` | Login and get JWT token (logs login event to MongoDB) |
 | GET | `/api/me` | Get current user info |
 | PUT | `/api/me` | Update profile (name, email, phone, birthDate, gender, password) |
 
@@ -250,9 +295,9 @@ MyBank/
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | GET | `/api/operations` | Get all operations |
-| POST | `/api/operations` | Create an operation (triggers operation_added + budget alert notifications) |
-| PUT | `/api/operations/{id}` | Update an operation |
-| DELETE | `/api/operations/{id}` | Delete an operation |
+| POST | `/api/operations` | Create an operation (triggers operation_added + budget alert notifications + MongoDB logs) |
+| PUT | `/api/operations/{id}` | Update an operation (logged to MongoDB) |
+| DELETE | `/api/operations/{id}` | Delete an operation (logged to MongoDB) |
 | GET | `/api/me/operations` | Get current user's operations |
 | GET | `/api/dashboard` | Get dashboard statistics |
 
@@ -281,6 +326,12 @@ MyBank/
 | PUT | `/api/notifications/{id}/read` | Mark one notification as read |
 | DELETE | `/api/notifications/{id}` | Delete a notification |
 
+### Analytics
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/activity-logs` | Get activity logs from MongoDB — admin only (supports `?limit=` and `?action=` filters) |
+| GET | `/api/balance-history` | Get last 90 days of daily balance snapshots from MongoDB — authenticated user |
+
 ### Admin
 | Method | Endpoint | Description |
 |--------|----------|-------------|
@@ -291,11 +342,31 @@ MyBank/
 
 ---
 
+## MongoDB Collections
+
+In addition to the MySQL relational database, the application uses MongoDB for append-only analytics data:
+
+| Collection | Document | Description |
+|------------|----------|-------------|
+| `activity_logs` | `ActivityLog` | Audit trail of user actions: login, operation CRUD, profile updates |
+| `balance_snapshots` | `BalanceSnapshot` | Daily balance snapshots per user (income, expenses, net balance) used for the history chart |
+
+MongoDB failures are caught silently so they never interrupt a MySQL transaction.
+
+**Required environment variables:**
+```env
+MONGODB_URL=mongodb://mongodb:27017
+MONGODB_DB=mybank_logs
+```
+
+---
+
 ## Database Migrations
 
 | Migration | Description |
 |-----------|-------------|
 | `Version20260615211008` | Create `budget` table |
+| `Version20260617120000` | Additional schema update |
 | `Version20260617140000` | Add `gender` column to `user` table |
 | `Version20260617160000` | Create `notification` table |
 
@@ -339,12 +410,14 @@ The project uses **GitHub Actions** for continuous integration. On every push to
 ## Security
 
 - JWT authentication protects all API routes
+- Login events are automatically logged to MongoDB via `JWTCreatedListener`
 - Users can only access their own data (operations, categories, budgets, notifications)
 - Passwords are hashed with Symfony's password hasher
 - New accounts require admin approval before access
 - Budget threshold notifications only trigger on threshold crossing to prevent spam
 - Admin accounts cannot access the user portal
 - Role-based access control (ROLE_USER / ROLE_ADMIN)
+- Activity logs in MongoDB are read-only from the API — users cannot delete or alter them
 
 ---
 

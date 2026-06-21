@@ -281,7 +281,7 @@ function OperationModal({ categories, budgets, operation, onClose, onSaved }) {
                 <span style={styles.budgetSectionTitle}>
                   🎯 Budget — {selectedCategory?.name}
                 </span>
-                {linkedBudget && !editingLimit && (
+                {linkedBudget && !editingLimit && !(amountNum > 0 && (isOver || newPct >= 80)) && (
                   <button type="button" style={styles.btnEditLimit} onClick={() => { setEditingLimit(true); setNewBudgetLimit(String(linkedBudget.monthly_limit)); }}>
                     Edit limit
                   </button>
@@ -301,8 +301,26 @@ function OperationModal({ categories, budgets, operation, onClose, onSaved }) {
                         <span style={styles.budgetImpactSub}>{Number(linkedBudget.spent).toFixed(2)} € + {amountNum.toFixed(2)} €</span>
                         <span style={{ ...styles.budgetImpactSub, fontWeight: '800', color: barColor }}>{Math.round(newPct)}% of {Number(linkedBudget.monthly_limit).toFixed(2)} €</span>
                       </div>
-                      {isOver && <div style={styles.budgetWarning}>⚠️ Over budget by {(newSpent - linkedBudget.monthly_limit).toFixed(2)} €</div>}
-                      {!isOver && newPct >= 80 && <div style={styles.budgetCaution}>⚠️ Only {(linkedBudget.monthly_limit - newSpent).toFixed(2)} € will remain</div>}
+                      {isOver && (
+                        <div style={{ ...styles.budgetWarning, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
+                          <span>⚠️ Over budget by {(newSpent - linkedBudget.monthly_limit).toFixed(2)} €</span>
+                          {!editingLimit && (
+                            <button type="button" style={styles.btnEditBudget} onClick={() => { setEditingLimit(true); setNewBudgetLimit(String(linkedBudget.monthly_limit)); }}>
+                              Edit budget
+                            </button>
+                          )}
+                        </div>
+                      )}
+                      {!isOver && newPct >= 80 && (
+                        <div style={{ ...styles.budgetCaution, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
+                          <span>⚠️ Only {(linkedBudget.monthly_limit - newSpent).toFixed(2)} € will remain</span>
+                          {!editingLimit && (
+                            <button type="button" style={styles.btnEditBudget} onClick={() => { setEditingLimit(true); setNewBudgetLimit(String(linkedBudget.monthly_limit)); }}>
+                              Edit budget
+                            </button>
+                          )}
+                        </div>
+                      )}
                     </>
                   )}
                   {!amountNum && (
@@ -559,6 +577,19 @@ const styles = {
     color: 'var(--color-text-light)',
     fontFamily: 'Montserrat, sans-serif',
     cursor: 'pointer',
+  },
+  btnEditBudget: {
+    background: 'rgba(255,255,255,0.55)',
+    border: '1.5px solid rgba(0,0,0,0.08)',
+    borderRadius: '8px',
+    padding: '4px 10px',
+    fontSize: '11px',
+    fontWeight: '700',
+    color: 'inherit',
+    fontFamily: 'Montserrat, sans-serif',
+    cursor: 'pointer',
+    flexShrink: 0,
+    whiteSpace: 'nowrap',
   },
   optionalTag: {
     fontSize: '10px',

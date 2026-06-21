@@ -7,6 +7,8 @@ use App\Entity\User;
 use App\Repository\BudgetRepository;
 use App\Repository\CategoryRepository;
 use App\Repository\OperationRepository;
+use App\Service\ActivityLogService;
+use App\Service\BalanceSnapshotService;
 use App\Service\NotificationService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -57,7 +59,9 @@ final class OperationController extends AbstractController
         CategoryRepository $categoryRepository,
         OperationRepository $operationRepository,
         BudgetRepository $budgetRepository,
-        NotificationService $notificationService
+        NotificationService $notificationService,
+        ActivityLogService $activityLogService,
+        BalanceSnapshotService $balanceSnapshotService
     ): JsonResponse {
         /** @var User $user */
         $user = $this->getUser();
@@ -150,6 +154,16 @@ final class OperationController extends AbstractController
 
         $em->flush();
 
+        // MongoDB logs + snapshot
+        $activityLogService->log($user->getId(), $user->getUserIdentifier(), 'operation_created', [
+            'operationId' => $operation->getId(),
+            'label'       => $operation->getLabel(),
+            'amount'      => $operation->getAmount(),
+            'type'        => $operation->getType(),
+            'category'    => $category->getName(),
+        ]);
+        $balanceSnapshotService->snapshot($user);
+
         return $this->json([
             'message' => 'Operation created',
             'operation' => $this->formatOperation($operation)
@@ -162,7 +176,9 @@ final class OperationController extends AbstractController
         Request $request,
         OperationRepository $repository,
         CategoryRepository $categoryRepository,
-        EntityManagerInterface $em
+        EntityManagerInterface $em,
+        ActivityLogService $activityLogService,
+        BalanceSnapshotService $balanceSnapshotService
     ): JsonResponse {
         /** @var User $user */
         $user = $this->getUser();
@@ -212,6 +228,14 @@ final class OperationController extends AbstractController
 
         $em->flush();
 
+        $activityLogService->log($user->getId(), $user->getUserIdentifier(), 'operation_updated', [
+            'operationId' => $operation->getId(),
+            'label'       => $operation->getLabel(),
+            'amount'      => $operation->getAmount(),
+            'type'        => $operation->getType(),
+        ]);
+        $balanceSnapshotService->snapshot($user);
+
         return $this->json([
             'message' => 'Operation updated',
             'operation' => $this->formatOperation($operation)
@@ -222,7 +246,9 @@ final class OperationController extends AbstractController
     public function delete(
         int $id,
         OperationRepository $repository,
-        EntityManagerInterface $em
+        EntityManagerInterface $em,
+        ActivityLogService $activityLogService,
+        BalanceSnapshotService $balanceSnapshotService
     ): JsonResponse {
         /** @var User $user */
         $user = $this->getUser();
@@ -237,8 +263,17 @@ final class OperationController extends AbstractController
             return $this->json(['message' => 'Access denied'], 403);
         }
 
+        $operationId    = $operation->getId();
+        $operationLabel = $operation->getLabel();
+
         $em->remove($operation);
         $em->flush();
+
+        $activityLogService->log($user->getId(), $user->getUserIdentifier(), 'operation_deleted', [
+            'operationId' => $operationId,
+            'label'       => $operationLabel,
+        ]);
+        $balanceSnapshotService->snapshot($user);
 
         return $this->json(['message' => 'Operation deleted']);
     }

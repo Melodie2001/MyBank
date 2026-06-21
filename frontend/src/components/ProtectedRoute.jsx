@@ -6,7 +6,7 @@ export default function ProtectedRoute({ children }) {
   const isAdmin = user.roles?.includes('ROLE_ADMIN');
 
   if (!token) {
-    return <Navigate to="/login" replace />;
+    return <Navigate to="/" replace />;
   }
 
   // Si l'utilisateur est admin, le rediriger vers le portail admin

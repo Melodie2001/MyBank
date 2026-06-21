@@ -29,3 +29,8 @@ export async function getAllCategories() {
   const response = await api.get('/api/categories');
   return response.data;
 }
+
+export async function getActivityLogs(limit = 100) {
+  const response = await api.get(`/api/activity-logs?limit=${limit}`);
+  return response.data;
+}

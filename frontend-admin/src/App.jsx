@@ -10,6 +10,7 @@ const Dashboard = lazy(() => import('./pages/Dashboard'));
 const Users = lazy(() => import('./pages/Users'));
 const Pending = lazy(() => import('./pages/Pending'));
 const Operations = lazy(() => import('./pages/Operations'));
+const ActivityLogs = lazy(() => import('./pages/ActivityLogs'));
 const NotFound = lazy(() => import('./pages/NotFound'));
 
 function PageLoader() {
@@ -50,6 +51,7 @@ export default function App() {
             <Route path="/users" element={<Users />} />
             <Route path="/pending" element={<Pending />} />
             <Route path="/operations" element={<Operations />} />
+            <Route path="/activity-logs" element={<ActivityLogs />} />
           </Route>
 
           {/* Redirects */}

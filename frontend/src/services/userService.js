@@ -17,3 +17,8 @@ export async function updatePassword(currentPassword, newPassword) {
   });
   return response.data;
 }
+
+export async function deleteMe() {
+  const response = await api.delete('/api/me');
+  return response.data;
+}

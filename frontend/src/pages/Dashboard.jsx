@@ -6,6 +6,7 @@ import {
 } from 'recharts';
 import { getDashboard } from '../services/operationService';
 import { getMyCategories } from '../services/categoryService';
+import { getBalanceHistory } from '../services/analyticsService';
 import { useTheme } from '../context/ThemeContext';
 
 const CHART_COLORS = ['#2563EB', '#16A34A', '#D97706', '#DC2626', '#7C3AED', '#0EA5E9'];
@@ -33,6 +34,7 @@ export default function Dashboard() {
   const { dark } = useTheme();
   const [data, setData] = useState(null);
   const [categories, setCategories] = useState([]);
+  const [balanceHistory, setBalanceHistory] = useState([]);
   const [filter, setFilter] = useState('all');
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
@@ -40,12 +42,14 @@ export default function Dashboard() {
   useEffect(() => {
     async function fetchData() {
       try {
-        const [dashboard, cats] = await Promise.all([
+        const [dashboard, cats, history] = await Promise.all([
           getDashboard(),
-          getMyCategories()
+          getMyCategories(),
+          getBalanceHistory().catch(() => []),
         ]);
         setData(dashboard);
         setCategories(cats);
+        setBalanceHistory(history);
       } catch (err) {
         console.error(err);
       } finally {
@@ -86,46 +90,52 @@ export default function Dashboard() {
     pct: totalExpenses > 0 ? Math.round((total / totalExpenses) * 100) : 0
   })).sort((a, b) => b.value - a.value);
 
-  // Spending over time: group all operations by month
+  // Spending over time: always computed from operations for full historical coverage
+  const chartData = (() => {
+    if (operations.length === 0) return [];
+    const dates = operations.map(op => op.date).sort();
+    const daysDiff = (new Date(dates[dates.length - 1]) - new Date(dates[0])) / 86400000;
+    const byDay = daysDiff <= 60;
+
+    const grouped = operations.reduce((acc, op) => {
+      const key = byDay ? op.date : op.date.slice(0, 7);
+      if (!acc[key]) acc[key] = { income: 0, expense: 0 };
+      if (op.type === 'income') acc[key].income += Number(op.amount);
+      else acc[key].expense += Number(op.amount);
+      return acc;
+    }, {});
+
+    return Object.keys(grouped).sort().map(key => ({
+      label: byDay
+        ? new Date(key).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+        : new Date(key + '-01').toLocaleDateString('en-US', { month: 'short', year: '2-digit' }),
+      expense: Number(grouped[key].expense.toFixed(2)),
+      income: Number(grouped[key].income.toFixed(2)),
+    }));
+  })();
+
+  // % vs last month
+  const sortedMonths = [...new Set(operations.map(op => op.date.slice(0, 7)))].sort();
   const monthlyData = operations.reduce((acc, op) => {
-    const month = op.date.slice(0, 7); // "YYYY-MM"
-    if (!acc[month]) acc[month] = { month, income: 0, expense: 0 };
-    if (op.type === 'income') {
-      acc[month].income += Number(op.amount);
-    } else {
-      acc[month].expense += Number(op.amount);
-    }
+    const month = op.date.slice(0, 7);
+    if (!acc[month]) acc[month] = { income: 0, expense: 0 };
+    if (op.type === 'income') acc[month].income += Number(op.amount);
+    else acc[month].expense += Number(op.amount);
     return acc;
   }, {});
 
-  const sortedMonths = Object.keys(monthlyData).sort();
-  const chartData = sortedMonths.map(month => {
-    const [year, m] = month.split('-');
-    const label = new Date(year, m - 1).toLocaleDateString('en-US', { month: 'short' });
-    return {
-      label,
-      expense: Number(monthlyData[month].expense.toFixed(2)),
-      income: Number(monthlyData[month].income.toFixed(2)),
-    };
-  });
-
-  // % vs last month (based on expenses)
   let expenseChangePct = null;
   if (sortedMonths.length >= 2) {
-    const lastMonth = monthlyData[sortedMonths[sortedMonths.length - 1]].expense;
-    const prevMonth = monthlyData[sortedMonths[sortedMonths.length - 2]].expense;
-    if (prevMonth > 0) {
-      expenseChangePct = Math.round(((lastMonth - prevMonth) / prevMonth) * 100);
-    }
+    const last = monthlyData[sortedMonths[sortedMonths.length - 1]].expense;
+    const prev = monthlyData[sortedMonths[sortedMonths.length - 2]].expense;
+    if (prev > 0) expenseChangePct = Math.round(((last - prev) / prev) * 100);
   }
 
   let incomeChangePct = null;
   if (sortedMonths.length >= 2) {
-    const lastMonth = monthlyData[sortedMonths[sortedMonths.length - 1]].income;
-    const prevMonth = monthlyData[sortedMonths[sortedMonths.length - 2]].income;
-    if (prevMonth > 0) {
-      incomeChangePct = Math.round(((lastMonth - prevMonth) / prevMonth) * 100);
-    }
+    const last = monthlyData[sortedMonths[sortedMonths.length - 1]].income;
+    const prev = monthlyData[sortedMonths[sortedMonths.length - 2]].income;
+    if (prev > 0) incomeChangePct = Math.round(((last - prev) / prev) * 100);
   }
 
   if (loading) return <div style={styles.loading}>Loading...</div>;
@@ -369,8 +379,12 @@ export default function Dashboard() {
               <AreaChart data={chartData}>
                 <defs>
                   <linearGradient id="colorExpense" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#2563EB" stopOpacity={0.15} />
+                    <stop offset="0%" stopColor="#2563EB" stopOpacity={0.12} />
                     <stop offset="100%" stopColor="#2563EB" stopOpacity={0} />
+                  </linearGradient>
+                  <linearGradient id="colorIncome" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#16A34A" stopOpacity={0.12} />
+                    <stop offset="100%" stopColor="#16A34A" stopOpacity={0} />
                   </linearGradient>
                 </defs>
                 <CartesianGrid vertical={false} stroke={dark ? '#334155' : '#F1F5F9'} />
@@ -387,7 +401,7 @@ export default function Dashboard() {
                   tickFormatter={(v) => `${v} €`}
                 />
                 <Tooltip
-                  formatter={(value) => [`${value.toFixed(2)} €`, 'Expenses']}
+                  formatter={(value, name) => [`${value.toFixed(2)} €`, name === 'expense' ? 'Expenses' : 'Income']}
                   contentStyle={{
                     borderRadius: '12px',
                     border: `1px solid ${dark ? '#334155' : '#E2E8F0'}`,
@@ -399,12 +413,21 @@ export default function Dashboard() {
                 />
                 <Area
                   type="monotone"
+                  dataKey="income"
+                  stroke="#16A34A"
+                  strokeWidth={2}
+                  fill="url(#colorIncome)"
+                  dot={{ r: 3, fill: '#16A34A', strokeWidth: 0 }}
+                  activeDot={{ r: 5 }}
+                />
+                <Area
+                  type="monotone"
                   dataKey="expense"
                   stroke="#2563EB"
-                  strokeWidth={3}
+                  strokeWidth={2}
                   fill="url(#colorExpense)"
-                  dot={{ r: 4, fill: '#2563EB', strokeWidth: 0 }}
-                  activeDot={{ r: 6 }}
+                  dot={{ r: 3, fill: '#2563EB', strokeWidth: 0 }}
+                  activeDot={{ r: 5 }}
                 />
               </AreaChart>
             </ResponsiveContainer>
@@ -514,7 +537,7 @@ const styles = {
   },
   mainGrid: {
     display: 'grid',
-    gridTemplateColumns: '1fr 340px',
+    gridTemplateColumns: '1fr 380px',
     gap: '16px',
   },
   leftCol: {},
@@ -706,7 +729,7 @@ const styles = {
   legendRow: {
     display: 'flex',
     alignItems: 'center',
-    gap: '10px',
+    gap: '6px',
   },
   legendDot: {
     width: '10px',
@@ -719,18 +742,25 @@ const styles = {
     fontWeight: '600',
     color: 'var(--color-text)',
     flex: 1,
+    minWidth: 0,
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
   },
   legendAmount: {
-    fontSize: '13px',
+    fontSize: '12px',
     fontWeight: '700',
     color: 'var(--color-text)',
+    whiteSpace: 'nowrap',
+    flexShrink: 0,
   },
   legendPct: {
     fontSize: '12px',
     fontWeight: '700',
     color: 'var(--color-text-light)',
-    width: '36px',
+    width: '28px',
     textAlign: 'right',
+    flexShrink: 0,
   },
   categoryRow: {
     display: 'flex',

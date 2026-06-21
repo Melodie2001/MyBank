@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
-import { getMe, updateMe, updatePassword } from '../services/userService';
+import { useNavigate } from 'react-router-dom';
+import { getMe, updateMe, updatePassword, deleteMe } from '../services/userService';
+import { logout } from '../services/authService';
 
 const GENDER_LABELS = {
   male: { label: 'Male', emoji: '👨' },
@@ -27,8 +29,13 @@ function calcAge(dateStr) {
 }
 
 export default function Profile() {
+  const navigate = useNavigate();
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState('');
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const [deleteError, setDeleteError] = useState('');
 
   // Personal info form
   const [firstName, setFirstName] = useState('');
@@ -123,6 +130,20 @@ export default function Profile() {
       setPwdError(err.response?.data?.message || 'An error occurred');
     } finally {
       setPwdLoading(false);
+    }
+  }
+
+  async function handleDeleteAccount() {
+    if (deleteConfirm !== 'DELETE') return;
+    setDeleteLoading(true);
+    setDeleteError('');
+    try {
+      await deleteMe();
+      logout();
+      navigate('/');
+    } catch (err) {
+      setDeleteError(err.response?.data?.message || 'An error occurred');
+      setDeleteLoading(false);
     }
   }
 
@@ -361,8 +382,70 @@ export default function Profile() {
             </form>
           </div>
 
+          {/* Account deletion */}
+          <div style={{ ...styles.card, marginTop: '16px' }}>
+            <h2 style={styles.cardTitle}>Delete account</h2>
+            <p style={styles.cardSubtitle}>Permanently remove your account and all associated data</p>
+
+            <div style={styles.dangerRow}>
+              <div style={styles.dangerDesc}>
+                Once deleted, your operations, budgets, categories and notifications cannot be recovered.
+              </div>
+              <button style={styles.btnDanger} onClick={() => { setShowDeleteModal(true); setDeleteConfirm(''); setDeleteError(''); }}>
+                Delete my account
+              </button>
+            </div>
+          </div>
+
         </div>
       </div>
+
+      {/* Delete confirmation modal */}
+      {showDeleteModal && (
+        <div style={styles.overlay}>
+          <div style={styles.deleteModal}>
+            <div style={styles.deleteModalIcon}>⚠️</div>
+            <h2 style={styles.deleteModalTitle}>Delete your account?</h2>
+            <p style={styles.deleteModalText}>
+              This will permanently delete your account and all associated data:
+              operations, budgets, categories, and notifications.
+              <strong> This action cannot be undone.</strong>
+            </p>
+            <div style={styles.deleteModalConfirmBox}>
+              <label style={styles.label}>Type <strong>DELETE</strong> to confirm</label>
+              <input
+                type="text"
+                value={deleteConfirm}
+                onChange={e => setDeleteConfirm(e.target.value)}
+                style={{ ...styles.input, borderColor: deleteConfirm === 'DELETE' ? '#DC2626' : undefined }}
+                placeholder="DELETE"
+                autoFocus
+              />
+            </div>
+            {deleteError && <div style={styles.error}>{deleteError}</div>}
+            <div style={styles.deleteModalActions}>
+              <button
+                style={styles.btnCancel}
+                onClick={() => setShowDeleteModal(false)}
+                disabled={deleteLoading}
+              >
+                Cancel
+              </button>
+              <button
+                style={{
+                  ...styles.btnDanger,
+                  opacity: deleteConfirm !== 'DELETE' ? 0.4 : 1,
+                  cursor: deleteConfirm !== 'DELETE' ? 'not-allowed' : 'pointer',
+                }}
+                onClick={handleDeleteAccount}
+                disabled={deleteConfirm !== 'DELETE' || deleteLoading}
+              >
+                {deleteLoading ? 'Deleting...' : 'Yes, delete my account'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -617,5 +700,92 @@ const styles = {
     fontFamily: 'Montserrat, sans-serif',
     cursor: 'pointer',
     boxShadow: '0 10px 24px -8px rgba(37,99,235,0.4)',
+  },
+  dangerRow: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: '16px',
+    flexWrap: 'wrap',
+  },
+  dangerDesc: {
+    fontSize: '12px',
+    fontWeight: '500',
+    color: 'var(--color-text-light)',
+    maxWidth: '420px',
+    lineHeight: 1.5,
+  },
+  btnDanger: {
+    backgroundColor: '#DC2626',
+    color: '#fff',
+    border: 'none',
+    borderRadius: '12px',
+    padding: '11px 22px',
+    fontWeight: '700',
+    fontSize: '13px',
+    fontFamily: 'Montserrat, sans-serif',
+    cursor: 'pointer',
+    flexShrink: 0,
+  },
+  btnCancel: {
+    backgroundColor: 'transparent',
+    color: 'var(--color-text-light)',
+    border: '1.5px solid var(--color-border)',
+    borderRadius: '12px',
+    padding: '11px 22px',
+    fontWeight: '700',
+    fontSize: '13px',
+    fontFamily: 'Montserrat, sans-serif',
+    cursor: 'pointer',
+  },
+  overlay: {
+    position: 'fixed',
+    inset: 0,
+    backgroundColor: 'rgba(11,30,61,0.5)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 1000,
+  },
+  deleteModal: {
+    backgroundColor: 'var(--color-white)',
+    borderRadius: '20px',
+    padding: '36px',
+    width: '100%',
+    maxWidth: '440px',
+    boxShadow: '0 20px 60px -20px rgba(11,30,61,0.3)',
+    fontFamily: 'Montserrat, sans-serif',
+  },
+  deleteModalIcon: {
+    fontSize: '36px',
+    textAlign: 'center',
+    marginBottom: '16px',
+  },
+  deleteModalTitle: {
+    fontSize: '20px',
+    fontWeight: '800',
+    color: '#DC2626',
+    textAlign: 'center',
+    marginBottom: '12px',
+  },
+  deleteModalText: {
+    fontSize: '13px',
+    fontWeight: '500',
+    color: 'var(--color-text-light)',
+    textAlign: 'center',
+    lineHeight: 1.6,
+    marginBottom: '24px',
+  },
+  deleteModalConfirmBox: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '6px',
+    marginBottom: '16px',
+  },
+  deleteModalActions: {
+    display: 'flex',
+    gap: '12px',
+    justifyContent: 'flex-end',
+    marginTop: '8px',
   },
 };

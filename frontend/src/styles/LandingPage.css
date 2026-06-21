@@ -828,6 +828,49 @@
 .footer-links a:hover {
   color: #0b1e3d;
 }
+.footer-sep {
+  width: 1px;
+  height: 14px;
+  background: #cbd5e1;
+  display: inline-block;
+  align-self: center;
+}
+.footer-admin-link {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.admin-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #3b6fd4;
+  flex-shrink: 0;
+  display: inline-block;
+}
+.header-admin-sep {
+  width: 1px;
+  height: 18px;
+  background: #e2e8f0;
+  display: inline-block;
+  align-self: center;
+}
+.btn-admin {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #3b6fd4;
+  background: transparent;
+  border: none;
+  padding: 0;
+  text-decoration: none;
+  cursor: pointer;
+}
+.btn-admin:hover {
+  color: #1a4bba;
+}
 
 /* ===================== DARK MODE ===================== */
 .landing.dark {
@@ -920,6 +963,14 @@
 .landing.dark .footer-text { color: #64748b; }
 .landing.dark .footer-links a { color: #64748b; }
 .landing.dark .footer-links a:hover { color: #f1f5f9; }
+.landing.dark .footer-sep { background: #1e3354; }
+.landing.dark .footer-admin-link { color: #64748b; }
+.landing.dark .footer-admin-link:hover { color: #38bdf8; }
+.landing.dark .footer-admin-link .admin-dot { background: #38bdf8; }
+.landing.dark .header-admin-sep { background: #1e3354; }
+.landing.dark .btn-admin { color: #38bdf8; }
+.landing.dark .btn-admin:hover { color: #7dd3fc; }
+.landing.dark .btn-admin .admin-dot { background: #38bdf8; }
 
 /* ===================== RESPONSIVE ===================== */
 @media (max-width: 1100px) {

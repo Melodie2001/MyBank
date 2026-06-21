@@ -45,10 +45,11 @@ export default function Categories() {
 
   function getCatStats(catId) {
     const catOps = operations.filter(op => op.category.id === catId);
-    const monthlyTotal = catOps
-      .filter(op => op.date?.startsWith(thisMonth))
-      .reduce((s, op) => s + Number(op.amount), 0);
-    return { count: catOps.length, monthlyTotal };
+    const monthlyOps = catOps.filter(op => op.date?.startsWith(thisMonth));
+    const monthlyExpenses = monthlyOps.filter(op => op.type === 'expense');
+    const monthlyTotal = monthlyOps.reduce((s, op) => s + Number(op.amount), 0);
+    const hasExpenses = catOps.some(op => op.type === 'expense');
+    return { count: catOps.length, monthlyCount: monthlyOps.length, monthlyTotal, hasExpenses };
   }
 
   function getCatBudget(catId) {
@@ -156,25 +157,33 @@ export default function Categories() {
 
             return (
               <div key={cat.id} style={s.card}>
-                {/* Top */}
+                {/* Top: icon + name/ops + dot */}
                 <div style={s.cardTop}>
                   <div style={{ ...s.iconBox, backgroundColor: cat.color + '22' }}>
-                    <span style={{ fontSize: '24px' }}>{ICONS[cat.icon] || '💰'}</span>
+                    <span style={{ fontSize: '22px' }}>{ICONS[cat.icon] || '💰'}</span>
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    {isOver && <span style={s.overBadge}>⚠ Over budget</span>}
-                    <div style={{ ...s.dot, backgroundColor: cat.color }} />
+                  <div style={s.cardInfo}>
+                    <span style={s.catName}>{cat.name}</span>
+                    <span style={s.catOps}>{cat.count} {cat.count === 1 ? 'operation' : 'operations'} total</span>
                   </div>
+                  <div style={{ ...s.dot, backgroundColor: cat.color }} />
                 </div>
 
-                <div style={s.catName}>{cat.name}</div>
-                <div style={s.catOps}>{cat.count} {cat.count === 1 ? 'operation' : 'operations'}</div>
-                <div style={{ ...s.catTotal, color: isOver ? '#DC2626' : 'var(--color-text)' }}>
-                  €{cat.monthlyTotal.toFixed(2)}
+                {/* Amount + badge */}
+                <div style={s.amountRow}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                    <span style={{ ...s.catTotal, color: isOver ? '#DC2626' : 'var(--color-text)' }}>
+                      €{cat.monthlyTotal.toFixed(2)}
+                    </span>
+                    <span style={s.thisMonth}>
+                      {cat.monthlyCount} operation{cat.monthlyCount !== 1 ? 's' : ''} this month
+                    </span>
+                  </div>
+                  {isOver && <span style={s.overBadge}>⚠ Over budget</span>}
                 </div>
 
-                {/* Budget */}
-                {budget ? (
+                {/* Budget — only for expense-capable categories */}
+                {(cat.hasExpenses || budget) && budget ? (
                   <div style={s.budgetBox}>
                     <div style={s.budgetHeader}>
                       <span style={s.budgetLabel}>🎯 Monthly budget</span>
@@ -199,8 +208,10 @@ export default function Categories() {
                           step="0.01"
                           autoFocus
                         />
-                        <button style={s.btnSave} onClick={() => handleSaveBudget(cat, budget)}>Save</button>
-                        <button style={s.btnX} onClick={() => setBudgetEdit(null)}>✕</button>
+                        <div style={s.editBtns}>
+                          <button style={s.btnX} onClick={() => setBudgetEdit(null)}>Cancel</button>
+                          <button style={s.btnSave} onClick={() => handleSaveBudget(cat, budget)}>Save</button>
+                        </div>
                       </div>
                     ) : (
                       <>
@@ -221,7 +232,7 @@ export default function Categories() {
                       </>
                     )}
                   </div>
-                ) : isEditing ? (
+                ) : (cat.hasExpenses || budget) && isEditing ? (
                   <div style={s.budgetBox}>
                     <div style={s.editRow}>
                       <input
@@ -234,18 +245,20 @@ export default function Categories() {
                         placeholder="e.g. 200"
                         autoFocus
                       />
-                      <button style={s.btnSave} onClick={() => handleSaveBudget(cat, null)}>Save</button>
-                      <button style={s.btnX} onClick={() => setBudgetEdit(null)}>✕</button>
+                      <div style={s.editBtns}>
+                        <button style={s.btnX} onClick={() => setBudgetEdit(null)}>Cancel</button>
+                        <button style={s.btnSave} onClick={() => handleSaveBudget(cat, null)}>Save</button>
+                      </div>
                     </div>
                   </div>
-                ) : (
+                ) : cat.hasExpenses ? (
                   <button
                     style={s.btnSetBudget}
                     onClick={() => setBudgetEdit({ catId: cat.id, value: '' })}
                   >
                     + Set a monthly budget
                   </button>
-                )}
+                ) : null}
 
                 <button style={s.btnRemove} onClick={() => handleRemove(cat.id)}>Remove</button>
               </div>
@@ -362,26 +375,39 @@ const s = {
   },
   card: {
     backgroundColor: 'var(--color-white)', border: '1px solid var(--color-border)',
-    borderRadius: '18px', padding: '22px 20px 16px', display: 'flex',
-    flexDirection: 'column', gap: '6px', fontFamily: 'Montserrat, sans-serif',
+    borderRadius: '18px', padding: '20px', display: 'flex',
+    flexDirection: 'column', gap: '0', fontFamily: 'Montserrat, sans-serif',
   },
   cardTop: {
-    display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px',
+    display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '14px',
+  },
+  cardInfo: {
+    display: 'flex', flexDirection: 'column', gap: '2px', flex: 1, minWidth: 0,
   },
   iconBox: {
-    width: '52px', height: '52px', borderRadius: '14px',
+    width: '44px', height: '44px', borderRadius: '12px', flexShrink: 0,
     display: 'flex', alignItems: 'center', justifyContent: 'center',
   },
-  dot: { width: '10px', height: '10px', borderRadius: '50%' },
+  dot: { width: '10px', height: '10px', borderRadius: '50%', flexShrink: 0 },
   overBadge: {
     fontSize: '11px', fontWeight: '700', color: '#DC2626',
     backgroundColor: '#FEF2F2', borderRadius: '8px', padding: '3px 8px',
+    whiteSpace: 'nowrap', flexShrink: 0,
   },
-  catName: { fontSize: '16px', fontWeight: '800', color: 'var(--color-text)' },
+  amountRow: {
+    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+    gap: '8px', marginBottom: '12px',
+  },
+  catName: {
+    fontSize: '15px', fontWeight: '800', color: 'var(--color-text)',
+    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+  },
   catOps: { fontSize: '12px', color: 'var(--color-text-light)', fontWeight: '500' },
   catTotal: {
-    fontSize: '24px', fontWeight: '800', letterSpacing: '-0.5px',
-    marginTop: '4px', marginBottom: '6px',
+    fontSize: '22px', fontWeight: '800', letterSpacing: '-0.5px',
+  },
+  thisMonth: {
+    fontSize: '11px', fontWeight: '600', color: 'var(--color-text-light)',
   },
 
   /* Budget box */
@@ -408,21 +434,23 @@ const s = {
     overflow: 'hidden',
   },
   barFill: { height: '100%', borderRadius: '999px', transition: 'width 0.3s ease' },
-  editRow: { display: 'flex', gap: '6px', alignItems: 'center' },
+  editRow: { display: 'flex', flexDirection: 'column', gap: '8px' },
+  editBtns: { display: 'flex', gap: '8px' },
   budgetInput: {
-    flex: 1, padding: '7px 10px', borderRadius: '8px', border: '1.5px solid var(--color-border)',
+    width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1.5px solid var(--color-border)',
     fontSize: '13px', fontFamily: 'Montserrat, sans-serif', fontWeight: '600',
     backgroundColor: 'var(--color-white)', color: 'var(--color-text)', outline: 'none',
+    boxSizing: 'border-box',
   },
   btnSave: {
-    backgroundColor: '#2563EB', color: '#fff', border: 'none', borderRadius: '8px',
-    padding: '7px 12px', fontSize: '12px', fontWeight: '700',
-    fontFamily: 'Montserrat, sans-serif', cursor: 'pointer', whiteSpace: 'nowrap',
+    flex: 1, backgroundColor: '#2563EB', color: '#fff', border: 'none', borderRadius: '8px',
+    padding: '9px 0', fontSize: '12px', fontWeight: '700',
+    fontFamily: 'Montserrat, sans-serif', cursor: 'pointer',
   },
   btnX: {
-    background: 'none', border: '1px solid var(--color-border)', borderRadius: '8px',
-    width: '30px', height: '30px', cursor: 'pointer', color: 'var(--color-text-light)',
-    fontSize: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center',
+    flex: 1, background: 'none', border: '1.5px solid var(--color-border)', borderRadius: '8px',
+    padding: '9px 0', cursor: 'pointer', color: 'var(--color-text-light)',
+    fontSize: '12px', fontWeight: '700', fontFamily: 'Montserrat, sans-serif',
   },
   btnSetBudget: {
     backgroundColor: 'transparent', color: 'var(--color-text-light)',
@@ -432,9 +460,9 @@ const s = {
     transition: 'border-color 0.15s, color 0.15s',
   },
   btnRemove: {
-    flex: 1, backgroundColor: '#FEF2F2', color: '#DC2626', border: 'none',
+    width: '100%', backgroundColor: '#FEF2F2', color: '#DC2626', border: 'none',
     borderRadius: '10px', padding: '9px 0', fontSize: '12px', fontWeight: '700',
-    fontFamily: 'Montserrat, sans-serif', cursor: 'pointer', marginTop: '4px',
+    fontFamily: 'Montserrat, sans-serif', cursor: 'pointer', marginTop: '8px',
   },
 
   /* Empty */

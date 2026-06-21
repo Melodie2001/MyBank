@@ -4,6 +4,7 @@ namespace App\Controller;
 
 use App\Entity\User;
 use App\Repository\UserRepository;
+use App\Service\ActivityLogService;
 use App\Service\NotificationService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -60,7 +61,8 @@ final class UserController extends AbstractController
     public function updateMe(
         Request $request,
         EntityManagerInterface $em,
-        UserRepository $userRepository
+        UserRepository $userRepository,
+        ActivityLogService $activityLogService
     ): JsonResponse {
         /** @var User $user */
         $user = $this->getUser();
@@ -117,10 +119,51 @@ final class UserController extends AbstractController
 
         $em->flush();
 
+        $activityLogService->log($user->getId(), $user->getUserIdentifier(), 'profile_updated', [
+            'email' => $user->getEmail(),
+        ]);
+
         return $this->json([
             'message' => 'Profile updated',
             'user' => $this->formatUser($user)
         ]);
+    }
+
+    #[Route('/api/me', methods: ['DELETE'])]
+    public function deleteMe(EntityManagerInterface $em): JsonResponse
+    {
+        /** @var User $user */
+        $user = $this->getUser();
+
+        try {
+            $operations = $em->getRepository(\App\Entity\Operation::class)->findBy(['user' => $user]);
+            foreach ($operations as $op) {
+                $em->remove($op);
+            }
+
+            $budgets = $em->getRepository(\App\Entity\Budget::class)->findBy(['user' => $user]);
+            foreach ($budgets as $budget) {
+                $em->remove($budget);
+            }
+
+            $notifications = $em->getRepository(\App\Entity\Notification::class)->findBy(['user' => $user]);
+            foreach ($notifications as $notif) {
+                $em->remove($notif);
+            }
+
+            $userCategories = $em->getRepository(\App\Entity\UserCategory::class)->findBy(['user' => $user]);
+            foreach ($userCategories as $uc) {
+                $em->remove($uc);
+            }
+
+            $em->flush();
+            $em->remove($user);
+            $em->flush();
+
+            return $this->json(['message' => 'Account deleted successfully']);
+        } catch (\Exception $e) {
+            return $this->json(['message' => 'Could not delete account: ' . $e->getMessage()], 500);
+        }
     }
 
     #[Route('/api/me/password', methods: ['PUT'])]
