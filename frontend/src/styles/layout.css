@@ -124,5 +124,10 @@
   .app-content {
     padding: 16px;
     padding-top: 78px;
+    overflow-x: hidden;
+  }
+
+  body {
+    overflow-x: hidden;
   }
 }

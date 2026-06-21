@@ -1,8 +1,11 @@
+import { useIsMobile } from '../hooks/useIsMobile';
+
 export default function OperationCard({ operation, onDelete, onEdit }) {
+  const isMobile = useIsMobile();
   return (
-    <div style={styles.row}>
+    <div style={{ ...styles.row, gridTemplateColumns: isMobile ? '1fr auto 80px' : '2fr 1fr 1fr 1fr 80px' }}>
       <span style={styles.label}>{operation.label}</span>
-      <span style={styles.col}>
+      <span style={{ ...styles.col, ...(isMobile ? { display: 'none' } : {}) }}>
         <span style={{
           ...styles.badge,
           backgroundColor: operation.category.color + '22',
@@ -11,7 +14,7 @@ export default function OperationCard({ operation, onDelete, onEdit }) {
           {operation.category.name}
         </span>
       </span>
-      <span style={styles.col}>{operation.date}</span>
+      <span style={{ ...styles.col, ...(isMobile ? { display: 'none' } : {}) }}>{operation.date}</span>
       <span style={{
         ...styles.col,
         fontWeight: '600',

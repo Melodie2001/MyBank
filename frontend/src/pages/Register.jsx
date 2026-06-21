@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { register } from '../services/authService';
+import { useIsMobile } from '../hooks/useIsMobile';
 
 const LogoIcon = () => (
   <div style={{
@@ -51,6 +52,7 @@ export default function Register() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
+  const isMobile = useIsMobile();
   const pwdStrength = getPasswordStrength(password);
 
   async function handleSubmit(e) {
@@ -86,11 +88,11 @@ export default function Register() {
   }
 
   return (
-    <div style={styles.page}>
-      <div style={styles.container}>
+    <div style={{ ...styles.page, ...(isMobile ? { padding: 0 } : {}) }}>
+      <div style={{ ...styles.container, ...(isMobile ? { flexDirection: 'column', borderRadius: 0, boxShadow: 'none', maxWidth: '100%', minHeight: '100vh' } : {}) }}>
 
         {/* Left panel */}
-        <div style={styles.left}>
+        <div style={{ ...styles.left, ...(isMobile ? { display: 'none' } : {}) }}>
           {/* Background decoration: dot grid + concentric rings */}
           <div style={styles.dotGrid} />
           <div style={styles.ring1} />
@@ -145,7 +147,7 @@ export default function Register() {
         </div>
 
         {/* Right panel */}
-        <div style={styles.right}>
+        <div style={{ ...styles.right, ...(isMobile ? { padding: '40px 24px', flex: 1 } : {}) }}>
           <div style={styles.rightInner}>
             <h2 style={styles.rightTitle}>Create an account ✨</h2>
             <p style={styles.rightSubtitle}>Join Nexo Finance and take control of your budget</p>
@@ -153,7 +155,7 @@ export default function Register() {
             {error && <div style={styles.error}>{error}</div>}
 
             <form onSubmit={handleSubmit} style={styles.form}>
-              <div style={styles.row}>
+              <div style={{ ...styles.row, ...(isMobile ? { flexDirection: 'column' } : {}) }}>
                 <div style={styles.field}>
                   <label style={styles.label}>FIRST NAME</label>
                   <div style={styles.inputWrapper}>
@@ -199,7 +201,7 @@ export default function Register() {
                 </div>
               </div>
 
-              <div style={styles.row}>
+              <div style={{ ...styles.row, ...(isMobile ? { flexDirection: 'column' } : {}) }}>
                 <div style={styles.field}>
                   <label style={styles.label}>PHONE NUMBER</label>
                   <div style={styles.inputWrapper}>

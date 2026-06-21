@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { getCategories, getMyCategories, addToMyCategories, removeFromMyCategories } from '../services/categoryService';
 import { getOperations } from '../services/operationService';
 import { getBudgets, createBudget, updateBudget } from '../services/budgetService';
+import { useIsMobile } from '../hooks/useIsMobile';
 
 const ICONS = {
   'house.png': '🏠', 'train.png': '🚆', 'healthcare.png': '❤️',
@@ -11,6 +12,7 @@ const ICONS = {
 };
 
 export default function Categories() {
+  const isMobile = useIsMobile();
   const [myCategories, setMyCategories] = useState([]);
   const [allCategories, setAllCategories] = useState([]);
   const [operations, setOperations] = useState([]);
@@ -113,7 +115,7 @@ export default function Categories() {
   return (
     <div>
       {/* Header */}
-      <div style={s.header}>
+      <div style={{ ...s.header, ...(isMobile ? { flexWrap: 'wrap', gap: '12px' } : {}) }}>
         <div>
           <h1 style={s.title}>Categories</h1>
           <p style={s.subtitle}>Manage your expense categories and monthly budgets</p>
@@ -122,7 +124,7 @@ export default function Categories() {
       </div>
 
       {/* Stats row */}
-      <div style={s.statsRow}>
+      <div style={{ ...s.statsRow, ...(isMobile ? { gridTemplateColumns: 'repeat(2, 1fr)' } : {}) }}>
         <StatCard label="TOTAL CATEGORIES" value={myCategories.length} sub="In your list" />
         <StatCard
           label="BUDGETS SET"
@@ -289,9 +291,10 @@ function StatCard({ label, value, sub, valueColor }) {
 }
 
 function SelectCategoryModal({ categories, onClose, onAdd }) {
+  const isMobile = useIsMobile();
   return (
     <div style={s.overlay}>
-      <div style={s.modal}>
+      <div style={{ ...s.modal, ...(isMobile ? { padding: '24px 16px', maxHeight: '90vh', overflowY: 'auto', margin: '0 16px' } : {}) }}>
         <div style={s.modalHeader}>
           <div>
             <h2 style={s.modalTitle}>Add a category</h2>
@@ -303,7 +306,7 @@ function SelectCategoryModal({ categories, onClose, onAdd }) {
         {categories.length === 0 ? (
           <div style={s.emptyModal}>All available categories are already in your list.</div>
         ) : (
-          <div style={s.catGrid}>
+          <div style={{ ...s.catGrid, ...(isMobile ? { gridTemplateColumns: 'repeat(2, 1fr)' } : {}) }}>
             {categories.map(cat => (
               <div key={cat.id} style={s.catOption} onClick={() => onAdd(cat.id)}>
                 <div style={{ ...s.iconBox, backgroundColor: cat.color + '22' }}>

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useIsMobile } from '../hooks/useIsMobile';
 import { getMe, updateMe, updatePassword, deleteMe } from '../services/userService';
 import { logout } from '../services/authService';
 
@@ -30,6 +31,7 @@ function calcAge(dateStr) {
 
 export default function Profile() {
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -166,7 +168,7 @@ export default function Profile() {
         <p style={styles.subtitle}>Manage your account information and security</p>
       </div>
 
-      <div style={styles.grid}>
+      <div style={{ ...styles.grid, ...(isMobile ? { gridTemplateColumns: '1fr' } : {}) }}>
         {/* Left: avatar card */}
         <div style={{ ...styles.card, textAlign: 'center' }}>
           <div style={styles.avatarBig}>{initials}</div>
@@ -227,7 +229,7 @@ export default function Profile() {
             {infoError && <div style={styles.error}>{infoError}</div>}
 
             <form onSubmit={handleInfoSubmit} style={styles.form}>
-              <div style={styles.row}>
+              <div style={{ ...styles.row, ...(isMobile ? { flexDirection: 'column' } : {}) }}>
                 <div style={styles.field}>
                   <label style={styles.label}>FIRST NAME</label>
                   <input
@@ -262,7 +264,7 @@ export default function Profile() {
                 />
               </div>
 
-              <div style={styles.row}>
+              <div style={{ ...styles.row, ...(isMobile ? { flexDirection: 'column' } : {}) }}>
                 <div style={styles.field}>
                   <label style={styles.label}>PHONE NUMBER</label>
                   <input
@@ -344,7 +346,7 @@ export default function Profile() {
                 </div>
               </div>
 
-              <div style={styles.row}>
+              <div style={{ ...styles.row, ...(isMobile ? { flexDirection: 'column' } : {}) }}>
                 <div style={styles.field}>
                   <label style={styles.label}>NEW PASSWORD</label>
                   <div style={styles.inputWrapper}>
@@ -403,7 +405,7 @@ export default function Profile() {
       {/* Delete confirmation modal */}
       {showDeleteModal && (
         <div style={styles.overlay}>
-          <div style={styles.deleteModal}>
+          <div style={{ ...styles.deleteModal, ...(isMobile ? { padding: '24px 16px', maxHeight: '90vh', overflowY: 'auto', margin: '0 16px' } : {}) }}>
             <div style={styles.deleteModalIcon}>⚠️</div>
             <h2 style={styles.deleteModalTitle}>Delete your account?</h2>
             <p style={styles.deleteModalText}>

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { login } from '../services/authService';
+import { useIsMobile } from '../hooks/useIsMobile';
 
 const LogoIcon = () => (
   <div style={{
@@ -26,6 +27,7 @@ export default function Login() {
   const location = useLocation();
   const successMessage = location.state?.message;
 
+  const isMobile = useIsMobile();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -48,11 +50,11 @@ export default function Login() {
   }
 
   return (
-    <div style={styles.page}>
-      <div style={styles.container}>
+    <div style={{ ...styles.page, ...(isMobile ? { padding: 0 } : {}) }}>
+      <div style={{ ...styles.container, ...(isMobile ? { flexDirection: 'column', borderRadius: 0, boxShadow: 'none', maxWidth: '100%', minHeight: '100vh' } : {}) }}>
 
         {/* Left panel */}
-        <div style={styles.left}>
+        <div style={{ ...styles.left, ...(isMobile ? { display: 'none' } : {}) }}>
           {/* Background decoration: dot grid + concentric rings */}
           <div style={styles.dotGrid} />
           <div style={styles.ring1} />
@@ -98,7 +100,7 @@ export default function Login() {
         </div>
 
         {/* Right panel */}
-        <div style={styles.right}>
+        <div style={{ ...styles.right, ...(isMobile ? { padding: '40px 24px', flex: 1 } : {}) }}>
           <div style={styles.rightInner}>
             <h2 style={styles.rightTitle}>Welcome back 👋</h2>
             <p style={styles.rightSubtitle}>Sign in to manage your expenses</p>

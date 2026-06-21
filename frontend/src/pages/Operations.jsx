@@ -4,8 +4,10 @@ import { getOperations, deleteOperation } from '../services/operationService';
 import { getCategories, addToMyCategories } from '../services/categoryService';
 import { getBudgets } from '../services/budgetService';
 import OperationCard from '../components/OperationCard';
+import { useIsMobile } from '../hooks/useIsMobile';
 
 export default function Operations() {
+  const isMobile = useIsMobile();
   const [operations, setOperations] = useState([]);
   const [categories, setCategories] = useState([]);
   const [budgets, setBudgets] = useState([]);
@@ -78,7 +80,7 @@ export default function Operations() {
 
   return (
     <div>
-      <div style={styles.header}>
+      <div style={{ ...styles.header, ...(isMobile ? { flexWrap: 'wrap', gap: '12px' } : {}) }}>
         <h1 style={styles.title}>All operations</h1>
         <button style={styles.btnAdd} onClick={() => setShowModal(true)}>
           + Add operation
@@ -86,7 +88,7 @@ export default function Operations() {
       </div>
 
       <div style={styles.card}>
-        <div style={styles.toolbar}>
+        <div style={{ ...styles.toolbar, ...(isMobile ? { flexDirection: 'column', alignItems: 'stretch' } : {}) }}>
           <div style={styles.filters}>
             {['all', 'income', 'expense'].map(f => (
               <button
@@ -113,13 +115,13 @@ export default function Operations() {
           </div>
         </div>
 
-        <div style={styles.tableHeader}>
+        {!isMobile && <div style={styles.tableHeader}>
           <span style={styles.col}>DESCRIPTION</span>
           <span style={styles.col}>CATEGORY</span>
           <span style={styles.col}>DATE</span>
           <span style={styles.col}>AMOUNT</span>
           <span style={styles.col}></span>
-        </div>
+        </div>}
 
         {filtered.length === 0 ? (
           <div style={styles.empty}>No operations found</div>
@@ -149,6 +151,7 @@ export default function Operations() {
 }
 
 function OperationModal({ categories, budgets, operation, onClose, onSaved }) {
+  const isMobile = useIsMobile();
   const [label, setLabel] = useState(operation?.label || '');
   const [amount, setAmount] = useState(operation?.amount || '');
   const [date, setDate] = useState(operation?.date || new Date().toISOString().split('T')[0]);
@@ -233,7 +236,7 @@ function OperationModal({ categories, budgets, operation, onClose, onSaved }) {
 
   return (
     <div style={styles.overlay}>
-      <div style={styles.modal}>
+      <div style={{ ...styles.modal, ...(isMobile ? { padding: '24px 16px', maxHeight: '90vh', overflowY: 'auto', margin: '0 16px' } : {}) }}>
         <h2 style={styles.modalTitle}>{operation ? 'Edit Operation' : 'New Operation'}</h2>
         <p style={styles.modalSubtitle}>Fill in the details below to add an entry</p>
 
@@ -245,7 +248,7 @@ function OperationModal({ categories, budgets, operation, onClose, onSaved }) {
             <input type="text" value={label} onChange={e => setLabel(e.target.value)} style={styles.input} required />
           </div>
 
-          <div style={styles.row}>
+          <div style={{ ...styles.row, ...(isMobile ? { flexDirection: 'column' } : {}) }}>
             <div style={styles.field}>
               <label style={styles.label}>AMOUNT €</label>
               <input type="number" step="0.01" min="0" value={amount} onChange={e => setAmount(e.target.value)} style={styles.input} required />

@@ -8,6 +8,7 @@ import { getDashboard } from '../services/operationService';
 import { getMyCategories } from '../services/categoryService';
 import { getBalanceHistory } from '../services/analyticsService';
 import { useTheme } from '../context/ThemeContext';
+import { useIsMobile } from '../hooks/useIsMobile';
 
 const CHART_COLORS = ['#2563EB', '#16A34A', '#D97706', '#DC2626', '#7C3AED', '#0EA5E9'];
 
@@ -32,6 +33,7 @@ function getCategoryEmoji(categoryName) {
 
 export default function Dashboard() {
   const { dark } = useTheme();
+  const isMobile = useIsMobile();
   const [data, setData] = useState(null);
   const [categories, setCategories] = useState([]);
   const [balanceHistory, setBalanceHistory] = useState([]);
@@ -153,7 +155,7 @@ export default function Dashboard() {
       </div>
 
       {/* Stats cards */}
-      <div style={styles.statsRow}>
+      <div style={{ ...styles.statsRow, ...(isMobile ? { gridTemplateColumns: '1fr' } : {}) }}>
         <div style={styles.statCard}>
           <div style={styles.statTop}>
             <span style={styles.statLabel}>Total Balance</span>
@@ -197,7 +199,7 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <div style={styles.mainGrid}>
+      <div style={{ ...styles.mainGrid, ...(isMobile ? { gridTemplateColumns: '1fr' } : {}) }}>
         {/* Left: Recent operations */}
         <div style={styles.leftCol}>
           <div style={styles.card}>
@@ -207,7 +209,7 @@ export default function Dashboard() {
             </div>
 
             {/* Search + Filters row */}
-            <div style={styles.searchRow}>
+            <div style={{ ...styles.searchRow, ...(isMobile ? { flexWrap: 'wrap', gap: '8px' } : {}) }}>
               <div style={styles.searchBar}>
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ color: 'var(--color-text-light)', flexShrink: 0 }}>
                   <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
@@ -237,18 +239,18 @@ export default function Dashboard() {
               </div>
             </div>
 
-            <div style={styles.tableHeader}>
+            {!isMobile && <div style={styles.tableHeader}>
               <span style={{ ...styles.col, gridColumn: 'span 2' }}>DESCRIPTION</span>
               <span style={styles.col}>CATEGORY</span>
               <span style={styles.col}>DATE</span>
               <span style={{ ...styles.col, textAlign: 'right' }}>AMOUNT</span>
-            </div>
+            </div>}
 
             {filteredOperations.length === 0 ? (
               <div style={styles.empty}>No operations found</div>
             ) : (
               filteredOperations.slice(0, 8).map(op => (
-                <div key={op.id} style={styles.tableRow}>
+                <div key={op.id} style={{ ...styles.tableRow, gridTemplateColumns: isMobile ? '36px 1fr auto' : '36px 2fr 1fr 1fr 1fr' }}>
                   {/* Icon */}
                   <div style={{
                     ...styles.opIcon,
@@ -261,7 +263,7 @@ export default function Dashboard() {
                     <span style={styles.opLabel}>{op.label}</span>
                     <span style={styles.opSub}>{op.category.name}</span>
                   </div>
-                  <span style={styles.col}>
+                  <span style={{ ...styles.col, ...(isMobile ? { display: 'none' } : {}) }}>
                     <span style={{
                       ...styles.categoryBadge,
                       backgroundColor: op.category.color + '22',
@@ -270,7 +272,7 @@ export default function Dashboard() {
                       {op.category.name}
                     </span>
                   </span>
-                  <span style={{ ...styles.col, color: 'var(--color-text-light)' }}>{op.date}</span>
+                  <span style={{ ...styles.col, color: 'var(--color-text-light)', ...(isMobile ? { display: 'none' } : {}) }}>{op.date}</span>
                   <span style={{
                     ...styles.col,
                     fontWeight: '800',
