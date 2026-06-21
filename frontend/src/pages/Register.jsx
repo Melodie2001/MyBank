@@ -318,7 +318,7 @@ export default function Register() {
                   I agree to the{' '}
                   <span style={styles.termsLink}>Terms of Service</span>
                   {' '}and{' '}
-                  <Link to="/privacy-policy" target="_blank" rel="noopener noreferrer" style={styles.termsLink}>Privacy Policy</Link>
+                  <Link to="/privacy-policy" style={styles.termsLink}>Privacy Policy</Link>
                   {' '}of Nexo Finance
                 </span>
               </label>
