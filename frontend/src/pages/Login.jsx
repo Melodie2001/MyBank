@@ -51,6 +51,7 @@ export default function Login() {
 
   return (
     <div style={{ ...styles.page, ...(isMobile ? { padding: 0 } : {}) }}>
+      <Link to="/" style={styles.backHome}>← Back to home</Link>
       <div style={{ ...styles.container, ...(isMobile ? { flexDirection: 'column', borderRadius: 0, boxShadow: 'none', maxWidth: '100%', minHeight: '100vh' } : {}) }}>
 
         {/* Left panel */}
@@ -186,6 +187,7 @@ const styles = {
     backgroundColor: 'var(--color-bg)',
     padding: '20px',
     fontFamily: 'Montserrat, sans-serif',
+    position: 'relative',
   },
   container: {
     display: 'flex',
@@ -453,5 +455,16 @@ const styles = {
   link: {
     color: '#2563EB',
     fontWeight: '700',
+  },
+  backHome: {
+    position: 'absolute',
+    top: '20px',
+    left: '24px',
+    fontSize: '13px',
+    fontWeight: '700',
+    color: '#2563EB',
+    textDecoration: 'none',
+    fontFamily: 'Montserrat, sans-serif',
+    zIndex: 10,
   },
 };

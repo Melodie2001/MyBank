@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { register } from '../services/authService';
 import { useIsMobile } from '../hooks/useIsMobile';
+import PrivacyPolicyModal from '../components/PrivacyPolicyModal';
 
 const LogoIcon = () => (
   <div style={{
@@ -52,6 +53,7 @@ export default function Register() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
+  const [showPrivacy, setShowPrivacy] = useState(false);
   const isMobile = useIsMobile();
   const pwdStrength = getPasswordStrength(password);
 
@@ -318,7 +320,7 @@ export default function Register() {
                   I agree to the{' '}
                   <span style={styles.termsLink}>Terms of Service</span>
                   {' '}and{' '}
-                  <Link to="/privacy-policy" style={styles.termsLink}>Privacy Policy</Link>
+                  <button type="button" onClick={() => setShowPrivacy(true)} style={styles.termsLink}>Privacy Policy</button>
                   {' '}of Nexo Finance
                 </span>
               </label>
@@ -336,6 +338,7 @@ export default function Register() {
         </div>
 
       </div>
+      <PrivacyPolicyModal isOpen={showPrivacy} onClose={() => setShowPrivacy(false)} />
     </div>
   );
 }

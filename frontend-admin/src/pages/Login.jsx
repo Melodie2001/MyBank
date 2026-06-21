@@ -26,10 +26,14 @@ export default function Login() {
     }
   }
 
+  const frontendOrigin = `${window.location.protocol}//${window.location.hostname}:5173`;
+
   return (
     <div style={styles.page}>
       <div style={styles.gridDots} />
       <div style={styles.cornerShape} />
+
+      <a href={frontendOrigin} style={styles.backHome}>← Back to home</a>
 
       <button onClick={toggleDark} style={styles.themeBtn} title={dark ? 'Light mode' : 'Dark mode'}>
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -269,6 +273,17 @@ const styles = {
     fontFamily: 'Montserrat, sans-serif',
     marginTop: '8px',
     cursor: 'pointer',
+  },
+  backHome: {
+    position: 'absolute',
+    top: '20px',
+    left: '24px',
+    fontSize: '13px',
+    fontWeight: '700',
+    color: '#2563EB',
+    textDecoration: 'none',
+    fontFamily: 'Montserrat, sans-serif',
+    zIndex: 2,
   },
   themeBtn: {
     position: 'absolute',
