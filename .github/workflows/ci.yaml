@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - develop
   pull_request:
     branches:
       - main
@@ -29,6 +30,11 @@ jobs:
           --health-timeout=5s
           --health-retries=5
 
+      mongodb:
+        image: mongo:7
+        ports:
+          - 27017:27017
+
     steps:
       - name: Checkout project
         uses: actions/checkout@v5
@@ -37,7 +43,7 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: 8.3
-          extensions: mbstring, intl, pdo_mysql
+          extensions: mbstring, intl, pdo_mysql, mongodb
           coverage: none
 
       - name: Install Composer dependencies
@@ -65,23 +71,42 @@ jobs:
 
       - name: Run migrations
         working-directory: backend
-        run: DATABASE_URL="mysql://root:root@127.0.0.1:3306/mybank?serverVersion=8.0" php bin/console doctrine:migrations:migrate --no-interaction
+        env:
+          DATABASE_URL: "mysql://root:root@127.0.0.1:3306/mybank?serverVersion=8.0"
+          MONGODB_URL: "mongodb://127.0.0.1:27017"
+          MONGODB_DB: "mybank"
+        run: php bin/console doctrine:migrations:migrate --no-interaction
 
       - name: Run Symfony unit tests
         working-directory: backend
-        run: DATABASE_URL="mysql://root:root@127.0.0.1:3306/mybank?serverVersion=8.0" APP_ENV=dev php bin/phpunit tests/Unit/
+        env:
+          DATABASE_URL: "mysql://root:root@127.0.0.1:3306/mybank?serverVersion=8.0"
+          MONGODB_URL: "mongodb://127.0.0.1:27017"
+          MONGODB_DB: "mybank"
+          APP_ENV: dev
+        run: php bin/phpunit tests/Unit/
 
       - name: Create test database
         working-directory: backend
-        run: DATABASE_URL="mysql://root:root@127.0.0.1:3306/mybank_test?serverVersion=8.0" php bin/console doctrine:database:create --env=test --no-interaction
+        env:
+          DATABASE_URL: "mysql://root:root@127.0.0.1:3306/mybank_test?serverVersion=8.0"
+        run: php bin/console doctrine:database:create --env=test --no-interaction
 
       - name: Run test migrations
         working-directory: backend
-        run: DATABASE_URL="mysql://root:root@127.0.0.1:3306/mybank_test?serverVersion=8.0" php bin/console doctrine:migrations:migrate --env=test --no-interaction
+        env:
+          DATABASE_URL: "mysql://root:root@127.0.0.1:3306/mybank_test?serverVersion=8.0"
+          MONGODB_URL: "mongodb://127.0.0.1:27017"
+          MONGODB_DB: "mybank_test"
+        run: php bin/console doctrine:migrations:migrate --env=test --no-interaction
 
       - name: Run integration tests
         working-directory: backend
-        run: DATABASE_URL="mysql://root:root@127.0.0.1:3306/mybank_test?serverVersion=8.0" php bin/phpunit tests/Integration/ApiIntegrationTest.php
+        env:
+          DATABASE_URL: "mysql://root:root@127.0.0.1:3306/mybank_test?serverVersion=8.0"
+          MONGODB_URL: "mongodb://127.0.0.1:27017"
+          MONGODB_DB: "mybank_test"
+        run: php bin/phpunit tests/Integration/ApiIntegrationTest.php
 
   # =====================
   # FRONTEND (React)
