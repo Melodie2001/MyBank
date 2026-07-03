@@ -15,6 +15,7 @@ const ICONS = {
   'pills.png': '💊',
   'entertainment.png': '🎬',
   'cart.png': '🛒',
+  'transfer.png': '💸',
 };
 
 export default function Budgets() {

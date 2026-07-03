@@ -9,6 +9,7 @@ const ICONS = {
   'books.png': '📚', 'plane.png': '✈️', 'dog.png': '🐾',
   'briefcase.png': '💼', 'gamepad.png': '🎮', 'burger.png': '🍔',
   'pills.png': '💊', 'entertainment.png': '🎬', 'cart.png': '🛒',
+  'transfer.png': '💸',
 };
 
 export default function Categories() {

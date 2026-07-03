@@ -28,6 +28,7 @@ function getCategoryEmoji(categoryName) {
   if (n.includes('tech') || n.includes('computer') || n.includes('phone') || n.includes('ordi')) return '💻';
   if (n.includes('sub') || n.includes('abonn') || n.includes('netflix') || n.includes('spotify')) return '📱';
   if (n.includes('income') || n.includes('revenu') || n.includes('salaire')) return '💰';
+  if (n.includes('transfer') || n.includes('virement')) return '💸';
   return '💳';
 }
 
