@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
+import { useOutletContext } from 'react-router-dom';
 import { getUsers, updateUserStatus } from '../services/adminService';
 
 export default function Pending() {
   const [pendingUsers, setPendingUsers] = useState([]);
   const [loading, setLoading] = useState(true);
+  const { refreshPendingCount } = useOutletContext();
 
   useEffect(() => {
     fetchPending();
@@ -24,6 +26,7 @@ export default function Pending() {
     try {
       await updateUserStatus(id, status);
       setPendingUsers(prev => prev.filter(u => u.id !== id));
+      refreshPendingCount();
     } catch (err) {
       alert(err.response?.data?.message || 'An error occurred');
     }
