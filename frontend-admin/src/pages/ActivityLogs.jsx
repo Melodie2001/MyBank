@@ -22,6 +22,7 @@ const ACTION_TYPES = ['all', 'login', 'operation_created', 'operation_updated', 
 export default function ActivityLogs() {
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [search, setSearch] = useState('');
   const [actionFilter, setActionFilter] = useState('all');
 
@@ -29,12 +30,14 @@ export default function ActivityLogs() {
 
   async function fetchLogs() {
     try {
+      setRefreshing(true);
       const data = await getActivityLogs();
       setLogs(data);
     } catch (err) {
       console.error(err);
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   }
 
@@ -58,7 +61,13 @@ export default function ActivityLogs() {
           <h1 style={s.title}>Activity Logs</h1>
           <p style={s.subtitle}>{logs.length} events recorded in MongoDB</p>
         </div>
-        <button style={s.btnRefresh} onClick={fetchLogs}>↻ Refresh</button>
+        <button
+          style={{ ...s.btnRefresh, opacity: refreshing ? 0.6 : 1, cursor: refreshing ? 'not-allowed' : 'pointer' }}
+          onClick={fetchLogs}
+          disabled={refreshing}
+        >
+          {refreshing ? '⟳ Refreshing…' : '↻ Refresh'}
+        </button>
       </div>
 
       {/* Stats row */}
