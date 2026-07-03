@@ -44,7 +44,7 @@ const styles = {
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: 'var(--color-bg)',
-    fontFamily: 'Montserrat, sans-serif',
+    fontFamily: 'Inter, sans-serif',
   },
   container: {
     textAlign: 'center',
@@ -95,7 +95,7 @@ const styles = {
     padding: '13px 28px',
     fontWeight: '700',
     fontSize: '14px',
-    fontFamily: 'Montserrat, sans-serif',
+    fontFamily: 'Inter, sans-serif',
     textDecoration: 'none',
     boxShadow: '0 10px 24px -8px rgba(37,99,235,0.4)',
   },

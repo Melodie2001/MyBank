@@ -190,7 +190,7 @@ const s = {
     maxHeight: '90vh',
     overflowY: 'auto',
     boxShadow: '0 24px 80px rgba(11,30,61,0.3)',
-    fontFamily: 'Montserrat, sans-serif',
+    fontFamily: 'Inter, sans-serif',
     display: 'flex',
     flexDirection: 'column',
   },
@@ -242,7 +242,7 @@ const s = {
     fontSize: '14px',
     color: 'var(--color-text-light)',
     fontWeight: '700',
-    fontFamily: 'Montserrat, sans-serif',
+    fontFamily: 'Inter, sans-serif',
   },
   container: {
     padding: '36px 32px 48px',

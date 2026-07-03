@@ -392,12 +392,12 @@ export default function Dashboard() {
                 <CartesianGrid vertical={false} stroke={dark ? '#334155' : '#F1F5F9'} />
                 <XAxis
                   dataKey="label"
-                  tick={{ fontSize: 12, fill: '#94A3B8', fontFamily: 'Montserrat' }}
+                  tick={{ fontSize: 12, fill: '#94A3B8', fontFamily: 'Inter' }}
                   axisLine={false}
                   tickLine={false}
                 />
                 <YAxis
-                  tick={{ fontSize: 12, fill: '#94A3B8', fontFamily: 'Montserrat' }}
+                  tick={{ fontSize: 12, fill: '#94A3B8', fontFamily: 'Inter' }}
                   axisLine={false}
                   tickLine={false}
                   tickFormatter={(v) => `${v} €`}
@@ -409,7 +409,7 @@ export default function Dashboard() {
                     border: `1px solid ${dark ? '#334155' : '#E2E8F0'}`,
                     backgroundColor: dark ? '#1E293B' : '#fff',
                     color: dark ? '#F1F5F9' : '#0B1E3D',
-                    fontFamily: 'Montserrat',
+                    fontFamily: 'Inter',
                     fontSize: '13px',
                   }}
                 />
@@ -448,7 +448,7 @@ const styles = {
     height: '100%',
     fontSize: '16px',
     color: 'var(--color-text-light)',
-    fontFamily: 'Montserrat, sans-serif',
+    fontFamily: 'Inter, sans-serif',
   },
   header: {
     display: 'flex',
@@ -461,13 +461,13 @@ const styles = {
     fontWeight: '800',
     letterSpacing: '-0.5px',
     color: 'var(--color-text)',
-    fontFamily: 'Montserrat, sans-serif',
+    fontFamily: 'Inter, sans-serif',
   },
   subtitle: {
     fontSize: '13px',
     color: 'var(--color-text-light)',
     fontWeight: '500',
-    fontFamily: 'Montserrat, sans-serif',
+    fontFamily: 'Inter, sans-serif',
     marginTop: '4px',
   },
   btnAdd: {
@@ -478,7 +478,7 @@ const styles = {
     padding: '12px 22px',
     fontWeight: '700',
     fontSize: '13px',
-    fontFamily: 'Montserrat, sans-serif',
+    fontFamily: 'Inter, sans-serif',
     cursor: 'pointer',
     boxShadow: '0 10px 24px -8px rgba(37,99,235,0.4)',
   },
@@ -515,19 +515,19 @@ const styles = {
     fontSize: '13px',
     fontWeight: '600',
     color: 'var(--color-text-light)',
-    fontFamily: 'Montserrat, sans-serif',
+    fontFamily: 'Inter, sans-serif',
   },
   statValue: {
     fontSize: '26px',
     fontWeight: '800',
     letterSpacing: '-0.5px',
     color: 'var(--color-text)',
-    fontFamily: 'Montserrat, sans-serif',
+    fontFamily: 'Inter, sans-serif',
   },
   statChange: {
     fontSize: '12px',
     fontWeight: '700',
-    fontFamily: 'Montserrat, sans-serif',
+    fontFamily: 'Inter, sans-serif',
     display: 'flex',
     alignItems: 'center',
     gap: '6px',
@@ -549,7 +549,7 @@ const styles = {
     border: '1px solid var(--color-border)',
     borderRadius: '16px',
     padding: '24px',
-    fontFamily: 'Montserrat, sans-serif',
+    fontFamily: 'Inter, sans-serif',
   },
   cardHeader: {
     display: 'flex',
@@ -578,7 +578,7 @@ const styles = {
     borderRadius: '8px',
     fontSize: '12px',
     fontWeight: '600',
-    fontFamily: 'Montserrat, sans-serif',
+    fontFamily: 'Inter, sans-serif',
     color: 'var(--color-text-light)',
     cursor: 'pointer',
   },
@@ -614,7 +614,7 @@ const styles = {
     background: 'transparent',
     outline: 'none',
     fontSize: '13px',
-    fontFamily: 'Montserrat, sans-serif',
+    fontFamily: 'Inter, sans-serif',
     color: 'var(--color-text)',
     flex: 1,
   },
@@ -639,7 +639,7 @@ const styles = {
     color: 'var(--color-text-light)',
     fontWeight: '700',
     letterSpacing: '0.05em',
-    fontFamily: 'Montserrat, sans-serif',
+    fontFamily: 'Inter, sans-serif',
   },
   tableRow: {
     display: 'grid',
@@ -669,13 +669,13 @@ const styles = {
     fontSize: '13px',
     fontWeight: '700',
     color: 'var(--color-text)',
-    fontFamily: 'Montserrat, sans-serif',
+    fontFamily: 'Inter, sans-serif',
   },
   opSub: {
     fontSize: '11px',
     color: 'var(--color-text-light)',
     fontWeight: '500',
-    fontFamily: 'Montserrat, sans-serif',
+    fontFamily: 'Inter, sans-serif',
   },
   categoryBadge: {
     padding: '4px 10px',
@@ -687,7 +687,7 @@ const styles = {
     textAlign: 'center',
     color: 'var(--color-text-light)',
     fontSize: '13px',
-    fontFamily: 'Montserrat, sans-serif',
+    fontFamily: 'Inter, sans-serif',
     padding: '24px 0',
   },
   donutRow: {

@@ -226,7 +226,7 @@ export default function Categories() {
                         <div style={s.bar}>
                           <div style={{ ...s.barFill, width: `${barPct}%`, backgroundColor: barColor }} />
                         </div>
-                        <div style={{ color: barColor, fontSize: '12px', fontWeight: '700', fontFamily: 'Montserrat, sans-serif' }}>
+                        <div style={{ color: barColor, fontSize: '12px', fontWeight: '700', fontFamily: 'Inter, sans-serif' }}>
                           {isOver
                             ? `${Math.round(budget.percentage)}% — Over by ${Math.abs(Number(budget.remaining)).toFixed(2)} €`
                             : `${Math.round(budget.percentage)}% used — ${Number(budget.remaining).toFixed(2)} € remaining`}
@@ -331,7 +331,7 @@ const s = {
   loading: {
     display: 'flex', alignItems: 'center', justifyContent: 'center',
     height: '200px', fontSize: '16px', color: 'var(--color-text-light)',
-    fontFamily: 'Montserrat, sans-serif',
+    fontFamily: 'Inter, sans-serif',
   },
   header: {
     display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start',
@@ -339,16 +339,16 @@ const s = {
   },
   title: {
     fontSize: '26px', fontWeight: '800', letterSpacing: '-0.5px',
-    color: 'var(--color-text)', fontFamily: 'Montserrat, sans-serif', marginBottom: '4px',
+    color: 'var(--color-text)', fontFamily: 'Inter, sans-serif', marginBottom: '4px',
   },
   subtitle: {
     fontSize: '13px', color: 'var(--color-text-light)', fontWeight: '500',
-    fontFamily: 'Montserrat, sans-serif',
+    fontFamily: 'Inter, sans-serif',
   },
   btnAdd: {
     backgroundColor: '#2563EB', color: '#fff', border: 'none',
     borderRadius: '12px', padding: '11px 22px', fontWeight: '700',
-    fontSize: '13px', fontFamily: 'Montserrat, sans-serif', cursor: 'pointer',
+    fontSize: '13px', fontFamily: 'Inter, sans-serif', cursor: 'pointer',
     boxShadow: '0 10px 24px -8px rgba(37,99,235,0.4)',
   },
 
@@ -358,7 +358,7 @@ const s = {
   },
   statCard: {
     backgroundColor: 'var(--color-white)', border: '1px solid var(--color-border)',
-    borderRadius: '16px', padding: '20px 22px', fontFamily: 'Montserrat, sans-serif',
+    borderRadius: '16px', padding: '20px 22px', fontFamily: 'Inter, sans-serif',
   },
   statLabel: {
     fontSize: '11px', fontWeight: '700', color: 'var(--color-text-light)',
@@ -379,7 +379,7 @@ const s = {
   card: {
     backgroundColor: 'var(--color-white)', border: '1px solid var(--color-border)',
     borderRadius: '18px', padding: '20px', display: 'flex',
-    flexDirection: 'column', gap: '0', fontFamily: 'Montserrat, sans-serif',
+    flexDirection: 'column', gap: '0', fontFamily: 'Inter, sans-serif',
   },
   cardTop: {
     display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '14px',
@@ -427,7 +427,7 @@ const s = {
   },
   btnEdit: {
     background: 'none', border: 'none', color: '#2563EB', fontSize: '12px',
-    fontWeight: '700', fontFamily: 'Montserrat, sans-serif', cursor: 'pointer', padding: 0,
+    fontWeight: '700', fontFamily: 'Inter, sans-serif', cursor: 'pointer', padding: 0,
   },
   budgetAmounts: { display: 'flex', alignItems: 'baseline', gap: '6px' },
   budgetSpent: { fontSize: '16px', fontWeight: '800' },
@@ -441,37 +441,37 @@ const s = {
   editBtns: { display: 'flex', gap: '8px' },
   budgetInput: {
     width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1.5px solid var(--color-border)',
-    fontSize: '13px', fontFamily: 'Montserrat, sans-serif', fontWeight: '600',
+    fontSize: '13px', fontFamily: 'Inter, sans-serif', fontWeight: '600',
     backgroundColor: 'var(--color-white)', color: 'var(--color-text)', outline: 'none',
     boxSizing: 'border-box',
   },
   btnSave: {
     flex: 1, backgroundColor: '#2563EB', color: '#fff', border: 'none', borderRadius: '8px',
     padding: '9px 0', fontSize: '12px', fontWeight: '700',
-    fontFamily: 'Montserrat, sans-serif', cursor: 'pointer',
+    fontFamily: 'Inter, sans-serif', cursor: 'pointer',
   },
   btnX: {
     flex: 1, background: 'none', border: '1.5px solid var(--color-border)', borderRadius: '8px',
     padding: '9px 0', cursor: 'pointer', color: 'var(--color-text-light)',
-    fontSize: '12px', fontWeight: '700', fontFamily: 'Montserrat, sans-serif',
+    fontSize: '12px', fontWeight: '700', fontFamily: 'Inter, sans-serif',
   },
   btnSetBudget: {
     backgroundColor: 'transparent', color: 'var(--color-text-light)',
     border: '1.5px dashed var(--color-border)', borderRadius: '10px',
     padding: '9px 0', fontSize: '12px', fontWeight: '700',
-    fontFamily: 'Montserrat, sans-serif', cursor: 'pointer', marginBottom: '4px',
+    fontFamily: 'Inter, sans-serif', cursor: 'pointer', marginBottom: '4px',
     transition: 'border-color 0.15s, color 0.15s',
   },
   btnRemove: {
     width: '100%', backgroundColor: '#FEF2F2', color: '#DC2626', border: 'none',
     borderRadius: '10px', padding: '9px 0', fontSize: '12px', fontWeight: '700',
-    fontFamily: 'Montserrat, sans-serif', cursor: 'pointer', marginTop: '8px',
+    fontFamily: 'Inter, sans-serif', cursor: 'pointer', marginTop: '8px',
   },
 
   /* Empty */
   empty: {
     textAlign: 'center', color: 'var(--color-text-light)', fontSize: '14px',
-    fontWeight: '500', fontFamily: 'Montserrat, sans-serif', padding: '60px 0',
+    fontWeight: '500', fontFamily: 'Inter, sans-serif', padding: '60px 0',
     backgroundColor: 'var(--color-white)', border: '1px solid var(--color-border)',
     borderRadius: '16px',
   },
@@ -484,7 +484,7 @@ const s = {
   modal: {
     backgroundColor: 'var(--color-white)', borderRadius: '20px', padding: '32px',
     width: '100%', maxWidth: '500px', boxShadow: '0 20px 60px -20px rgba(11,30,61,0.3)',
-    fontFamily: 'Montserrat, sans-serif',
+    fontFamily: 'Inter, sans-serif',
   },
   modalHeader: {
     display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '24px',
@@ -513,6 +513,6 @@ const s = {
   btnCancel: {
     backgroundColor: 'transparent', color: 'var(--color-text-light)', border: 'none',
     borderRadius: '12px', padding: '11px 22px', fontWeight: '700', fontSize: '13px',
-    fontFamily: 'Montserrat, sans-serif', cursor: 'pointer',
+    fontFamily: 'Inter, sans-serif', cursor: 'pointer',
   },
 };

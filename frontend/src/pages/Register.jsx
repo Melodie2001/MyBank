@@ -17,7 +17,7 @@ const LogoIcon = () => (
     fontWeight: '800',
     color: '#fff',
     flexShrink: 0,
-    fontFamily: 'Montserrat, sans-serif',
+    fontFamily: 'Inter, sans-serif',
   }}>
     N
   </div>
@@ -352,7 +352,7 @@ const styles = {
     justifyContent: 'center',
     backgroundColor: 'var(--color-bg)',
     padding: '20px',
-    fontFamily: 'Montserrat, sans-serif',
+    fontFamily: 'Inter, sans-serif',
     position: 'relative',
   },
   backHome: {
@@ -363,7 +363,7 @@ const styles = {
     fontWeight: '700',
     color: '#2563EB',
     textDecoration: 'none',
-    fontFamily: 'Montserrat, sans-serif',
+    fontFamily: 'Inter, sans-serif',
     zIndex: 10,
   },
   container: {
@@ -586,7 +586,7 @@ const styles = {
     borderRadius: '12px',
     padding: '12px 14px 12px 38px',
     fontSize: '14px',
-    fontFamily: 'Montserrat, sans-serif',
+    fontFamily: 'Inter, sans-serif',
     color: 'var(--color-text)',
     outline: 'none',
     width: '100%',
@@ -619,7 +619,7 @@ const styles = {
     background: 'none',
     border: 'none',
     padding: 0,
-    fontFamily: 'Montserrat, sans-serif',
+    fontFamily: 'Inter, sans-serif',
     fontSize: 'inherit',
   },
   btnPrimary: {
@@ -630,7 +630,7 @@ const styles = {
     padding: '14px',
     fontWeight: '700',
     fontSize: '15px',
-    fontFamily: 'Montserrat, sans-serif',
+    fontFamily: 'Inter, sans-serif',
     cursor: 'pointer',
     letterSpacing: '0.02em',
     boxShadow: '0 10px 24px -8px rgba(37,99,235,0.4)',
@@ -685,7 +685,7 @@ const styles = {
     color: 'var(--color-text-light)',
     fontSize: '13px',
     fontWeight: '600',
-    fontFamily: 'Montserrat, sans-serif',
+    fontFamily: 'Inter, sans-serif',
     cursor: 'pointer',
     transition: 'border-color 0.15s, color 0.15s, background 0.15s',
   },

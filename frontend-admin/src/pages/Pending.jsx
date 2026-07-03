@@ -92,7 +92,7 @@ const styles = {
     height: '100%',
     fontSize: '16px',
     color: 'var(--color-text-light)',
-    fontFamily: 'Montserrat, sans-serif',
+    fontFamily: 'Inter, sans-serif',
   },
   header: {
     marginBottom: '24px',
@@ -102,14 +102,14 @@ const styles = {
     fontWeight: '800',
     letterSpacing: '-0.5px',
     color: 'var(--color-text)',
-    fontFamily: 'Montserrat, sans-serif',
+    fontFamily: 'Inter, sans-serif',
     marginBottom: '4px',
   },
   subtitle: {
     fontSize: '13px',
     color: 'var(--color-text-light)',
     fontWeight: '500',
-    fontFamily: 'Montserrat, sans-serif',
+    fontFamily: 'Inter, sans-serif',
   },
   emptyState: {
     textAlign: 'center',
@@ -117,7 +117,7 @@ const styles = {
     backgroundColor: 'var(--color-white)',
     border: '1px solid var(--color-border)',
     borderRadius: '16px',
-    fontFamily: 'Montserrat, sans-serif',
+    fontFamily: 'Inter, sans-serif',
   },
   emptyIcon: {
     fontSize: '48px',
@@ -148,7 +148,7 @@ const styles = {
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
-    fontFamily: 'Montserrat, sans-serif',
+    fontFamily: 'Inter, sans-serif',
   },
   cardLeft: {
     display: 'flex',
@@ -205,7 +205,7 @@ const styles = {
     padding: '9px 16px',
     fontSize: '13px',
     fontWeight: '700',
-    fontFamily: 'Montserrat, sans-serif',
+    fontFamily: 'Inter, sans-serif',
     cursor: 'pointer',
   },
   btnReject: {
@@ -216,7 +216,7 @@ const styles = {
     padding: '9px 16px',
     fontSize: '13px',
     fontWeight: '700',
-    fontFamily: 'Montserrat, sans-serif',
+    fontFamily: 'Inter, sans-serif',
     cursor: 'pointer',
   },
 };

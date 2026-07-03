@@ -16,7 +16,7 @@ const LogoIcon = () => (
     fontWeight: '800',
     color: '#fff',
     flexShrink: 0,
-    fontFamily: 'Montserrat, sans-serif',
+    fontFamily: 'Inter, sans-serif',
   }}>
     N
   </div>
@@ -186,7 +186,7 @@ const styles = {
     justifyContent: 'center',
     backgroundColor: 'var(--color-bg)',
     padding: '20px',
-    fontFamily: 'Montserrat, sans-serif',
+    fontFamily: 'Inter, sans-serif',
     position: 'relative',
   },
   container: {
@@ -393,7 +393,7 @@ const styles = {
     borderRadius: '12px',
     padding: '13px 14px 13px 38px',
     fontSize: '14px',
-    fontFamily: 'Montserrat, sans-serif',
+    fontFamily: 'Inter, sans-serif',
     color: 'var(--color-text)',
     outline: 'none',
     width: '100%',
@@ -439,7 +439,7 @@ const styles = {
     padding: '15px',
     fontWeight: '700',
     fontSize: '15px',
-    fontFamily: 'Montserrat, sans-serif',
+    fontFamily: 'Inter, sans-serif',
     marginTop: '4px',
     cursor: 'pointer',
     letterSpacing: '0.02em',
@@ -464,7 +464,7 @@ const styles = {
     fontWeight: '700',
     color: '#2563EB',
     textDecoration: 'none',
-    fontFamily: 'Montserrat, sans-serif',
+    fontFamily: 'Inter, sans-serif',
     zIndex: 10,
   },
 };

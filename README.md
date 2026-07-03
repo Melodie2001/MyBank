@@ -118,85 +118,168 @@ docker-compose down
 
 ```
 MyBank/
-├── backend/                    # Symfony API
+├── .github/
+│   └── workflows/
+│       └── ci.yaml                        # GitHub Actions CI/CD
+│
+├── backend/                               # Symfony 7 API
+│   ├── config/
+│   │   ├── jwt/
+│   │   │   ├── private.pem
+│   │   │   └── public.pem
+│   │   └── packages/
+│   │       ├── cache.yaml
+│   │       ├── doctrine.yaml
+│   │       ├── doctrine_migrations.yaml
+│   │       ├── doctrine_mongodb.yaml
+│   │       ├── framework.yaml
+│   │       ├── lexik_jwt_authentication.yaml
+│   │       ├── nelmio_cors.yaml
+│   │       ├── routing.yaml
+│   │       ├── security.yaml
+│   │       └── validator.yaml
+│   ├── migrations/                        # MySQL migrations (Doctrine)
+│   │   ├── Version20260528131728.php
+│   │   ├── Version20260528132537.php
+│   │   ├── Version20260529005535.php
+│   │   ├── Version20260530162934.php
+│   │   ├── Version20260530191317.php
+│   │   ├── Version20260608212254.php
+│   │   ├── Version20260615211008.php      # Create budget table
+│   │   ├── Version20260617120000.php
+│   │   ├── Version20260617140000.php      # Add gender column to user
+│   │   └── Version20260617160000.php      # Create notification table
 │   ├── src/
-│   │   ├── Controller/         # API Controllers
-│   │   │   ├── AnalyticsController.php
-│   │   │   ├── AuthController.php
+│   │   ├── Controller/
+│   │   │   ├── AdminController.php        # User management endpoints (admin only)
+│   │   │   ├── AnalyticsController.php    # Activity logs + balance history
 │   │   │   ├── BudgetController.php
 │   │   │   ├── CategoryController.php
 │   │   │   ├── NotificationController.php
 │   │   │   ├── OperationController.php
-│   │   │   └── UserController.php
-│   │   ├── Document/           # MongoDB ODM documents
+│   │   │   └── UserController.php         # Auth (register/login/me) + profile
+│   │   ├── Document/                      # MongoDB ODM documents
 │   │   │   ├── ActivityLog.php
 │   │   │   └── BalanceSnapshot.php
-│   │   ├── Entity/             # Doctrine ORM entities
+│   │   ├── Entity/                        # Doctrine ORM entities (MySQL)
 │   │   │   ├── Budget.php
 │   │   │   ├── Category.php
 │   │   │   ├── Notification.php
 │   │   │   ├── Operation.php
-│   │   │   └── User.php
+│   │   │   ├── User.php
+│   │   │   └── UserCategory.php           # Join entity: user ↔ category
 │   │   ├── EventListener/
-│   │   │   └── JWTCreatedListener.php
-│   │   ├── Repository/         # Database repositories
-│   │   └── Service/
-│   │       ├── ActivityLogService.php
-│   │       ├── BalanceSnapshotService.php
-│   │       └── NotificationService.php
-│   ├── migrations/             # MySQL migrations
-│   └── config/
-│       └── packages/
-│           └── doctrine_mongodb.yaml
+│   │   │   ├── AuthenticationSuccessListener.php  # Logs login to MongoDB
+│   │   │   └── JWTCreatedListener.php             # Adds custom claims to JWT
+│   │   ├── Repository/
+│   │   │   ├── BudgetRepository.php
+│   │   │   ├── CategoryRepository.php
+│   │   │   ├── NotificationRepository.php
+│   │   │   ├── OperationRepository.php
+│   │   │   ├── UserCategoryRepository.php
+│   │   │   └── UserRepository.php
+│   │   ├── Service/
+│   │   │   ├── ActivityLogService.php
+│   │   │   ├── BalanceSnapshotService.php
+│   │   │   └── NotificationService.php
+│   │   └── Kernel.php
+│   ├── tests/
+│   │   ├── Integration/
+│   │   │   └── ApiIntegrationTest.php
+│   │   ├── Unit/
+│   │   │   └── UserTest.php
+│   │   └── bootstrap.php
+│   ├── Dockerfile
+│   ├── compose.override.yaml
+│   ├── composer.json
+│   └── composer.lock
 │
-├── frontend/                   # React user application
-│   ├── src/
-│   │   ├── api/                # Axios configuration
-│   │   ├── components/
-│   │   │   └── Sidebar.jsx     # Horizontal topbar
-│   │   ├── context/
-│   │   │   └── ThemeContext.jsx
-│   │   ├── layouts/
-│   │   ├── pages/
-│   │   │   ├── Dashboard.jsx
-│   │   │   ├── Operations.jsx
-│   │   │   ├── Categories.jsx
-│   │   │   ├── Budgets.jsx
-│   │   │   ├── Notifications.jsx
-│   │   │   ├── Profile.jsx
-│   │   │   ├── LandingPage.jsx
-│   │   │   ├── Login.jsx
-│   │   │   ├── Register.jsx
-│   │   │   └── PrivacyPolicy.jsx
-│   │   ├── services/
-│   │   │   ├── analyticsService.js
-│   │   │   ├── authService.js
-│   │   │   ├── budgetService.js
-│   │   │   ├── categoryService.js
-│   │   │   ├── notificationService.js
-│   │   │   ├── operationService.js
-│   │   │   └── userService.js
-│   │   └── styles/
+├── frontend/                              # React user application (port 5173)
+│   └── src/
+│       ├── api/
+│       │   └── axios.js                  # Axios instance + JWT interceptor
+│       ├── components/
+│       │   ├── AdminRoute.jsx
+│       │   ├── CategoryCard.jsx
+│       │   ├── Narbar.jsx                # Horizontal topbar
+│       │   ├── OperationCard.jsx
+│       │   ├── PrivacyPolicyModal.jsx    # Modal overlay (opened from Register)
+│       │   ├── ProtectedRoute.jsx
+│       │   └── Sidebar.jsx
+│       ├── context/
+│       │   └── ThemeContext.jsx
+│       ├── hooks/
+│       │   └── useIsMobile.js
+│       ├── layouts/
+│       │   └── MainLayout.jsx
+│       ├── pages/
+│       │   ├── Budgets.jsx
+│       │   ├── Categories.jsx
+│       │   ├── Dashboard.jsx
+│       │   ├── LandingPage.jsx           # Public landing page (/)
+│       │   ├── Login.jsx                 # ← Back to home link
+│       │   ├── NotFound.jsx
+│       │   ├── Notifications.jsx
+│       │   ├── Operations.jsx
+│       │   ├── PrivacyPolicy.jsx         # Standalone page (/privacy-policy)
+│       │   ├── Profile.jsx
+│       │   └── Register.jsx              # ← Back to home link + privacy modal
+│       ├── services/
+│       │   ├── adminService.js
+│       │   ├── analyticsService.js
+│       │   ├── authService.js
+│       │   ├── budgetService.js
+│       │   ├── categoryService.js
+│       │   ├── notificationService.js
+│       │   ├── operationService.js
+│       │   └── userService.js
+│       ├── styles/
+│       │   ├── LandingPage.css
+│       │   ├── global.css
+│       │   ├── layout.css
+│       │   └── sidebar.css
+│       ├── test/
+│       │   ├── AdminRoute.test.jsx
+│       │   ├── ProtectedRoute.test.jsx
+│       │   ├── authService.test.js
+│       │   ├── categoryService.test.js
+│       │   ├── operationService.test.js
+│       │   └── setup.js
+│       ├── App.jsx
+│       └── main.jsx
 │
-├── frontend-admin/             # React admin portal
-│   ├── src/
-│   │   ├── components/
-│   │   │   └── Sidebar.jsx     # Dark navy sidebar with dark mode toggle
-│   │   ├── context/
-│   │   │   └── ThemeContext.jsx
-│   │   ├── pages/
-│   │   │   ├── ActivityLogs.jsx
-│   │   │   ├── Dashboard.jsx
-│   │   │   ├── Login.jsx
-│   │   │   ├── Operations.jsx
-│   │   │   ├── Pending.jsx
-│   │   │   └── Users.jsx
-│   │   └── services/
-│   │       └── adminService.js
+├── frontend-admin/                        # React admin portal (port 5174)
+│   └── src/
+│       ├── api/
+│       │   └── axios.js
+│       ├── components/
+│       │   ├── Layout.jsx
+│       │   ├── ProtectedRoute.jsx
+│       │   └── Sidebar.jsx               # Dark navy sidebar with dark mode toggle
+│       ├── context/
+│       │   └── ThemeContext.jsx
+│       ├── pages/
+│       │   ├── ActivityLogs.jsx
+│       │   ├── Dashboard.jsx
+│       │   ├── Login.jsx
+│       │   ├── NotFound.jsx
+│       │   ├── Operations.jsx
+│       │   ├── Pending.jsx
+│       │   └── Users.jsx
+│       ├── services/
+│       │   ├── adminService.js
+│       │   └── authService.js
+│       ├── styles/
+│       │   └── global.css
+│       ├── test/
+│       │   ├── ProtectedRoute.test.jsx
+│       │   ├── adminService.test.js
+│       │   ├── authService.test.js
+│       │   └── setup.js
+│       ├── App.jsx
+│       └── main.jsx
 │
-├── .github/
-│   └── workflows/
-│       └── ci.yaml             # GitHub Actions CI/CD
+├── .gitignore
 └── docker-compose.yml
 ```
 
@@ -208,12 +291,21 @@ MyBank/
 
 #### Navigation
 - Horizontal topbar with logo, navigation tabs (Dashboard / Operations / Categories), dark mode toggle, notification bell with unread badge, and user avatar dropdown (Profile / Logout)
+- "← Back to home" link on Login and Register pages, returning to the landing page (`/`)
 
 #### Authentication
 - JWT Login / Register (with email, password, first name, last name, phone, date of birth, gender)
 - Account pending approval system — new accounts require admin validation before access
 - Account validated notification sent automatically on approval
-- Privacy Policy page linked from the registration form (`/privacy-policy`)
+
+#### Registration — Privacy Policy modal
+- Clicking "Privacy Policy" on the registration form opens a full-content modal overlay (no page navigation, no loss of form state)
+- The modal covers all 6 sections: data collected, purpose, protection, retention, deletion, contact
+- The standalone `/privacy-policy` route is also kept for the footer link on the landing page
+
+#### Landing Page
+- Public landing page at `/` with hero, features, how-it-works and about sections
+- Footer with Log in / Sign up / Contact links (no Administrator link)
 
 #### Dashboard
 - Balance, total income and total expenses overview
@@ -255,11 +347,8 @@ MyBank/
 - Change password section
 - Danger zone: delete account permanently
 
-#### Privacy Policy
-- Dedicated page at `/privacy-policy` explaining what data is collected (operations, categories, budgets, activity logs), how it is protected, data retention policy, and how to delete the account
-
 ### Admin Portal (http://localhost:5174)
-- Admin-only access
+- Admin-only access (separate JWT authentication)
 - Dashboard with global platform statistics
 - **Dark mode toggle** in the sidebar
 - User management (approve, reject, delete, change role)
@@ -290,6 +379,7 @@ MyBank/
 | POST | `/api/login` | Login and get JWT token (logs login event to MongoDB) |
 | GET | `/api/me` | Get current user info |
 | PUT | `/api/me` | Update profile (name, email, phone, birthDate, gender, password) |
+| DELETE | `/api/me` | Delete own account |
 
 ### Operations
 | Method | Endpoint | Description |
@@ -365,6 +455,12 @@ MONGODB_DB=mybank_logs
 
 | Migration | Description |
 |-----------|-------------|
+| `Version20260528131728` | Initial schema (user table) |
+| `Version20260528132537` | Category and operation tables |
+| `Version20260529005535` | Schema refinement |
+| `Version20260530162934` | UserCategory join table |
+| `Version20260530191317` | Additional columns |
+| `Version20260608212254` | Schema update |
 | `Version20260615211008` | Create `budget` table |
 | `Version20260617120000` | Additional schema update |
 | `Version20260617140000` | Add `gender` column to `user` table |
@@ -410,7 +506,8 @@ The project uses **GitHub Actions** for continuous integration. On every push to
 ## Security
 
 - JWT authentication protects all API routes
-- Login events are automatically logged to MongoDB via `JWTCreatedListener`
+- Login events are automatically logged to MongoDB via `AuthenticationSuccessListener`
+- Custom JWT claims added via `JWTCreatedListener`
 - Users can only access their own data (operations, categories, budgets, notifications)
 - Passwords are hashed with Symfony's password hasher
 - New accounts require admin approval before access

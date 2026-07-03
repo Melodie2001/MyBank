@@ -174,7 +174,7 @@ const s = {
   page: {
     minHeight: '100vh',
     backgroundColor: 'var(--color-bg)',
-    fontFamily: 'Montserrat, sans-serif',
+    fontFamily: 'Inter, sans-serif',
   },
   topBar: {
     display: 'flex',

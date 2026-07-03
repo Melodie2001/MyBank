@@ -38,12 +38,12 @@ function PageLoader() {
           fontSize: '20px',
           fontWeight: '800',
           color: '#fff',
-          fontFamily: 'Montserrat, sans-serif',
+          fontFamily: 'Inter, sans-serif',
           margin: '0 auto 16px',
         }}>
           N
         </div>
-        <div style={{ color: 'var(--color-text)', fontWeight: '600', fontSize: '14px', fontFamily: 'Montserrat, sans-serif' }}>Loading...</div>
+        <div style={{ color: 'var(--color-text)', fontWeight: '600', fontSize: '14px', fontFamily: 'Inter, sans-serif' }}>Loading...</div>
       </div>
     </div>
   );

@@ -142,7 +142,7 @@ export default function ActivityLogs() {
 const s = {
   loading: {
     display: 'flex', alignItems: 'center', justifyContent: 'center',
-    height: '200px', color: 'var(--color-text-light)', fontFamily: 'Montserrat, sans-serif',
+    height: '200px', color: 'var(--color-text-light)', fontFamily: 'Inter, sans-serif',
   },
   header: {
     display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start',
@@ -150,13 +150,13 @@ const s = {
   },
   title: {
     fontSize: '24px', fontWeight: '800', letterSpacing: '-0.5px',
-    color: 'var(--color-text)', fontFamily: 'Montserrat, sans-serif', marginBottom: '4px',
+    color: 'var(--color-text)', fontFamily: 'Inter, sans-serif', marginBottom: '4px',
   },
-  subtitle: { fontSize: '13px', color: 'var(--color-text-light)', fontWeight: '500', fontFamily: 'Montserrat, sans-serif' },
+  subtitle: { fontSize: '13px', color: 'var(--color-text-light)', fontWeight: '500', fontFamily: 'Inter, sans-serif' },
   btnRefresh: {
     backgroundColor: 'var(--color-white)', border: '1.5px solid var(--color-border)',
     borderRadius: '10px', padding: '9px 18px', fontSize: '13px', fontWeight: '700',
-    fontFamily: 'Montserrat, sans-serif', cursor: 'pointer', color: 'var(--color-text)',
+    fontFamily: 'Inter, sans-serif', cursor: 'pointer', color: 'var(--color-text)',
   },
 
   statsRow: {
@@ -164,7 +164,7 @@ const s = {
   },
   statCard: {
     backgroundColor: 'var(--color-white)', border: '1px solid var(--color-border)',
-    borderRadius: '12px', padding: '16px', fontFamily: 'Montserrat, sans-serif',
+    borderRadius: '12px', padding: '16px', fontFamily: 'Inter, sans-serif',
     display: 'flex', flexDirection: 'column', gap: '4px',
   },
   statIcon: { fontSize: '20px' },
@@ -175,13 +175,13 @@ const s = {
   searchInput: {
     flex: 1, minWidth: '200px', padding: '10px 14px',
     border: '1.5px solid var(--color-border)', borderRadius: '10px',
-    fontSize: '13px', fontFamily: 'Montserrat, sans-serif',
+    fontSize: '13px', fontFamily: 'Inter, sans-serif',
     backgroundColor: 'var(--color-white)', color: 'var(--color-text)', outline: 'none',
   },
   filterGroup: { display: 'flex', gap: '6px', flexWrap: 'wrap' },
   filterBtn: {
     padding: '8px 12px', borderRadius: '8px', border: '1.5px solid var(--color-border)',
-    fontSize: '12px', fontWeight: '600', fontFamily: 'Montserrat, sans-serif',
+    fontSize: '12px', fontWeight: '600', fontFamily: 'Inter, sans-serif',
     cursor: 'pointer', backgroundColor: 'var(--color-white)', color: 'var(--color-text-light)',
     whiteSpace: 'nowrap',
   },
@@ -197,13 +197,13 @@ const s = {
     display: 'grid', gridTemplateColumns: '2fr 1.5fr 2.5fr 1fr',
     padding: '12px 20px', backgroundColor: 'var(--color-bg)',
     borderBottom: '1px solid var(--color-border)',
-    fontFamily: 'Montserrat, sans-serif',
+    fontFamily: 'Inter, sans-serif',
   },
   th: { fontSize: '11px', fontWeight: '700', color: 'var(--color-text-light)', textTransform: 'uppercase', letterSpacing: '0.06em' },
   row: {
     display: 'grid', gridTemplateColumns: '2fr 1.5fr 2.5fr 1fr',
     padding: '14px 20px', borderBottom: '1px solid var(--color-border)',
-    alignItems: 'center', fontFamily: 'Montserrat, sans-serif',
+    alignItems: 'center', fontFamily: 'Inter, sans-serif',
     transition: 'background 0.1s',
   },
   userCell: { display: 'flex', alignItems: 'center', gap: '10px' },
@@ -216,7 +216,7 @@ const s = {
   badge: {
     display: 'inline-flex', alignItems: 'center', gap: '5px',
     padding: '4px 10px', borderRadius: '8px', fontSize: '12px', fontWeight: '700',
-    fontFamily: 'Montserrat, sans-serif',
+    fontFamily: 'Inter, sans-serif',
   },
   details: { display: 'flex', flexWrap: 'wrap', gap: '4px' },
   detailChip: {
@@ -227,6 +227,6 @@ const s = {
   time: { fontSize: '12px', color: 'var(--color-text-light)', fontWeight: '600' },
   empty: {
     textAlign: 'center', padding: '48px', color: 'var(--color-text-light)',
-    fontSize: '14px', fontWeight: '500', fontFamily: 'Montserrat, sans-serif',
+    fontSize: '14px', fontWeight: '500', fontFamily: 'Inter, sans-serif',
   },
 };

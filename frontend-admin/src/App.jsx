@@ -23,7 +23,7 @@ function PageLoader() {
       backgroundColor: 'var(--color-bg)',
       fontSize: '14px',
       color: 'var(--color-text-light)',
-      fontFamily: 'Montserrat, sans-serif',
+      fontFamily: 'Inter, sans-serif',
     }}>
       Loading...
     </div>

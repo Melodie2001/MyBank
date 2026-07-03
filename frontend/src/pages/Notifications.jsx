@@ -158,7 +158,7 @@ const s = {
   loading: {
     display: 'flex', alignItems: 'center', justifyContent: 'center',
     height: '200px', fontSize: '16px', color: 'var(--color-text-light)',
-    fontFamily: 'Montserrat, sans-serif',
+    fontFamily: 'Inter, sans-serif',
   },
   header: {
     display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start',
@@ -166,23 +166,23 @@ const s = {
   },
   title: {
     fontSize: '24px', fontWeight: '800', letterSpacing: '-0.5px',
-    color: 'var(--color-text)', fontFamily: 'Montserrat, sans-serif', marginBottom: '4px',
+    color: 'var(--color-text)', fontFamily: 'Inter, sans-serif', marginBottom: '4px',
   },
   subtitle: {
     fontSize: '13px', color: 'var(--color-text-light)', fontWeight: '500',
-    fontFamily: 'Montserrat, sans-serif',
+    fontFamily: 'Inter, sans-serif',
   },
   btnReadAll: {
     backgroundColor: 'var(--color-white)', color: '#2563EB',
     border: '1.5px solid #2563EB', borderRadius: '12px',
     padding: '9px 18px', fontWeight: '700', fontSize: '13px',
-    fontFamily: 'Montserrat, sans-serif', cursor: 'pointer',
+    fontFamily: 'Inter, sans-serif', cursor: 'pointer',
   },
   list: { display: 'flex', flexDirection: 'column', gap: '4px' },
   groupLabel: {
     fontSize: '11px', fontWeight: '700', color: 'var(--color-text-light)',
     letterSpacing: '0.06em', textTransform: 'uppercase',
-    fontFamily: 'Montserrat, sans-serif',
+    fontFamily: 'Inter, sans-serif',
     padding: '16px 0 8px',
   },
   card: {
@@ -190,7 +190,7 @@ const s = {
     padding: '16px 18px', borderRadius: '14px',
     border: '1px solid var(--color-border)', cursor: 'pointer',
     transition: 'background 0.12s',
-    position: 'relative', fontFamily: 'Montserrat, sans-serif',
+    position: 'relative', fontFamily: 'Inter, sans-serif',
     backgroundColor: 'var(--color-white)',
   },
   cardUnread: { borderLeftWidth: '3px', borderLeftColor: '#2563EB' },
@@ -227,7 +227,7 @@ const s = {
   empty: {
     textAlign: 'center', padding: '80px 40px',
     backgroundColor: 'var(--color-white)', border: '1px solid var(--color-border)',
-    borderRadius: '16px', fontFamily: 'Montserrat, sans-serif',
+    borderRadius: '16px', fontFamily: 'Inter, sans-serif',
   },
   emptyIcon: { fontSize: '48px', marginBottom: '16px' },
   emptyTitle: {

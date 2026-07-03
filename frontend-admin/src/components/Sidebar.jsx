@@ -167,7 +167,7 @@ const styles = {
     left: 0,
     top: 0,
     padding: '24px 0',
-    fontFamily: 'Montserrat, sans-serif',
+    fontFamily: 'Inter, sans-serif',
   },
   logo: {
     display: 'flex',

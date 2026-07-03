@@ -154,12 +154,12 @@ export default function Dashboard() {
                 <CartesianGrid vertical={false} stroke={dark ? '#334155' : '#F1F5F9'} />
                 <XAxis
                   dataKey="label"
-                  tick={{ fontSize: 12, fill: '#94A3B8', fontFamily: 'Montserrat' }}
+                  tick={{ fontSize: 12, fill: '#94A3B8', fontFamily: 'Inter' }}
                   axisLine={false}
                   tickLine={false}
                 />
                 <YAxis
-                  tick={{ fontSize: 12, fill: '#94A3B8', fontFamily: 'Montserrat' }}
+                  tick={{ fontSize: 12, fill: '#94A3B8', fontFamily: 'Inter' }}
                   axisLine={false}
                   tickLine={false}
                   tickFormatter={(v) => `${v} €`}
@@ -171,13 +171,13 @@ export default function Dashboard() {
                     border: `1px solid ${dark ? '#334155' : '#E2E8F0'}`,
                     backgroundColor: dark ? '#1E293B' : '#fff',
                     color: dark ? '#F1F5F9' : '#0B1E3D',
-                    fontFamily: 'Montserrat',
+                    fontFamily: 'Inter',
                     fontSize: '13px',
                   }}
                 />
                 <Legend
                   formatter={(value) => value === 'income' ? 'Income' : 'Expenses'}
-                  wrapperStyle={{ fontSize: '12px', fontFamily: 'Montserrat', fontWeight: 600 }}
+                  wrapperStyle={{ fontSize: '12px', fontFamily: 'Inter', fontWeight: 600 }}
                 />
                 <Area type="monotone" dataKey="income" stroke="#16A34A" strokeWidth={3} fill="url(#colorIncome)" />
                 <Area type="monotone" dataKey="expense" stroke="#DC2626" strokeWidth={3} fill="url(#colorExpense)" />
@@ -297,7 +297,7 @@ const styles = {
     height: '100%',
     fontSize: '16px',
     color: 'var(--color-text-light)',
-    fontFamily: 'Montserrat, sans-serif',
+    fontFamily: 'Inter, sans-serif',
   },
   header: {
     marginBottom: '24px',
@@ -307,14 +307,14 @@ const styles = {
     fontWeight: '800',
     letterSpacing: '-0.5px',
     color: 'var(--color-text)',
-    fontFamily: 'Montserrat, sans-serif',
+    fontFamily: 'Inter, sans-serif',
     marginBottom: '4px',
   },
   subtitle: {
     fontSize: '13px',
     color: 'var(--color-text-light)',
     fontWeight: '500',
-    fontFamily: 'Montserrat, sans-serif',
+    fontFamily: 'Inter, sans-serif',
   },
   kpiGrid: {
     display: 'grid',
@@ -328,7 +328,7 @@ const styles = {
     borderRadius: '16px',
     padding: '20px 22px',
     borderTop: '3px solid #2563EB',
-    fontFamily: 'Montserrat, sans-serif',
+    fontFamily: 'Inter, sans-serif',
   },
   kpiLabel: {
     fontSize: '11px',
@@ -354,7 +354,7 @@ const styles = {
     border: '1px solid var(--color-border)',
     borderRadius: '16px',
     padding: '24px',
-    fontFamily: 'Montserrat, sans-serif',
+    fontFamily: 'Inter, sans-serif',
   },
   cardHeader: {
     display: 'flex',
@@ -391,7 +391,7 @@ const styles = {
     color: 'var(--color-text-light)',
     fontSize: '13px',
     fontWeight: '500',
-    fontFamily: 'Montserrat, sans-serif',
+    fontFamily: 'Inter, sans-serif',
     padding: '40px 0',
   },
   donutRow: {
