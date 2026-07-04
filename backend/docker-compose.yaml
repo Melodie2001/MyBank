@@ -15,10 +15,10 @@ services:
     container_name: mybank_database
     restart: always
     environment:
-      MYSQL_ROOT_PASSWORD: root
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
       MYSQL_DATABASE: mybank
     ports:
-      - "3307:3306"
+      - "127.0.0.1:3307:3306"
     volumes:
       - mybank_data:/var/lib/mysql
 
@@ -27,11 +27,11 @@ services:
     container_name: mybank_phpmyadmin
     restart: always
     ports:
-      - "8081:80"
+      - "127.0.0.1:8081:80"
     environment:
       PMA_HOST: database
       PMA_USER: root
-      PMA_PASSWORD: root
+      PMA_PASSWORD: ${MYSQL_ROOT_PASSWORD}
     depends_on:
       - database
 
@@ -40,22 +40,26 @@ services:
     container_name: mybank_mongodb
     restart: always
     ports:
-      - "27017:27017"
+      - "127.0.0.1:27017:27017"
     volumes:
       - mybank_mongo_data:/data/db
     environment:
       MONGO_INITDB_DATABASE: mybank_logs
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USERNAME}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD}
 
   mongo-express:
     image: mongo-express
     container_name: mybank_mongo_express
     restart: always
     ports:
-      - "8082:8081"
+      - "127.0.0.1:8082:8081"
     environment:
       ME_CONFIG_MONGODB_SERVER: mongodb
+      ME_CONFIG_MONGODB_ADMINUSERNAME: ${MONGO_ROOT_USERNAME}
+      ME_CONFIG_MONGODB_ADMINPASSWORD: ${MONGO_ROOT_PASSWORD}
       ME_CONFIG_BASICAUTH_USERNAME: admin
-      ME_CONFIG_BASICAUTH_PASSWORD: admin
+      ME_CONFIG_BASICAUTH_PASSWORD: ${MONGOEXPRESS_ADMIN_PASSWORD}
     depends_on:
       - mongodb
 
