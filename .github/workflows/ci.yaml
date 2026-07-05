@@ -54,10 +54,21 @@ jobs:
           cat <<EOF > .env
           APP_ENV=test
           APP_SECRET=test_secret
+          APP_SHARE_DIR=var/share
+          DEFAULT_URI=http://localhost
+          MYSQL_ROOT_PASSWORD=test_root_password
           DATABASE_URL="${DATABASE_URL}"
+          MESSENGER_TRANSPORT_DSN=doctrine://default?auto_setup=0
+          MAILER_DSN=null://null
+          JWT_SECRET_KEY=%kernel.project_dir%/config/jwt/private.pem
+          JWT_PUBLIC_KEY=%kernel.project_dir%/config/jwt/public.pem
+          JWT_PASSPHRASE=test_passphrase
+          MONGO_ROOT_USERNAME=test_mongo_admin
+          MONGO_ROOT_PASSWORD=test_mongo_password
+          MONGOEXPRESS_ADMIN_PASSWORD=test_mongoexpress_password
           MONGODB_URL=mongodb://localhost:27017/mybank_test
           MONGODB_DB=mybank_test
-          JWT_PASSPHRASE=test_passphrase
+          CORS_ALLOW_ORIGIN='^https?://(localhost|127\.0\.0\.1)(:[0-9]+)?$'
           EOF
 
       - name: Install Composer dependencies
