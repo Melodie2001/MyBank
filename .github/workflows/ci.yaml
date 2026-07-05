@@ -56,6 +56,7 @@ jobs:
           APP_SECRET=test_secret
           DATABASE_URL="${DATABASE_URL}"
           MONGODB_URL=mongodb://localhost:27017/mybank_test
+          MONGODB_DB=mybank_test
           JWT_PASSPHRASE=test_passphrase
           EOF
 
