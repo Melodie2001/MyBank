@@ -46,6 +46,18 @@ jobs:
           extensions: mbstring, intl, pdo_mysql, mongodb
           coverage: none
 
+      - name: Create .env file
+        working-directory: backend
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          cat <<EOF > .env
+          APP_ENV=test
+          APP_SECRET=test_secret
+          DATABASE_URL="${DATABASE_URL}"
+          JWT_PASSPHRASE=test_passphrase
+          EOF
+
       - name: Install Composer dependencies
         working-directory: backend
         run: composer install --no-interaction --prefer-dist
