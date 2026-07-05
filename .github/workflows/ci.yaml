@@ -94,6 +94,9 @@ jobs:
             sleep 2
           done
 
+      - name: Create test database
+        run: mysql -h 127.0.0.1 -u root -proot -e "CREATE DATABASE IF NOT EXISTS mybank_test;"
+
       - name: Run migrations
         working-directory: backend
         env:
