@@ -147,3 +147,5 @@ backend/certbot/conf/
 backend/certbot/www/
 backend/certbot/log/
 backend/certbot/duckdns.ini
+
+backend/config/jwt/
