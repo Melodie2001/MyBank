@@ -12,6 +12,9 @@ dist
 dist-ssr
 *.local
 
+# Public Vite production configuration (contains no secrets)
+!.env.production
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

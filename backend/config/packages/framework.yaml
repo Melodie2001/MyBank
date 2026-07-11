@@ -3,6 +3,11 @@ framework:
     secret: '%env(APP_SECRET)%'
     #csrf_protection: true
 
+    # nginx is the only public entry point. Trust Docker/private proxy addresses so
+    # Symfony correctly detects the original HTTPS scheme and client address.
+    trusted_proxies: 'private_ranges'
+    trusted_headers: ['x-forwarded-for', 'x-forwarded-proto', 'x-forwarded-port']
+
     # Note that the session will be started ONLY if you read or write from it.
     session: true
 

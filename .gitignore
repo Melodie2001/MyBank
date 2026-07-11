@@ -141,3 +141,9 @@ dist
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 .vite/
+
+# Runtime certificates, ACME challenges and Certbot logs
+backend/certbot/conf/
+backend/certbot/www/
+backend/certbot/log/
+backend/certbot/duckdns.ini

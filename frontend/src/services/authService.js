@@ -1,5 +1,7 @@
 import api from '../api/axios';
 
+const adminPortalUrl = import.meta.env.VITE_ADMIN_URL || 'http://localhost:5174';
+
 export async function login(email, password) {
   const response = await api.post('/api/login', { email, password });
   const { token } = response.data;
@@ -10,7 +12,7 @@ export async function login(email, password) {
   // Bloquer les admins sur le frontend user
   if (me.data.roles.includes('ROLE_ADMIN')) {
     localStorage.removeItem('token');
-    throw new Error('Admin accounts must use the admin portal at http://localhost:5174');
+    throw new Error(`Admin accounts must use the admin portal at ${adminPortalUrl}`);
   }
 
   localStorage.setItem('user', JSON.stringify(me.data));

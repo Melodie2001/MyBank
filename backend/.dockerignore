@@ -1,5 +1,7 @@
 vendor
 var
 .git
-.env.local
+.env*
 node_modules
+config/jwt/*.pem
+certbot

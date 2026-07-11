@@ -20,6 +20,20 @@ MyBank is a full-stack personal finance management application developed with Sy
 
 ---
 
+## Production URLs
+
+| Service | Public URL |
+|---------|------------|
+| Frontend User | https://nexo-finance.duckdns.org |
+| Frontend Admin | https://nexo-finance-admin.duckdns.org |
+| Backend API | https://nexo-finance-api.duckdns.org |
+
+The nginx reverse proxy is the only service exposed publicly on ports 80 and
+443. Certificate issuance and renewal instructions are documented in
+[`backend/HTTPS_SETUP.md`](backend/HTTPS_SETUP.md).
+
+---
+
 ## Prerequisites
 
 - [Docker](https://www.docker.com/) and Docker Compose
@@ -42,7 +56,8 @@ cd MyBank
 ### 2. Start Docker services
 
 ```bash
-docker-compose up -d
+cd backend
+docker compose up -d --build
 ```
 
 ### 3. Backend setup
@@ -91,13 +106,14 @@ The admin portal is available at **http://localhost:5174**
 To run the entire application with Docker:
 
 ```bash
-docker-compose up -d
+cd backend
+docker compose up -d --build
 ```
 
 Stop containers:
 
 ```bash
-docker-compose down
+docker compose down
 ```
 
 | Service | URL |

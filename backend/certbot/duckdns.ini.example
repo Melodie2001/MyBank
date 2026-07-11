@@ -1,0 +1,2 @@
+# Copy this file to duckdns.ini, replace the placeholder, then chmod 600 it.
+dns_duckdns_token=replace_with_your_duckdns_token

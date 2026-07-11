@@ -197,12 +197,58 @@ jobs:
         run: npm run build
 
   # =====================
+  # DEPLOYMENT CONFIGURATION
+  # =====================
+  deployment-config:
+    name: Deployment — Docker Compose & nginx
+    runs-on: ubuntu-latest
+    env:
+      MYSQL_ROOT_PASSWORD: test_mysql_password
+      MONGO_ROOT_USERNAME: test_mongo_admin
+      MONGO_ROOT_PASSWORD: test_mongo_password
+      MONGOEXPRESS_ADMIN_PASSWORD: test_mongoexpress_password
+
+    steps:
+      - name: Checkout project
+        uses: actions/checkout@v5
+
+      - name: Validate Docker Compose
+        working-directory: backend
+        run: docker compose --profile tools config --quiet
+
+      - name: Validate proxy bootstrap and HTTPS configurations
+        working-directory: backend
+        run: |
+          set -eu
+          sh -n proxy/docker-entrypoint.sh
+          mkdir -p certbot/conf certbot/www certbot/log
+          docker compose build proxy
+
+          # nginx must start before certificates exist so HTTP-01 can run.
+          docker compose run --rm --no-deps proxy nginx -t
+
+          # Exercise the conditional HTTPS template with disposable test certs.
+          for domain in \
+            nexo-finance.duckdns.org \
+            nexo-finance-admin.duckdns.org \
+            nexo-finance-api.duckdns.org
+          do
+            mkdir -p "certbot/conf/live/$domain"
+            openssl req -x509 -newkey rsa:2048 -nodes -days 1 \
+              -subj "/CN=$domain" \
+              -keyout "certbot/conf/live/$domain/privkey.pem" \
+              -out "certbot/conf/live/$domain/fullchain.pem"
+          done
+
+          docker compose run --rm --no-deps proxy nginx -t
+
+  # =====================
   # DEPLOY (production)
   # =====================
   deploy:
     name: Deploy to production server
     runs-on: ubuntu-latest
-    needs: [symfony-tests, frontend-tests, frontend-admin-tests]
+    needs: [symfony-tests, frontend-tests, frontend-admin-tests, deployment-config]
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
 
     steps:

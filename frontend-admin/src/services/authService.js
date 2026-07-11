@@ -1,5 +1,7 @@
 import api from '../api/axios';
 
+const userPortalUrl = import.meta.env.VITE_USER_URL || 'http://localhost:5173';
+
 export async function login(email, password) {
   const response = await api.post('/api/login', { email, password });
   const { token } = response.data;
@@ -9,7 +11,7 @@ export async function login(email, password) {
 
   if (!me.data.roles.includes('ROLE_ADMIN')) {
     localStorage.removeItem('admin_token');
-    throw new Error('Access denied. Admin only.');
+    throw new Error(`Access denied. Admin only. User accounts must use ${userPortalUrl}.`);
   }
 
   localStorage.setItem('admin_user', JSON.stringify(me.data));
