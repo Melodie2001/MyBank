@@ -56,6 +56,9 @@ jobs:
           APP_SECRET=test_secret
           APP_SHARE_DIR=var/share
           DEFAULT_URI=http://localhost
+          FRONTEND_URL=http://localhost:5173
+          GOOGLE_CLIENT_ID=ci_dummy_client_id
+          GOOGLE_CLIENT_SECRET=ci_dummy_client_secret
           MYSQL_ROOT_PASSWORD=test_root_password
           DATABASE_URL="${DATABASE_URL}"
           MESSENGER_TRANSPORT_DSN=doctrine://default?auto_setup=0
