@@ -3,6 +3,11 @@ import { Link, useNavigate } from 'react-router-dom';
 import { register } from '../services/authService';
 import { useIsMobile } from '../hooks/useIsMobile';
 import PrivacyPolicyModal from '../components/PrivacyPolicyModal';
+import GoogleButton from '../components/GoogleButton';
+
+// Même règle que le backend (App\DTO\RegisterDTO) :
+// au moins 8 caractères, une majuscule, une minuscule, un chiffre, un caractère spécial.
+const PASSWORD_RULE = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/;
 
 const LogoIcon = () => (
   <div style={{
@@ -71,8 +76,8 @@ export default function Register() {
       return;
     }
 
-    if (password.length < 6) {
-      setError('Password must be at least 6 characters');
+    if (!PASSWORD_RULE.test(password)) {
+      setError('Password must be at least 8 characters and include an uppercase letter, a lowercase letter, a digit and a special character');
       return;
     }
 
@@ -267,7 +272,7 @@ export default function Register() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     style={{ ...styles.input, paddingRight: '40px' }}
-                    placeholder="Min. 6 characters"
+                    placeholder="Min. 8 characters"
                     required
                   />
                   <button type="button" onClick={() => setShowPassword(!showPassword)} style={styles.eyeBtn}>
@@ -330,6 +335,14 @@ export default function Register() {
                 {loading ? 'Creating account...' : 'Create my account →'}
               </button>
             </form>
+
+            <div style={styles.divider}>
+              <span style={styles.dividerLine} />
+              <span style={styles.dividerText}>or</span>
+              <span style={styles.dividerLine} />
+            </div>
+
+            <GoogleButton label="Sign up with Google" />
 
             <p style={styles.switchText}>
               Already have an account?{' '}
@@ -645,6 +658,22 @@ const styles = {
   link: {
     color: '#2563EB',
     fontWeight: '700',
+  },
+  divider: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '12px',
+    margin: '20px 0',
+  },
+  dividerLine: {
+    flex: 1,
+    height: '1px',
+    backgroundColor: 'var(--color-border)',
+  },
+  dividerText: {
+    fontSize: '12px',
+    fontWeight: '600',
+    color: 'var(--color-text-light)',
   },
   strengthWrapper: {
     display: 'flex',

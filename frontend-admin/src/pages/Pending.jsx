@@ -8,19 +8,18 @@ export default function Pending() {
   const { refreshPendingCount } = useOutletContext();
 
   useEffect(() => {
+    async function fetchPending() {
+      try {
+        const data = await getUsers();
+        setPendingUsers(data.filter(u => u.status === 'pending'));
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    }
     fetchPending();
   }, []);
-
-  async function fetchPending() {
-    try {
-      const data = await getUsers();
-      setPendingUsers(data.filter(u => u.status === 'pending'));
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  }
 
   async function handleStatusChange(id, status) {
     try {

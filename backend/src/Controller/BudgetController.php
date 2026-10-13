@@ -17,6 +17,7 @@ final class BudgetController extends AbstractController
 {
     #[Route('/api/budgets', methods: ['GET'])]
     public function index(
+        Request $request,
         BudgetRepository $budgetRepository,
         OperationRepository $operationRepository
     ): JsonResponse {
@@ -25,14 +26,14 @@ final class BudgetController extends AbstractController
 
         $budgets = $budgetRepository->findBy(['user' => $user]);
 
-        $now = new \DateTimeImmutable();
-        $monthStart = $now->modify('first day of this month')->setTime(0, 0, 0);
-        $monthEnd = $now->modify('last day of this month')->setTime(23, 59, 59);
-
-        $operations = $operationRepository->findBy(['user' => $user]);
+        $month = $request->query->get('month', (new \DateTimeImmutable())->format('Y-m'));
+        if (!is_string($month) || !preg_match('/^(?!0000)\d{4}-(0[1-9]|1[0-2])$/D', $month)) {
+            return $this->json(['message' => 'Month must use YYYY-MM format'], 400);
+        }
+        $monthStart = new \DateTimeImmutable($month.'-01 00:00:00');
 
         return $this->json(array_map(
-            fn (Budget $budget) => $this->formatBudget($budget, $operations, $monthStart, $monthEnd),
+            fn (Budget $budget) => $this->formatBudget($budget, $operationRepository, $monthStart),
             $budgets
         ));
     }
@@ -48,7 +49,7 @@ final class BudgetController extends AbstractController
         /** @var User $user */
         $user = $this->getUser();
 
-        $data = json_decode($request->getContent(), true);
+        $data = \App\Http\JsonInput::read($request);
 
         if (!$data) {
             return $this->json(['message' => 'Invalid JSON body'], 400);
@@ -84,12 +85,10 @@ final class BudgetController extends AbstractController
 
         $now = new \DateTimeImmutable();
         $monthStart = $now->modify('first day of this month')->setTime(0, 0, 0);
-        $monthEnd = $now->modify('last day of this month')->setTime(23, 59, 59);
-        $operations = $operationRepository->findBy(['user' => $user]);
 
         return $this->json([
             'message' => 'Budget created',
-            'budget' => $this->formatBudget($budget, $operations, $monthStart, $monthEnd)
+            'budget' => $this->formatBudget($budget, $operationRepository, $monthStart)
         ], 201);
     }
 
@@ -114,7 +113,7 @@ final class BudgetController extends AbstractController
             return $this->json(['message' => 'Access denied'], 403);
         }
 
-        $data = json_decode($request->getContent(), true);
+        $data = \App\Http\JsonInput::read($request);
 
         if (!$data) {
             return $this->json(['message' => 'Invalid JSON body'], 400);
@@ -129,12 +128,10 @@ final class BudgetController extends AbstractController
 
         $now = new \DateTimeImmutable();
         $monthStart = $now->modify('first day of this month')->setTime(0, 0, 0);
-        $monthEnd = $now->modify('last day of this month')->setTime(23, 59, 59);
-        $operations = $operationRepository->findBy(['user' => $user]);
 
         return $this->json([
             'message' => 'Budget updated',
-            'budget' => $this->formatBudget($budget, $operations, $monthStart, $monthEnd)
+            'budget' => $this->formatBudget($budget, $operationRepository, $monthStart)
         ]);
     }
 
@@ -163,34 +160,19 @@ final class BudgetController extends AbstractController
         return $this->json(['message' => 'Budget deleted']);
     }
 
-    /**
-     * @param \App\Entity\Operation[] $operations
-     */
     private function formatBudget(
         Budget $budget,
-        array $operations,
-        \DateTimeImmutable $monthStart,
-        \DateTimeImmutable $monthEnd
+        OperationRepository $operations,
+        \DateTimeImmutable $monthStart
     ): array {
-        $categoryId = $budget->getCategory()->getId();
-
-        $spent = 0;
-        foreach ($operations as $operation) {
-            if (
-                $operation->getType() === 'expense'
-                && $operation->getCategory()->getId() === $categoryId
-                && $operation->getDate() >= $monthStart
-                && $operation->getDate() <= $monthEnd
-            ) {
-                $spent += $operation->getAmount();
-            }
-        }
+        $spent = $operations->monthlyExpenses($budget->getUser(), $budget->getCategory(), $monthStart);
 
         return [
             'id' => $budget->getId(),
+            'month' => $monthStart->format('Y-m'),
             'monthly_limit' => $budget->getMonthlyLimit(),
             'spent' => $spent,
-            'remaining' => $budget->getMonthlyLimit() - $spent,
+            'remaining' => round($budget->getMonthlyLimit() - $spent, 2),
             'percentage' => $budget->getMonthlyLimit() > 0
                 ? round(($spent / $budget->getMonthlyLimit()) * 100, 1)
                 : 0,

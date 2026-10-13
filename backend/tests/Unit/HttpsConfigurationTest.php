@@ -43,7 +43,7 @@ final class HttpsConfigurationTest extends TestCase
         $rawConfig = Yaml::parseFile(dirname(__DIR__, 2).'/config/packages/framework.yaml')['framework'];
         $config = (new Processor())->processConfiguration(new FrameworkConfiguration(true), [$rawConfig]);
 
-        self::assertStringContainsString('172.16.0.0/12', $config['trusted_proxies']);
+        self::assertContains('172.16.0.0/12', $config['trusted_proxies']);
         self::assertSame(
             ['x-forwarded-for', 'x-forwarded-proto', 'x-forwarded-port'],
             $config['trusted_headers'],

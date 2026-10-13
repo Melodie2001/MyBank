@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { useTheme } from '../context/ThemeContext';
+import { useTheme } from '../context/useTheme';
 import { logout } from '../services/authService';
 import { getUnreadCount } from '../services/notificationService';
 import '../styles/sidebar.css';
@@ -50,17 +50,19 @@ export default function Sidebar() {
     : 'Account holder';
 
   useEffect(() => {
+    let active = true;
+    async function fetchUnread() {
+      try {
+        const count = await getUnreadCount();
+        if (active) setUnreadCount(count);
+      } catch (error) {
+        console.error('Unable to refresh unread notifications', error);
+      }
+    }
     fetchUnread();
     const interval = setInterval(fetchUnread, 60000);
-    return () => clearInterval(interval);
+    return () => { active = false; clearInterval(interval); };
   }, []);
-
-  async function fetchUnread() {
-    try {
-      const count = await getUnreadCount();
-      setUnreadCount(count);
-    } catch (_) {}
-  }
 
   useEffect(() => {
     function handleClickOutside(e) {

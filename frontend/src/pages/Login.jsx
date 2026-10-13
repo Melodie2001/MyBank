@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { Link, useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { login } from '../services/authService';
 import { useIsMobile } from '../hooks/useIsMobile';
+import GoogleButton from '../components/GoogleButton';
 
 const LogoIcon = () => (
   <div style={{
@@ -22,16 +23,23 @@ const LogoIcon = () => (
   </div>
 );
 
+const OAUTH_ERRORS = {
+  google_auth_failed: 'Google sign-in failed. Please try again.',
+  google_email_unverified: 'Your Google account e-mail is not verified. Verify it with Google and try again.',
+  account_pending: 'Your account is waiting for admin approval.',
+};
+
 export default function Login() {
   const navigate = useNavigate();
   const location = useLocation();
+  const [searchParams] = useSearchParams();
   const successMessage = location.state?.message;
+  const oauthError = OAUTH_ERRORS[searchParams.get('error')] || '';
 
   const isMobile = useIsMobile();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -43,7 +51,7 @@ export default function Login() {
       await login(email, password);
       navigate('/dashboard');
     } catch (err) {
-      setError(err.response?.data?.message || 'Invalid credentials');
+      setError(err.response?.data?.message || (err.request ? 'Service temporarily unavailable. Please try again.' : err.message || 'Unable to sign in'));
     } finally {
       setLoading(false);
     }
@@ -109,7 +117,7 @@ export default function Login() {
             {successMessage && (
               <div style={styles.success}>{successMessage}</div>
             )}
-            {error && <div style={styles.error}>{error}</div>}
+            {(error || oauthError) && <div style={styles.error}>{error || oauthError}</div>}
 
             <form onSubmit={handleSubmit} style={styles.form}>
               <div style={styles.field}>
@@ -150,21 +158,21 @@ export default function Login() {
               </div>
 
               <div style={styles.rememberRow}>
-                <label style={styles.checkboxLabel}>
-                  <input
-                    type="checkbox"
-                    checked={rememberMe}
-                    onChange={(e) => setRememberMe(e.target.checked)}
-                    style={styles.checkbox}
-                  />
-                  Remember me
-                </label>
+                <Link to="/forgot-password" style={styles.forgotLink}>Forgot password?</Link>
               </div>
 
               <button type="submit" style={styles.btnPrimary} disabled={loading}>
                 {loading ? 'Signing in...' : 'Sign in →'}
               </button>
             </form>
+
+            <div style={styles.divider}>
+              <span style={styles.dividerLine} />
+              <span style={styles.dividerText}>or</span>
+              <span style={styles.dividerLine} />
+            </div>
+
+            <GoogleButton label="Sign in with Google" />
 
             <p style={styles.switchText}>
               Don't have an account?{' '}
@@ -455,6 +463,22 @@ const styles = {
   link: {
     color: '#2563EB',
     fontWeight: '700',
+  },
+  divider: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '12px',
+    margin: '24px 0',
+  },
+  dividerLine: {
+    flex: 1,
+    height: '1px',
+    backgroundColor: 'var(--color-border)',
+  },
+  dividerText: {
+    fontSize: '12px',
+    fontWeight: '600',
+    color: 'var(--color-text-light)',
   },
   backHome: {
     position: 'absolute',

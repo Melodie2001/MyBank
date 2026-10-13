@@ -9,6 +9,8 @@ services:
     _defaults:
         autowire: true
         autoconfigure: true
+        bind:
+            string $frontendUrl: '%env(FRONTEND_URL)%'
 
     App\:
         resource: '../src/'

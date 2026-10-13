@@ -8,19 +8,18 @@ export default function Users() {
   const [filterStatus, setFilterStatus] = useState('all');
 
   useEffect(() => {
+    async function fetchUsers() {
+      try {
+        const data = await getUsers();
+        setUsers(data);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    }
     fetchUsers();
   }, []);
-
-  async function fetchUsers() {
-    try {
-      const data = await getUsers();
-      setUsers(data);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  }
 
   async function handleStatusChange(id, status) {
     try {

@@ -3,3 +3,7 @@ controllers:
         path: ../src/Controller/
         namespace: App\Controller
     type: attribute
+
+# Answered by the refresh_jwt authenticator on the token_refresh firewall.
+api_token_refresh:
+    path: /api/token/refresh

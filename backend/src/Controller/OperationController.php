@@ -4,11 +4,11 @@ namespace App\Controller;
 
 use App\Entity\Operation;
 use App\Entity\User;
-use App\Repository\BudgetRepository;
 use App\Repository\CategoryRepository;
 use App\Repository\OperationRepository;
 use App\Service\ActivityLogService;
 use App\Service\BalanceSnapshotService;
+use App\Service\BudgetAlertService;
 use App\Service\NotificationService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -57,8 +57,7 @@ final class OperationController extends AbstractController
         Request $request,
         EntityManagerInterface $em,
         CategoryRepository $categoryRepository,
-        OperationRepository $operationRepository,
-        BudgetRepository $budgetRepository,
+        BudgetAlertService $budgetAlerts,
         NotificationService $notificationService,
         ActivityLogService $activityLogService,
         BalanceSnapshotService $balanceSnapshotService
@@ -66,7 +65,7 @@ final class OperationController extends AbstractController
         /** @var User $user */
         $user = $this->getUser();
 
-        $data = json_decode($request->getContent(), true);
+        $data = \App\Http\JsonInput::read($request);
 
         $validationError = $this->validateOperationData($data, true);
         if ($validationError) {
@@ -87,72 +86,18 @@ final class OperationController extends AbstractController
         $operation->setCategory($category);
         $operation->setUser($user);
 
-        $em->persist($operation);
-        $em->flush();
-
-        // Notification: operation added
-        $typeLabel = $data['type'] === 'income' ? 'Income' : 'Expense';
-        $notificationService->create(
-            $user,
-            'operation_added',
-            $typeLabel . ' recorded: ' . trim($data['label']),
-            sprintf('%s of %.2f € added to %s.', $typeLabel, (float) $data['amount'], $category->getName()),
-            $operation->getId()
-        );
-
-        // Budget threshold notifications (expense only)
-        if ($data['type'] === 'expense') {
-            $budget = $budgetRepository->findOneBy(['user' => $user, 'category' => $category]);
-            if ($budget) {
-                $now = new \DateTimeImmutable();
-                $monthStart = $now->modify('first day of this month')->setTime(0, 0, 0);
-                $monthEnd   = $now->modify('last day of this month')->setTime(23, 59, 59);
-
-                $allOps = $operationRepository->findBy(['user' => $user]);
-                $monthlySpent = 0.0;
-                foreach ($allOps as $op) {
-                    if (
-                        $op->getType() === 'expense'
-                        && $op->getCategory()->getId() === $category->getId()
-                        && $op->getDate() >= $monthStart
-                        && $op->getDate() <= $monthEnd
-                    ) {
-                        $monthlySpent += $op->getAmount();
-                    }
-                }
-
-                $prevSpent = $monthlySpent - $operation->getAmount();
-                $limit     = $budget->getMonthlyLimit();
-                $prevPct   = $limit > 0 ? ($prevSpent / $limit) * 100 : 0;
-                $newPct    = $limit > 0 ? ($monthlySpent / $limit) * 100 : 0;
-
-                if ($prevPct < 100 && $newPct >= 100) {
-                    $notificationService->create(
-                        $user,
-                        'budget_exceeded',
-                        'Budget exceeded: ' . $category->getName(),
-                        sprintf(
-                            'You have exceeded your %s budget this month (%.2f € spent / %.2f € limit).',
-                            $category->getName(), $monthlySpent, $limit
-                        ),
-                        $budget->getId()
-                    );
-                } elseif ($prevPct < 80 && $newPct >= 80) {
-                    $notificationService->create(
-                        $user,
-                        'budget_warning',
-                        'Budget nearly reached: ' . $category->getName(),
-                        sprintf(
-                            'You have used %.0f%% of your %s budget this month (%.2f € / %.2f €).',
-                            $newPct, $category->getName(), $monthlySpent, $limit
-                        ),
-                        $budget->getId()
-                    );
-                }
-            }
-        }
-
-        $em->flush();
+        $em->wrapInTransaction(function () use ($em, $operation, $budgetAlerts, $notificationService, $user, $data, $category): void {
+            $periods = $budgetAlerts->capture($operation);
+            $em->persist($operation);
+            $em->flush();
+            $typeLabel = $data['type'] === 'income' ? 'Income' : 'Expense';
+            $notificationService->create(
+                $user, 'operation_added', $typeLabel.' recorded: '.trim($data['label']),
+                sprintf('%s of %.2f € added to %s.', $typeLabel, (float) $data['amount'], $category->getName()),
+                $operation->getId(),
+            );
+            $budgetAlerts->notify($periods);
+        });
 
         // MongoDB logs + snapshot
         $activityLogService->log($user->getId(), $user->getUserIdentifier(), 'operation_created', [
@@ -177,6 +122,7 @@ final class OperationController extends AbstractController
         OperationRepository $repository,
         CategoryRepository $categoryRepository,
         EntityManagerInterface $em,
+        BudgetAlertService $budgetAlerts,
         ActivityLogService $activityLogService,
         BalanceSnapshotService $balanceSnapshotService
     ): JsonResponse {
@@ -193,12 +139,14 @@ final class OperationController extends AbstractController
             return $this->json(['message' => 'Access denied'], 403);
         }
 
-        $data = json_decode($request->getContent(), true);
+        $data = \App\Http\JsonInput::read($request);
 
         $validationError = $this->validateOperationData($data, false);
         if ($validationError) {
             return $validationError;
         }
+
+        $previous = clone $operation;
 
         if (isset($data['label'])) {
             $operation->setLabel(trim($data['label']));
@@ -226,7 +174,11 @@ final class OperationController extends AbstractController
             $operation->setCategory($category);
         }
 
-        $em->flush();
+        $em->wrapInTransaction(function () use ($em, $operation, $previous, $budgetAlerts): void {
+            $periods = $budgetAlerts->capture($operation, $previous);
+            $em->flush();
+            $budgetAlerts->notify($periods);
+        });
 
         $activityLogService->log($user->getId(), $user->getUserIdentifier(), 'operation_updated', [
             'operationId' => $operation->getId(),
@@ -234,7 +186,7 @@ final class OperationController extends AbstractController
             'amount'      => $operation->getAmount(),
             'type'        => $operation->getType(),
         ]);
-        $balanceSnapshotService->snapshot($user);
+        $balanceSnapshotService->snapshot($operation->getUser());
 
         return $this->json([
             'message' => 'Operation updated',
@@ -265,6 +217,7 @@ final class OperationController extends AbstractController
 
         $operationId    = $operation->getId();
         $operationLabel = $operation->getLabel();
+        $owner = $operation->getUser();
 
         $em->remove($operation);
         $em->flush();
@@ -273,7 +226,7 @@ final class OperationController extends AbstractController
             'operationId' => $operationId,
             'label'       => $operationLabel,
         ]);
-        $balanceSnapshotService->snapshot($user);
+        $balanceSnapshotService->snapshot($owner);
 
         return $this->json(['message' => 'Operation deleted']);
     }
@@ -320,6 +273,10 @@ final class OperationController extends AbstractController
     {
         if (!$data) {
             return $this->json(['message' => 'Invalid JSON body'], 400);
+        }
+
+        if (isset($data['label']) && trim($data['label']) === '') {
+            return $this->json(['message' => 'Label cannot be empty'], 400);
         }
 
         if ($isCreate && empty($data['label'])) {

@@ -96,7 +96,7 @@ final class NotificationController extends AbstractController
             'title'     => $n->getTitle(),
             'message'   => $n->getMessage(),
             'isRead'    => $n->isRead(),
-            'createdAt' => $n->getCreatedAt()->format('Y-m-d H:i:s'),
+            'createdAt' => $n->getCreatedAt()->format(\DateTimeInterface::ATOM),
             'relatedId' => $n->getRelatedId(),
         ];
     }

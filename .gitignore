@@ -149,3 +149,8 @@ backend/certbot/log/
 backend/certbot/duckdns.ini
 
 backend/config/jwt/
+backups/
+
+# Generated Symfony reference and one-off local audit script
+/backend/config/reference.php
+/backend/tests/AuditObservations.php

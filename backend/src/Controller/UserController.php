@@ -2,16 +2,20 @@
 
 namespace App\Controller;
 
+use App\DTO\ChangePasswordDTO;
+use App\DTO\RegisterDTO;
 use App\Entity\User;
 use App\Repository\UserRepository;
 use App\Service\ActivityLogService;
 use App\Service\NotificationService;
+use App\Service\SessionRevocationService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\Validator\Validator\ValidatorInterface;
 
 final class UserController extends AbstractController
 {
@@ -67,7 +71,7 @@ final class UserController extends AbstractController
         /** @var User $user */
         $user = $this->getUser();
 
-        $data = json_decode($request->getContent(), true);
+        $data = \App\Http\JsonInput::read($request);
 
         if (!$data) {
             return $this->json(['message' => 'Invalid JSON body'], 400);
@@ -130,77 +134,48 @@ final class UserController extends AbstractController
     }
 
     #[Route('/api/me', methods: ['DELETE'])]
-    public function deleteMe(EntityManagerInterface $em): JsonResponse
+    public function deleteMe(\App\Service\AccountDeletionService $deletion): JsonResponse
     {
         /** @var User $user */
         $user = $this->getUser();
 
-        try {
-            $operations = $em->getRepository(\App\Entity\Operation::class)->findBy(['user' => $user]);
-            foreach ($operations as $op) {
-                $em->remove($op);
-            }
+        $deletion->delete($user);
 
-            $budgets = $em->getRepository(\App\Entity\Budget::class)->findBy(['user' => $user]);
-            foreach ($budgets as $budget) {
-                $em->remove($budget);
-            }
-
-            $notifications = $em->getRepository(\App\Entity\Notification::class)->findBy(['user' => $user]);
-            foreach ($notifications as $notif) {
-                $em->remove($notif);
-            }
-
-            $userCategories = $em->getRepository(\App\Entity\UserCategory::class)->findBy(['user' => $user]);
-            foreach ($userCategories as $uc) {
-                $em->remove($uc);
-            }
-
-            $em->flush();
-            $em->remove($user);
-            $em->flush();
-
-            return $this->json(['message' => 'Account deleted successfully']);
-        } catch (\Exception $e) {
-            return $this->json(['message' => 'Could not delete account: ' . $e->getMessage()], 500);
-        }
+        return $this->json(['message' => 'Account deleted successfully']);
     }
 
     #[Route('/api/me/password', methods: ['PUT'])]
     public function updatePassword(
         Request $request,
         EntityManagerInterface $em,
-        UserPasswordHasherInterface $passwordHasher
+        UserPasswordHasherInterface $passwordHasher,
+        ValidatorInterface $validator,
+        SessionRevocationService $sessions
     ): JsonResponse {
         /** @var User $user */
         $user = $this->getUser();
 
-        $data = json_decode($request->getContent(), true);
+        $data = \App\Http\JsonInput::read($request);
 
         if (!$data) {
             return $this->json(['message' => 'Invalid JSON body'], 400);
         }
 
-        if (empty($data['current_password'])) {
-            return $this->json(['message' => 'Current password is required'], 400);
+        $dto = ChangePasswordDTO::fromArray($data);
+
+        $violations = $validator->validate($dto);
+        if (count($violations) > 0) {
+            return $this->json(['message' => $violations[0]->getMessage()], 400);
         }
 
-        if (empty($data['new_password'])) {
-            return $this->json(['message' => 'New password is required'], 400);
-        }
-
-        if (strlen($data['new_password']) < 6) {
-            return $this->json(['message' => 'New password must contain at least 6 characters'], 400);
-        }
-
-        if (!$passwordHasher->isPasswordValid($user, $data['current_password'])) {
+        if (!$passwordHasher->isPasswordValid($user, $dto->currentPassword)) {
             return $this->json(['message' => 'Current password is incorrect'], 400);
         }
 
-        $hashedPassword = $passwordHasher->hashPassword($user, $data['new_password']);
-        $user->setPassword($hashedPassword);
-
-        $em->flush();
+        $em->wrapInTransaction(function () use ($user, $dto, $passwordHasher, $sessions): void {
+            $user->setPassword($passwordHasher->hashPassword($user, $dto->newPassword));
+            $sessions->revoke($user);
+        });
 
         return $this->json(['message' => 'Password updated successfully']);
     }
@@ -210,62 +185,60 @@ final class UserController extends AbstractController
         Request $request,
         EntityManagerInterface $em,
         UserPasswordHasherInterface $passwordHasher,
-        UserRepository $userRepository
+        UserRepository $userRepository,
+        ValidatorInterface $validator
     ): JsonResponse {
-        $data = json_decode($request->getContent(), true);
+        $data = \App\Http\JsonInput::read($request);
 
-        $validationError = $this->validateRegisterData($data);
-        if ($validationError) {
-            return $validationError;
+        if (!$data) {
+            return $this->json(['message' => 'Invalid JSON body'], 400);
         }
 
-        $email = strtolower(trim($data['email']));
+        $dto = RegisterDTO::fromArray($data);
 
-        $existingUser = $userRepository->findOneBy(['email' => $email]);
+        $violations = $validator->validate($dto);
+        if (count($violations) > 0) {
+            return $this->json(['message' => $violations[0]->getMessage()], 400);
+        }
+
+        $existingUser = $userRepository->findOneBy(['email' => $dto->email]);
 
         if ($existingUser) {
             return $this->json(['message' => 'Email already exists'], 409);
         }
 
         $user = new User();
-        $user->setEmail($email);
+        $user->setEmail($dto->email);
         $user->setStatus('pending');
 
-        if (!empty($data['firstName'])) {
-            $user->setFirstName(trim($data['firstName']));
+        if ($dto->firstName) {
+            $user->setFirstName($dto->firstName);
         }
 
-        if (!empty($data['lastName'])) {
-            $user->setLastName(trim($data['lastName']));
+        if ($dto->lastName) {
+            $user->setLastName($dto->lastName);
         }
 
-        if (!empty($data['phone'])) {
-            $user->setPhone(trim($data['phone']));
+        if ($dto->phone) {
+            $user->setPhone($dto->phone);
         }
 
-        if (!empty($data['birthDate'])) {
-            $birthDate = \DateTime::createFromFormat('Y-m-d', $data['birthDate']);
+        if ($dto->birthDate) {
+            $birthDate = \DateTime::createFromFormat('Y-m-d', $dto->birthDate);
             if ($birthDate) {
                 $user->setBirthDate($birthDate);
             }
         }
 
-        $allowedGenders = ['male', 'female', 'non-binary', 'prefer_not_to_say'];
-        if (!empty($data['gender']) && in_array($data['gender'], $allowedGenders, true)) {
-            $user->setGender($data['gender']);
+        if ($dto->gender) {
+            $user->setGender($dto->gender);
         }
 
-        $roles = ['ROLE_USER'];
+        // Route publique : toute valeur "role"/"roles" envoyée par le client est ignorée.
+        // L'attribution de ROLE_ADMIN se fait exclusivement via UserController::updateRole().
+        $user->setRoles(['ROLE_USER']);
 
-        if (isset($data['roles']) && in_array('ROLE_ADMIN', $data['roles'], true)) {
-            if ($this->getUser() && $this->isGranted('ROLE_ADMIN')) {
-                $roles[] = 'ROLE_ADMIN';
-            }
-        }
-
-        $user->setRoles($roles);
-
-        $hashedPassword = $passwordHasher->hashPassword($user, $data['password']);
+        $hashedPassword = $passwordHasher->hashPassword($user, $dto->password);
         $user->setPassword($hashedPassword);
 
         $em->persist($user);
@@ -283,7 +256,8 @@ final class UserController extends AbstractController
         Request $request,
         UserRepository $repository,
         EntityManagerInterface $em,
-        NotificationService $notificationService
+        NotificationService $notificationService,
+        SessionRevocationService $sessions
     ): JsonResponse {
         if (!$this->isGranted('ROLE_ADMIN')) {
             return $this->json(['message' => 'Access denied'], 403);
@@ -295,25 +269,27 @@ final class UserController extends AbstractController
             return $this->json(['message' => 'User not found'], 404);
         }
 
-        $data = json_decode($request->getContent(), true);
+        $data = \App\Http\JsonInput::read($request);
 
         if (!isset($data['status']) || !in_array($data['status'], ['active', 'pending', 'rejected'], true)) {
             return $this->json(['message' => 'Invalid status. Must be active, pending or rejected'], 400);
         }
 
         $previousStatus = $user->getStatus();
-        $user->setStatus($data['status']);
-
-        if ($previousStatus !== 'active' && $data['status'] === 'active') {
-            $notificationService->create(
-                $user,
-                'account_validated',
-                'Your account has been activated!',
-                'Welcome to Nexo Finance! Your account is now active. You can start tracking your finances.'
-            );
-        }
-
-        $em->flush();
+        $em->wrapInTransaction(function () use ($user, $data, $previousStatus, $notificationService, $sessions): void {
+            $user->setStatus($data['status']);
+            if ($data['status'] !== 'active') {
+                $sessions->revoke($user);
+            }
+            if ($previousStatus !== 'active' && $data['status'] === 'active') {
+                $notificationService->create(
+                    $user,
+                    'account_validated',
+                    'Your account has been activated!',
+                    'Welcome to Nexo Finance! Your account is now active. You can start tracking your finances.'
+                );
+            }
+        });
 
         return $this->json([
             'message' => 'User status updated',
@@ -325,7 +301,8 @@ final class UserController extends AbstractController
     public function delete(
         int $id,
         UserRepository $repository,
-        EntityManagerInterface $em
+        EntityManagerInterface $em,
+        \App\Service\AccountDeletionService $deletion
     ): JsonResponse {
         if (!$this->isGranted('ROLE_ADMIN')) {
             return $this->json(['message' => 'Access denied'], 403);
@@ -344,32 +321,9 @@ final class UserController extends AbstractController
             return $this->json(['message' => 'You cannot delete your own account'], 403);
         }
 
-        try {
-            // Supprimer les opérations de l'user
-            $operations = $em->getRepository(\App\Entity\Operation::class)
-                ->findBy(['user' => $user]);
-            foreach ($operations as $operation) {
-                $em->remove($operation);
-            }
+        $deletion->delete($user);
 
-            // Supprimer les user_categories de l'user
-            $userCategories = $em->getRepository(\App\Entity\UserCategory::class)
-                ->findBy(['user' => $user]);
-            foreach ($userCategories as $userCategory) {
-                $em->remove($userCategory);
-            }
-
-            $em->flush();
-
-            // Supprimer l'user
-            $em->remove($user);
-            $em->flush();
-
-            return $this->json(['message' => 'User deleted successfully']);
-
-        } catch (\Exception $e) {
-            return $this->json(['message' => 'Cannot delete this user: ' . $e->getMessage()], 500);
-        }
+        return $this->json(['message' => 'User deleted successfully']);
     }
 
     #[Route('/api/login', methods: ['POST'])]
@@ -378,31 +332,6 @@ final class UserController extends AbstractController
         return $this->json([
             'message' => 'Login is handled by JWT security firewall'
         ]);
-    }
-
-    private function validateRegisterData(?array $data): ?JsonResponse
-    {
-        if (!$data) {
-            return $this->json(['message' => 'Invalid JSON body'], 400);
-        }
-
-        if (empty($data['email'])) {
-            return $this->json(['message' => 'Email is required'], 400);
-        }
-
-        if (!filter_var($data['email'], FILTER_VALIDATE_EMAIL)) {
-            return $this->json(['message' => 'Email is invalid'], 400);
-        }
-
-        if (empty($data['password'])) {
-            return $this->json(['message' => 'Password is required'], 400);
-        }
-
-        if (strlen($data['password']) < 6) {
-            return $this->json(['message' => 'Password must contain at least 6 characters'], 400);
-        }
-
-        return null;
     }
 
     private function formatUser(User $user): array
@@ -437,7 +366,7 @@ final class UserController extends AbstractController
             return $this->json(['message' => 'User not found'], 404);
         }
 
-        $data = json_decode($request->getContent(), true);
+        $data = \App\Http\JsonInput::read($request);
 
         if (!isset($data['roles']) || !is_array($data['roles'])) {
             return $this->json(['message' => 'Roles must be an array'], 400);

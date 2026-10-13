@@ -22,6 +22,7 @@ class ApiIntegrationTest extends WebTestCase
 
     public function testRegisterUser(): void
     {
+        $email = 'registration_'.bin2hex(random_bytes(8)).'@example.test';
         $this->client->request(
             'POST',
             '/api/register',
@@ -29,8 +30,8 @@ class ApiIntegrationTest extends WebTestCase
             [],
             ['CONTENT_TYPE' => 'application/json'],
             json_encode([
-                'email' => 'integration_test@test.com',
-                'password' => 'password123',
+                'email' => $email,
+                'password' => 'Password123!',
                 'firstName' => 'Integration',
                 'lastName' => 'Test'
             ])
@@ -40,8 +41,9 @@ class ApiIntegrationTest extends WebTestCase
 
         $this->assertResponseStatusCodeSame(201);
         $this->assertEquals('User created — waiting for admin approval', $response['message']);
-        $this->assertEquals('integration_test@test.com', $response['user']['email']);
+        $this->assertEquals($email, $response['user']['email']);
         $this->assertEquals('pending', $response['user']['status']);
+        static::getContainer()->get(EntityManagerInterface::class)->getConnection()->delete('user', ['email'=>$email]);
     }
 
     public function testRegisterWithExistingEmail(): void
@@ -54,7 +56,7 @@ class ApiIntegrationTest extends WebTestCase
             ['CONTENT_TYPE' => 'application/json'],
             json_encode([
                 'email' => 'duplicate@test.com',
-                'password' => 'password123',
+                'password' => 'Password123!',
                 'firstName' => 'Test',
                 'lastName' => 'User'
             ])
@@ -68,7 +70,7 @@ class ApiIntegrationTest extends WebTestCase
             ['CONTENT_TYPE' => 'application/json'],
             json_encode([
                 'email' => 'duplicate@test.com',
-                'password' => 'password123',
+                'password' => 'Password123!',
                 'firstName' => 'Test',
                 'lastName' => 'User'
             ])
@@ -608,7 +610,7 @@ class ApiIntegrationTest extends WebTestCase
             ],
             json_encode([
                 'current_password' => 'wrongpassword',
-                'new_password' => 'newpassword123'
+                'new_password' => 'Newpassword123!'
             ])
         );
 
@@ -654,7 +656,7 @@ class ApiIntegrationTest extends WebTestCase
             ],
             json_encode([
                 'current_password' => 'password123',
-                'new_password' => 'newpassword123'
+                'new_password' => 'Newpassword123!'
             ])
         );
 
@@ -779,7 +781,141 @@ class ApiIntegrationTest extends WebTestCase
 
         $this->assertResponseStatusCodeSame(200);
         $response = json_decode($this->client->getResponse()->getContent(), true);
-        $this->assertTrue($response['notification']['isRead']);
+        $this->assertTrue($response['isRead']);
+    }
+
+    // =====================
+    // TOKEN REFRESH / OAUTH EXCHANGE TESTS
+    // =====================
+
+    public function testLoginReturnsRefreshToken(): void
+    {
+        $this->createActiveUser('refresh_flow@test.com', 'password123');
+
+        $this->client->request(
+            'POST',
+            '/api/login',
+            [],
+            [],
+            ['CONTENT_TYPE' => 'application/json'],
+            json_encode(['email' => 'refresh_flow@test.com', 'password' => 'password123'])
+        );
+
+        $this->assertResponseStatusCodeSame(200);
+        $data = json_decode($this->client->getResponse()->getContent(), true);
+        $this->assertNotEmpty($data['token']);
+        $this->assertNotEmpty($data['refresh_token']);
+    }
+
+    public function testRefreshTokenRotatesAndOldOneIsRejected(): void
+    {
+        $this->createActiveUser('refresh_rotate@test.com', 'password123');
+
+        $this->client->request(
+            'POST',
+            '/api/login',
+            [],
+            [],
+            ['CONTENT_TYPE' => 'application/json'],
+            json_encode(['email' => 'refresh_rotate@test.com', 'password' => 'password123'])
+        );
+        $login = json_decode($this->client->getResponse()->getContent(), true);
+        $firstRefreshToken = $login['refresh_token'];
+
+        // First refresh succeeds and hands back a rotated refresh token.
+        $this->client->request(
+            'POST',
+            '/api/token/refresh',
+            [],
+            [],
+            ['CONTENT_TYPE' => 'application/json'],
+            json_encode(['refresh_token' => $firstRefreshToken])
+        );
+        $this->assertResponseStatusCodeSame(200);
+        $refreshed = json_decode($this->client->getResponse()->getContent(), true);
+        $this->assertNotEmpty($refreshed['token']);
+        $this->assertNotEmpty($refreshed['refresh_token']);
+        $this->assertNotSame($firstRefreshToken, $refreshed['refresh_token']);
+
+        // The consumed refresh token can no longer be used (single_use).
+        $this->client->request(
+            'POST',
+            '/api/token/refresh',
+            [],
+            [],
+            ['CONTENT_TYPE' => 'application/json'],
+            json_encode(['refresh_token' => $firstRefreshToken])
+        );
+        $this->assertResponseStatusCodeSame(401);
+    }
+
+    public function testOAuthExchangeRejectsInvalidCode(): void
+    {
+        $this->client->request(
+            'POST',
+            '/api/auth/oauth/exchange',
+            [],
+            [],
+            ['CONTENT_TYPE' => 'application/json'],
+            json_encode(['code' => 'not-a-real-code'])
+        );
+
+        $this->assertResponseStatusCodeSame(400);
+    }
+
+    public function testOAuthExchangeWithValidCodeReturnsTokens(): void
+    {
+        $this->createActiveUser('oauth_exchange@test.com', 'password123');
+
+        $container = static::getContainer();
+        $user = $container->get(EntityManagerInterface::class)
+            ->getRepository(User::class)
+            ->findOneBy(['email' => 'oauth_exchange@test.com']);
+        $plainCode = $container->get(\App\Service\OAuthCodeService::class)->issueCode($user);
+
+        $this->client->request(
+            'POST',
+            '/api/auth/oauth/exchange',
+            [],
+            [],
+            ['CONTENT_TYPE' => 'application/json'],
+            json_encode(['code' => $plainCode])
+        );
+
+        $this->assertResponseStatusCodeSame(200);
+        $data = json_decode($this->client->getResponse()->getContent(), true);
+        $this->assertNotEmpty($data['token']);
+        $this->assertNotEmpty($data['refresh_token']);
+
+        // The code is single-use: a second exchange fails.
+        $this->client->request(
+            'POST',
+            '/api/auth/oauth/exchange',
+            [],
+            [],
+            ['CONTENT_TYPE' => 'application/json'],
+            json_encode(['code' => $plainCode])
+        );
+        $this->assertResponseStatusCodeSame(400);
+    }
+
+    private function createActiveUser(string $email, string $password): void
+    {
+        $em = static::getContainer()->get(EntityManagerInterface::class);
+        $userRepo = $em->getRepository(User::class);
+
+        if ($userRepo->findOneBy(['email' => $email])) {
+            return;
+        }
+
+        $hasher = static::getContainer()->get('security.user_password_hasher');
+        $user = new User();
+        $user->setEmail($email);
+        $user->setRoles(['ROLE_USER']);
+        $user->setStatus('active');
+        $user->setPassword($hasher->hashPassword($user, $password));
+        $em->persist($user);
+        $em->flush();
     }
 
     // =====================

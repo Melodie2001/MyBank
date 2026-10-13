@@ -20,7 +20,7 @@ final class AnalyticsController extends AbstractController
             return $this->json(['message' => 'Access denied'], 403);
         }
 
-        $limit  = min((int) ($request->query->get('limit', 100)), 500);
+        $limit  = max(1, min((int) ($request->query->get('limit', 100)), 500));
         $action = $request->query->get('action');
 
         $qb = $dm->createQueryBuilder(ActivityLog::class)
@@ -56,7 +56,7 @@ final class AnalyticsController extends AbstractController
 
         $snapshots = $dm->createQueryBuilder(BalanceSnapshot::class)
             ->field('userId')->equals($user->getId())
-            ->sort('snapshotDate', 'ASC')
+            ->sort('snapshotDate', 'DESC')
             ->limit(90)
             ->getQuery()
             ->execute();
@@ -71,6 +71,6 @@ final class AnalyticsController extends AbstractController
             ];
         }
 
-        return $this->json($result);
+        return $this->json(array_reverse($result));
     }
 }

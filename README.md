@@ -89,6 +89,11 @@ npm run dev
 
 The user application is available at **http://localhost:5173**
 
+You can also use `npm start` in `frontend` or `frontend-admin`. From the repository
+root, use `npm --prefix frontend start` or `npm --prefix frontend-admin start`.
+If the default port is already in use, Vite prints the available port it selects;
+open the URL shown in the terminal.
+
 ### 5. Frontend Admin setup
 
 ```bash
@@ -535,6 +540,9 @@ The project uses **GitHub Actions** for continuous integration. On every push to
 ---
 
 ## Author
+
+GitHub Actions runs tests and build checks on pushes to `develop` and `main`.
+Automatic production deployment is disabled while the new server is being prepared.
 
 **Elodie MINKOUE**  
 CDA 3ème année — L'École Multimédia — 2025

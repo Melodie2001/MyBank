@@ -6,12 +6,14 @@ use App\Document\BalanceSnapshot;
 use App\Entity\User;
 use App\Repository\OperationRepository;
 use Doctrine\ODM\MongoDB\DocumentManager;
+use Psr\Log\LoggerInterface;
 
 class BalanceSnapshotService
 {
     public function __construct(
         private readonly DocumentManager $dm,
-        private readonly OperationRepository $operationRepository
+        private readonly OperationRepository $operationRepository,
+        private readonly LoggerInterface $logger,
     ) {}
 
     public function snapshot(User $user): void
@@ -55,7 +57,7 @@ class BalanceSnapshotService
 
             $this->dm->flush();
         } catch (\Throwable $e) {
-            // MongoDB failure must not break the main MySQL transaction
+            $this->logger->error('Balance snapshot persistence failed', ['user_id' => $user->getId(), 'error_type' => $e::class]);
         }
     }
 }

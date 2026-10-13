@@ -1,42 +1,40 @@
 import { useState, useEffect } from 'react';
+import LoadError from '../components/LoadError';
 import { useLocation } from 'react-router-dom';
 import { getOperations, deleteOperation } from '../services/operationService';
 import { getCategories, addToMyCategories } from '../services/categoryService';
 import { getBudgets } from '../services/budgetService';
 import OperationCard from '../components/OperationCard';
 import { useIsMobile } from '../hooks/useIsMobile';
+import { budgetImpact, localDateString } from '../utils/budgetImpact';
 
 export default function Operations() {
   const isMobile = useIsMobile();
   const [operations, setOperations] = useState([]);
   const [categories, setCategories] = useState([]);
-  const [budgets, setBudgets] = useState([]);
   const [filter, setFilter] = useState('all');
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
-  const [showModal, setShowModal] = useState(false);
-  const [editOperation, setEditOperation] = useState(null);
+  const [loadError, setLoadError] = useState(false);
   const location = useLocation();
+  const [showModal, setShowModal] = useState(() => Boolean(location.state?.openModal));
+  const [editOperation, setEditOperation] = useState(null);
 
   useEffect(() => {
     fetchData();
-    if (location.state?.openModal) {
-      setShowModal(true);
-    }
   }, []);
 
   async function fetchData() {
     try {
-      const [ops, cats, bdgs] = await Promise.all([
+      const [ops, cats] = await Promise.all([
         getOperations(),
         getCategories(),
-        getBudgets().catch(() => []),
       ]);
       setOperations(ops);
       setCategories(cats);
-      setBudgets(bdgs);
     } catch (err) {
       console.error(err);
+      setLoadError(true);
     } finally {
       setLoading(false);
     }
@@ -77,6 +75,7 @@ export default function Operations() {
   });
 
   if (loading) return <div style={styles.loading}>Loading...</div>;
+  if (loadError) return <LoadError />;
 
   return (
     <div>
@@ -140,7 +139,6 @@ export default function Operations() {
       {showModal && (
         <OperationModal
           categories={categories}
-          budgets={budgets}
           operation={editOperation}
           onClose={handleModalClose}
           onSaved={handleSaved}
@@ -150,17 +148,35 @@ export default function Operations() {
   );
 }
 
-function OperationModal({ categories, budgets, operation, onClose, onSaved }) {
+export function OperationModal({ categories, operation, onClose, onSaved }) {
   const isMobile = useIsMobile();
   const [label, setLabel] = useState(operation?.label || '');
   const [amount, setAmount] = useState(operation?.amount || '');
-  const [date, setDate] = useState(operation?.date || new Date().toISOString().split('T')[0]);
+  const [date, setDate] = useState(operation?.date || localDateString());
   const [type, setType] = useState(operation?.type || 'expense');
   const [categoryId, setCategoryId] = useState(operation?.category?.id || '');
   const [newBudgetLimit, setNewBudgetLimit] = useState('');
   const [editingLimit, setEditingLimit] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [budgetState, setBudgetState] = useState({ month: null, data: [], error: '' });
+  const [budgetRetry, setBudgetRetry] = useState(0);
+  const selectedMonth = /^(?!0000)\d{4}-(0[1-9]|1[0-2])-\d{2}$/.test(date) ? date.slice(0, 7) : null;
+
+  useEffect(() => {
+    if (!selectedMonth) return;
+    let active = true;
+    getBudgets(selectedMonth).then(data => {
+      if (active) setBudgetState({ month: selectedMonth, data, error: '' });
+    }).catch(() => {
+      if (active) setBudgetState({ month: selectedMonth, data: [], error: 'Unable to load the budget for this month.' });
+    });
+    return () => { active = false; };
+  }, [selectedMonth, budgetRetry]);
+
+  const budgetReady = budgetState.month === selectedMonth && selectedMonth !== null;
+  const budgetLoadError = budgetReady ? budgetState.error : '';
+  const budgets = budgetReady && !budgetLoadError ? budgetState.data : [];
 
   // Budget for the currently selected category
   const linkedBudget = type === 'expense' && categoryId
@@ -168,10 +184,11 @@ function OperationModal({ categories, budgets, operation, onClose, onSaved }) {
     : null;
 
   const amountNum = parseFloat(amount) || 0;
-  const newSpent = linkedBudget ? linkedBudget.spent + amountNum : 0;
-  const newPct = linkedBudget ? Math.min((newSpent / linkedBudget.monthly_limit) * 100, 100) : 0;
-  const currentPct = linkedBudget ? Math.min((linkedBudget.spent / linkedBudget.monthly_limit) * 100, 100) : 0;
-  const isOver = linkedBudget ? newSpent > linkedBudget.monthly_limit : false;
+  const impact = linkedBudget ? budgetImpact(linkedBudget, operation, { amount: amountNum, date, categoryId, limit: editingLimit ? newBudgetLimit : null }) : null;
+  const newSpent = impact?.newSpent || 0;
+  const newPct = impact?.percentage || 0;
+  const currentPct = impact?.basePercentage || 0;
+  const isOver = impact?.reached || false;
   const barColor = isOver ? '#DC2626' : newPct >= 80 ? '#D97706' : '#16A34A';
 
   function handleCategoryChange(e) {
@@ -188,6 +205,7 @@ function OperationModal({ categories, budgets, operation, onClose, onSaved }) {
 
   async function handleSubmit(e) {
     e.preventDefault();
+    if (type === 'expense' && (!budgetReady || budgetLoadError)) return;
     setError('');
     setLoading(true);
 
@@ -244,32 +262,32 @@ function OperationModal({ categories, budgets, operation, onClose, onSaved }) {
 
         <form onSubmit={handleSubmit} style={styles.form}>
           <div style={styles.field}>
-            <label style={styles.label}>LABEL</label>
-            <input type="text" value={label} onChange={e => setLabel(e.target.value)} style={styles.input} required />
+            <label htmlFor="operation-label" style={styles.label}>LABEL</label>
+            <input id="operation-label" type="text" value={label} onChange={e => setLabel(e.target.value)} style={styles.input} required />
           </div>
 
           <div style={{ ...styles.row, ...(isMobile ? { flexDirection: 'column' } : {}) }}>
             <div style={styles.field}>
-              <label style={styles.label}>AMOUNT €</label>
-              <input type="number" step="0.01" min="0" value={amount} onChange={e => setAmount(e.target.value)} style={styles.input} required />
+              <label htmlFor="operation-amount" style={styles.label}>AMOUNT €</label>
+              <input id="operation-amount" type="number" step="0.01" min="0.01" value={amount} onChange={e => setAmount(e.target.value)} style={styles.input} required />
             </div>
             <div style={styles.field}>
-              <label style={styles.label}>DATE</label>
-              <input type="date" value={date} onChange={e => setDate(e.target.value)} style={styles.input} required />
+              <label htmlFor="operation-date" style={styles.label}>DATE</label>
+              <input id="operation-date" type="date" value={date} onChange={e => setDate(e.target.value)} style={styles.input} required />
             </div>
           </div>
 
           <div style={styles.field}>
-            <label style={styles.label}>TYPE</label>
-            <select value={type} onChange={handleTypeChange} style={styles.input}>
+            <label htmlFor="operation-type" style={styles.label}>TYPE</label>
+            <select id="operation-type" value={type} onChange={handleTypeChange} style={styles.input}>
               <option value="expense">Expense</option>
               <option value="income">Income</option>
             </select>
           </div>
 
           <div style={styles.field}>
-            <label style={styles.label}>CATEGORY</label>
-            <select value={categoryId} onChange={handleCategoryChange} style={styles.input} required>
+            <label htmlFor="operation-category" style={styles.label}>CATEGORY</label>
+            <select id="operation-category" value={categoryId} onChange={handleCategoryChange} style={styles.input} required>
               <option value="">Select a category</option>
               {categories.map(cat => (
                 <option key={cat.id} value={cat.id}>{cat.name}</option>
@@ -282,7 +300,7 @@ function OperationModal({ categories, budgets, operation, onClose, onSaved }) {
             <div style={styles.budgetSection}>
               <div style={styles.budgetSectionHeader}>
                 <span style={styles.budgetSectionTitle}>
-                  🎯 Budget — {selectedCategory?.name}
+                  🎯 Budget — {selectedCategory?.name} · {selectedMonth}
                 </span>
                 {linkedBudget && !editingLimit && !(amountNum > 0 && (isOver || newPct >= 80)) && (
                   <button type="button" style={styles.btnEditLimit} onClick={() => { setEditingLimit(true); setNewBudgetLimit(String(linkedBudget.monthly_limit)); }}>
@@ -291,22 +309,25 @@ function OperationModal({ categories, budgets, operation, onClose, onSaved }) {
                 )}
               </div>
 
-              {linkedBudget ? (
+              {!selectedMonth ? <p>Choose a valid date to see its monthly budget.</p>
+                : !budgetReady ? <p role="status">Loading monthly budget...</p>
+                : budgetLoadError ? <div role="alert">{budgetLoadError} <button type="button" onClick={() => { setBudgetState({ month: null, data: [], error: '' }); setBudgetRetry(value => value + 1); }}>Retry</button></div>
+                : linkedBudget ? (
                 <>
                   {/* Current budget status */}
                   {amountNum > 0 && (
                     <>
                       <div style={styles.budgetBar}>
                         <div style={{ ...styles.budgetBarFill, width: `${currentPct}%`, backgroundColor: '#94A3B8', borderRadius: '999px 0 0 999px' }} />
-                        <div style={{ ...styles.budgetBarFill, width: `${Math.min(newPct - currentPct, 100 - currentPct)}%`, backgroundColor: barColor, borderRadius: currentPct === 0 ? '999px' : '0 999px 999px 0' }} />
+                        <div style={{ ...styles.budgetBarFill, width: `${Math.max(0, Math.min(newPct - currentPct, 100 - currentPct))}%`, backgroundColor: barColor, borderRadius: currentPct === 0 ? '999px' : '0 999px 999px 0' }} />
                       </div>
                       <div style={styles.budgetImpactRow}>
-                        <span style={styles.budgetImpactSub}>{Number(linkedBudget.spent).toFixed(2)} € + {amountNum.toFixed(2)} €</span>
-                        <span style={{ ...styles.budgetImpactSub, fontWeight: '800', color: barColor }}>{Math.round(newPct)}% of {Number(linkedBudget.monthly_limit).toFixed(2)} €</span>
+                        <span style={styles.budgetImpactSub}>{impact.baseSpent.toFixed(2)} € + {amountNum.toFixed(2)} € = {newSpent.toFixed(2)} € after saving</span>
+                        <span style={{ ...styles.budgetImpactSub, fontWeight: '800', color: barColor }}>{Math.round(newPct)}% of {impact.limit.toFixed(2)} €</span>
                       </div>
                       {isOver && (
                         <div style={{ ...styles.budgetWarning, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
-                          <span>⚠️ Over budget by {(newSpent - linkedBudget.monthly_limit).toFixed(2)} €</span>
+                          <span>{impact.remaining === 0 ? '⚠️ Budget reached' : `⚠️ Over budget by ${(-impact.remaining).toFixed(2)} €`}</span>
                           {!editingLimit && (
                             <button type="button" style={styles.btnEditBudget} onClick={() => { setEditingLimit(true); setNewBudgetLimit(String(linkedBudget.monthly_limit)); }}>
                               Edit budget
@@ -316,7 +337,7 @@ function OperationModal({ categories, budgets, operation, onClose, onSaved }) {
                       )}
                       {!isOver && newPct >= 80 && (
                         <div style={{ ...styles.budgetCaution, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
-                          <span>⚠️ Only {(linkedBudget.monthly_limit - newSpent).toFixed(2)} € will remain</span>
+                          <span>⚠️ Only {impact.remaining.toFixed(2)} € will remain</span>
                           {!editingLimit && (
                             <button type="button" style={styles.btnEditBudget} onClick={() => { setEditingLimit(true); setNewBudgetLimit(String(linkedBudget.monthly_limit)); }}>
                               Edit budget
@@ -357,7 +378,7 @@ function OperationModal({ categories, budgets, operation, onClose, onSaved }) {
 
           <div style={styles.modalActions}>
             <button type="button" onClick={onClose} style={styles.btnCancel}>Cancel</button>
-            <button type="submit" style={styles.btnSave} disabled={loading}>
+            <button type="submit" style={styles.btnSave} disabled={loading || (type === 'expense' && (!budgetReady || Boolean(budgetLoadError)))}>
               {loading ? 'Saving...' : 'Save operation'}
             </button>
           </div>

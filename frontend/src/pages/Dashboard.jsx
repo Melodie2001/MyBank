@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import LoadError from '../components/LoadError';
 import { Link } from 'react-router-dom';
 import {
   PieChart, Pie, Cell, ResponsiveContainer,
@@ -6,8 +7,8 @@ import {
 } from 'recharts';
 import { getDashboard } from '../services/operationService';
 import { getMyCategories } from '../services/categoryService';
-import { getBalanceHistory } from '../services/analyticsService';
-import { useTheme } from '../context/ThemeContext';
+import { monthlyChanges } from '../utils/monthlyChanges';
+import { useTheme } from '../context/useTheme';
 import { useIsMobile } from '../hooks/useIsMobile';
 
 const CHART_COLORS = ['#2563EB', '#16A34A', '#D97706', '#DC2626', '#7C3AED', '#0EA5E9'];
@@ -37,24 +38,23 @@ export default function Dashboard() {
   const isMobile = useIsMobile();
   const [data, setData] = useState(null);
   const [categories, setCategories] = useState([]);
-  const [balanceHistory, setBalanceHistory] = useState([]);
   const [filter, setFilter] = useState('all');
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
 
   useEffect(() => {
     async function fetchData() {
       try {
-        const [dashboard, cats, history] = await Promise.all([
+        const [dashboard, cats] = await Promise.all([
           getDashboard(),
           getMyCategories(),
-          getBalanceHistory().catch(() => []),
         ]);
         setData(dashboard);
         setCategories(cats);
-        setBalanceHistory(history);
       } catch (err) {
         console.error(err);
+        setLoadError(true);
       } finally {
         setLoading(false);
       }
@@ -117,31 +117,10 @@ export default function Dashboard() {
     }));
   })();
 
-  // % vs last month
-  const sortedMonths = [...new Set(operations.map(op => op.date.slice(0, 7)))].sort();
-  const monthlyData = operations.reduce((acc, op) => {
-    const month = op.date.slice(0, 7);
-    if (!acc[month]) acc[month] = { income: 0, expense: 0 };
-    if (op.type === 'income') acc[month].income += Number(op.amount);
-    else acc[month].expense += Number(op.amount);
-    return acc;
-  }, {});
-
-  let expenseChangePct = null;
-  if (sortedMonths.length >= 2) {
-    const last = monthlyData[sortedMonths[sortedMonths.length - 1]].expense;
-    const prev = monthlyData[sortedMonths[sortedMonths.length - 2]].expense;
-    if (prev > 0) expenseChangePct = Math.round(((last - prev) / prev) * 100);
-  }
-
-  let incomeChangePct = null;
-  if (sortedMonths.length >= 2) {
-    const last = monthlyData[sortedMonths[sortedMonths.length - 1]].income;
-    const prev = monthlyData[sortedMonths[sortedMonths.length - 2]].income;
-    if (prev > 0) incomeChangePct = Math.round(((last - prev) / prev) * 100);
-  }
+  const { incomeChangePct, expenseChangePct } = monthlyChanges(operations);
 
   if (loading) return <div style={styles.loading}>Loading...</div>;
+  if (loadError) return <LoadError />;
 
   return (
     <div>
@@ -178,7 +157,7 @@ export default function Dashboard() {
           {incomeChangePct !== null && (
             <div style={{ ...styles.statChange, color: incomeChangePct >= 0 ? '#16A34A' : '#DC2626' }}>
               {incomeChangePct >= 0 ? '▲' : '▼'} {Math.abs(incomeChangePct)}%
-              <span style={styles.statChangeLabel}>vs last month</span>
+              <span style={styles.statChangeLabel}>This month vs last month</span>
             </div>
           )}
         </div>
@@ -194,7 +173,7 @@ export default function Dashboard() {
           {expenseChangePct !== null && (
             <div style={{ ...styles.statChange, color: expenseChangePct <= 0 ? '#16A34A' : '#DC2626' }}>
               {expenseChangePct >= 0 ? '▲' : '▼'} {Math.abs(expenseChangePct)}%
-              <span style={styles.statChangeLabel}>vs last month</span>
+              <span style={styles.statChangeLabel}>This month vs last month</span>
             </div>
           )}
         </div>

@@ -22,16 +22,33 @@ security:
                 password_path: password
                 success_handler: lexik_jwt_authentication.handler.authentication_success
                 failure_handler: lexik_jwt_authentication.handler.authentication_failure
+            login_throttling:
+                max_attempts: 5
+                interval: '15 minutes'
+
+        token_refresh:
+            pattern: ^/api/token/refresh
+            stateless: true
+            provider: app_user_provider
+            user_checker: App\Security\ActiveUserChecker
+            refresh_jwt:
+                check_path: /api/token/refresh
 
         api:
             pattern: ^/api
             stateless: true
             provider: app_user_provider
+            user_checker: App\Security\ActiveUserChecker
             jwt: ~
 
     access_control:
         - { path: ^/api/register, roles: PUBLIC_ACCESS }
         - { path: ^/api/login, roles: PUBLIC_ACCESS }
+        - { path: ^/api/token/refresh, roles: PUBLIC_ACCESS }
+        - { path: ^/api/forgot-password, roles: PUBLIC_ACCESS }
+        - { path: ^/api/reset-password, roles: PUBLIC_ACCESS }
+        - { path: ^/api/connect/google, roles: PUBLIC_ACCESS }
+        - { path: ^/api/auth/oauth/exchange, roles: PUBLIC_ACCESS }
         - { path: ^/api, roles: IS_AUTHENTICATED_FULLY }
 
 when@test:

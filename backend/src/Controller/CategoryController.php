@@ -50,7 +50,7 @@ final class CategoryController extends AbstractController
         /** @var \App\Entity\User $user */
         $user = $this->getUser();
 
-        $data = json_decode($request->getContent(), true);
+        $data = \App\Http\JsonInput::read($request);
 
         if (empty($data['category_id'])) {
             return $this->json(['message' => 'Category ID is required'], 400);
@@ -136,7 +136,7 @@ final class CategoryController extends AbstractController
             return $this->json(['message' => 'Access denied'], 403);
         }
 
-        $data = json_decode($request->getContent(), true);
+        $data = \App\Http\JsonInput::read($request);
 
         $validationError = $this->validateCategoryData($data, true);
         if ($validationError) {
@@ -174,7 +174,7 @@ final class CategoryController extends AbstractController
             return $this->json(['message' => 'Category not found'], 404);
         }
 
-        $data = json_decode($request->getContent(), true);
+        $data = \App\Http\JsonInput::read($request);
 
         $validationError = $this->validateCategoryData($data, false);
         if ($validationError) {

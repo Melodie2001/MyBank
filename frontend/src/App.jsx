@@ -1,5 +1,5 @@
 import { lazy, Suspense } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import MainLayout from './layouts/MainLayout';
 import ProtectedRoute from './components/ProtectedRoute';
 import { ThemeProvider } from './context/ThemeContext';
@@ -8,6 +8,9 @@ import './styles/global.css';
 const LandingPage = lazy(() => import('./pages/LandingPage'));
 const Login = lazy(() => import('./pages/Login'));
 const Register = lazy(() => import('./pages/Register'));
+const ForgotPassword = lazy(() => import('./pages/ForgotPassword'));
+const ResetPassword = lazy(() => import('./pages/ResetPassword'));
+const OAuthCallback = lazy(() => import('./pages/OAuthCallback'));
 const Dashboard = lazy(() => import('./pages/Dashboard'));
 const Operations = lazy(() => import('./pages/Operations'));
 const Categories = lazy(() => import('./pages/Categories'));
@@ -59,6 +62,9 @@ export default function App() {
           <Route path="/" element={<LandingPage />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
+          <Route path="/oauth-callback" element={<OAuthCallback />} />
           <Route path="/privacy-policy" element={<PrivacyPolicy />} />
 
           {/* Protected routes */}

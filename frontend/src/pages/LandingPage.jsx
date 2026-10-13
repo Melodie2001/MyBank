@@ -1,4 +1,4 @@
-import { useTheme } from "../context/ThemeContext";
+import { useTheme } from "../context/useTheme";
 import "../styles/LandingPage.css";
 
 export default function LandingPage() {
@@ -226,9 +226,8 @@ export default function LandingPage() {
             <span className="feature-icon">🏷️</span>
             <h3>Categories your way</h3>
             <p>
-              Organize every expense the way that fits your life, not a
-              one-size-fits-all bank template. Create, rename, and delete
-              categories whenever you need to.
+                Choose categories from the available catalogue, add them to
+                your list, and set a monthly budget for each expense category.
             </p>
           </div>
           <div className="feature-visual">

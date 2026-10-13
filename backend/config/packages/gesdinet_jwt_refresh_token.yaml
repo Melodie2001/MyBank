@@ -1,0 +1,12 @@
+gesdinet_jwt_refresh_token:
+    refresh_token_class: App\Entity\RefreshToken
+    # 30 days, refreshed on every use (sliding window).
+    ttl: 2592000
+    ttl_update: true
+    # Rotate the refresh token on every refresh: a stolen token stops working
+    # as soon as the legitimate client refreshes again.
+    single_use: true
+    # Store only the hash of the refresh token, like password_reset_token.
+    hash_tokens:
+        enabled: true
+    return_expiration: true

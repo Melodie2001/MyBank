@@ -57,29 +57,27 @@ export default function Profile() {
   const [showCurrent, setShowCurrent] = useState(false);
   const [showNew, setShowNew] = useState(false);
   const [pwdError, setPwdError] = useState('');
-  const [pwdSuccess, setPwdSuccess] = useState('');
   const [pwdLoading, setPwdLoading] = useState(false);
 
   useEffect(() => {
+    async function fetchUser() {
+      try {
+        const data = await getMe();
+        setUser(data);
+        setFirstName(data.firstName || '');
+        setLastName(data.lastName || '');
+        setEmail(data.email || '');
+        setPhone(data.phone || '');
+        setBirthDate(data.birthDate || '');
+        setGender(data.gender || '');
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    }
     fetchUser();
   }, []);
-
-  async function fetchUser() {
-    try {
-      const data = await getMe();
-      setUser(data);
-      setFirstName(data.firstName || '');
-      setLastName(data.lastName || '');
-      setEmail(data.email || '');
-      setPhone(data.phone || '');
-      setBirthDate(data.birthDate || '');
-      setGender(data.gender || '');
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  }
 
   async function handleInfoSubmit(e) {
     e.preventDefault();
@@ -110,7 +108,6 @@ export default function Profile() {
   async function handlePasswordSubmit(e) {
     e.preventDefault();
     setPwdError('');
-    setPwdSuccess('');
 
     if (newPassword !== confirmPassword) {
       setPwdError('Passwords do not match');
@@ -124,10 +121,11 @@ export default function Profile() {
     setPwdLoading(true);
     try {
       await updatePassword(currentPassword, newPassword);
-      setPwdSuccess('Password updated successfully');
-      setCurrentPassword('');
-      setNewPassword('');
-      setConfirmPassword('');
+      logout();
+      navigate('/login', {
+        replace: true,
+        state: { message: 'Password updated successfully. Please sign in again.' },
+      });
     } catch (err) {
       setPwdError(err.response?.data?.message || 'An error occurred');
     } finally {
@@ -325,7 +323,6 @@ export default function Profile() {
             <h2 style={styles.cardTitle}>Security</h2>
             <p style={styles.cardSubtitle}>Change your password</p>
 
-            {pwdSuccess && <div style={styles.success}>{pwdSuccess}</div>}
             {pwdError && <div style={styles.error}>{pwdError}</div>}
 
             <form onSubmit={handlePasswordSubmit} style={styles.form}>

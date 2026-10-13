@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import LoadError from '../components/LoadError';
 import { getCategories, getMyCategories, addToMyCategories, removeFromMyCategories } from '../services/categoryService';
 import { getOperations } from '../services/operationService';
 import { getBudgets, createBudget, updateBudget } from '../services/budgetService';
@@ -19,6 +20,7 @@ export default function Categories() {
   const [operations, setOperations] = useState([]);
   const [budgets, setBudgets] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
   const [budgetEdit, setBudgetEdit] = useState(null); // { catId, value }
 
@@ -30,7 +32,7 @@ export default function Categories() {
         getMyCategories(),
         getCategories(),
         getOperations(),
-        getBudgets().catch(() => []),
+        getBudgets(),
       ]);
       setMyCategories(mine);
       setAllCategories(all);
@@ -38,6 +40,7 @@ export default function Categories() {
       setBudgets(Array.isArray(bdgs) ? bdgs : []);
     } catch (err) {
       console.error(err);
+      setLoadError(true);
     } finally {
       setLoading(false);
     }
@@ -49,8 +52,7 @@ export default function Categories() {
   function getCatStats(catId) {
     const catOps = operations.filter(op => op.category.id === catId);
     const monthlyOps = catOps.filter(op => op.date?.startsWith(thisMonth));
-    const monthlyExpenses = monthlyOps.filter(op => op.type === 'expense');
-    const monthlyTotal = monthlyOps.reduce((s, op) => s + Number(op.amount), 0);
+    const monthlyTotal = monthlyOps.filter(op => op.type === 'expense').reduce((s, op) => s + Number(op.amount), 0);
     const hasExpenses = catOps.some(op => op.type === 'expense');
     return { count: catOps.length, monthlyCount: monthlyOps.length, monthlyTotal, hasExpenses };
   }
@@ -112,6 +114,7 @@ export default function Categories() {
   );
 
   if (loading) return <div style={s.loading}>Loading...</div>;
+  if (loadError) return <LoadError />;
 
   return (
     <div>
@@ -273,6 +276,7 @@ export default function Categories() {
       {showAddModal && (
         <SelectCategoryModal
           categories={availableCategories}
+          catalogEmpty={allCategories.length === 0}
           onClose={() => setShowAddModal(false)}
           onAdd={handleAdd}
         />
@@ -291,7 +295,7 @@ function StatCard({ label, value, sub, valueColor }) {
   );
 }
 
-function SelectCategoryModal({ categories, onClose, onAdd }) {
+function SelectCategoryModal({ categories, catalogEmpty, onClose, onAdd }) {
   const isMobile = useIsMobile();
   return (
     <div style={s.overlay}>
@@ -305,7 +309,11 @@ function SelectCategoryModal({ categories, onClose, onAdd }) {
         </div>
 
         {categories.length === 0 ? (
-          <div style={s.emptyModal}>All available categories are already in your list.</div>
+          <div style={s.emptyModal}>
+            {catalogEmpty
+              ? 'No categories are available yet. Ask an administrator to add categories to the catalog.'
+              : 'All available categories are already in your list.'}
+          </div>
         ) : (
           <div style={{ ...s.catGrid, ...(isMobile ? { gridTemplateColumns: 'repeat(2, 1fr)' } : {}) }}>
             {categories.map(cat => (

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import LoadError from '../components/LoadError';
 import { getNotifications, markAsRead, markAllAsRead, deleteNotification } from '../services/notificationService';
 
 const TYPE_CONFIG = {
@@ -35,19 +36,22 @@ function groupByDate(notifications) {
 export default function Notifications() {
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
 
-  useEffect(() => { fetchAll(); }, []);
-
-  async function fetchAll() {
-    try {
-      const data = await getNotifications();
-      setNotifications(data);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
+  useEffect(() => {
+    async function fetchAll() {
+      try {
+        const data = await getNotifications();
+        setNotifications(data);
+      } catch (err) {
+        console.error(err);
+        setLoadError(true);
+      } finally {
+        setLoading(false);
+      }
     }
-  }
+    fetchAll();
+  }, []);
 
   async function handleRead(id) {
     const n = notifications.find(x => x.id === id);
@@ -57,6 +61,7 @@ export default function Notifications() {
       setNotifications(prev => prev.map(x => x.id === id ? { ...x, isRead: true } : x));
     } catch (err) {
       console.error(err);
+      setLoadError(true);
     }
   }
 
@@ -83,6 +88,7 @@ export default function Notifications() {
   const groups = groupByDate(notifications);
 
   if (loading) return <div style={s.loading}>Loading...</div>;
+  if (loadError) return <LoadError />;
 
   return (
     <div>
