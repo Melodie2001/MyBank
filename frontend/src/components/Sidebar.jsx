@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useTheme } from '../context/useTheme';
 import { logout } from '../services/authService';
-import { getUnreadCount } from '../services/notificationService';
+import { getUnreadCount, NOTIFICATIONS_CHANGED } from '../services/notificationService';
 import '../styles/sidebar.css';
 
 const LogoIcon = () => (
@@ -51,17 +51,24 @@ export default function Sidebar() {
 
   useEffect(() => {
     let active = true;
+    let requestId = 0;
     async function fetchUnread() {
+      const currentRequest = ++requestId;
       try {
         const count = await getUnreadCount();
-        if (active) setUnreadCount(count);
+        if (active && currentRequest === requestId) setUnreadCount(count);
       } catch (error) {
         console.error('Unable to refresh unread notifications', error);
       }
     }
     fetchUnread();
     const interval = setInterval(fetchUnread, 60000);
-    return () => { active = false; clearInterval(interval); };
+    window.addEventListener(NOTIFICATIONS_CHANGED, fetchUnread);
+    return () => {
+      active = false;
+      clearInterval(interval);
+      window.removeEventListener(NOTIFICATIONS_CHANGED, fetchUnread);
+    };
   }, []);
 
   useEffect(() => {

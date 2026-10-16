@@ -37,6 +37,7 @@ export default function Notifications() {
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
+  const [showAll, setShowAll] = useState(false);
 
   useEffect(() => {
     async function fetchAll() {
@@ -85,7 +86,8 @@ export default function Notifications() {
   }
 
   const unreadCount = notifications.filter(n => !n.isRead).length;
-  const groups = groupByDate(notifications);
+  const visibleNotifications = showAll ? notifications : notifications.filter(n => !n.isRead);
+  const groups = groupByDate(visibleNotifications);
 
   if (loading) return <div style={s.loading}>Loading...</div>;
   if (loadError) return <LoadError />;
@@ -106,11 +108,16 @@ export default function Notifications() {
         )}
       </div>
 
-      {notifications.length === 0 ? (
+      <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
+        <button style={s.btnReadAll} aria-pressed={!showAll} onClick={() => setShowAll(false)}>Unread ({unreadCount})</button>
+        <button style={s.btnReadAll} aria-pressed={showAll} onClick={() => setShowAll(true)}>All</button>
+      </div>
+
+      {visibleNotifications.length === 0 ? (
         <div style={s.empty}>
           <div style={s.emptyIcon}>🔔</div>
-          <div style={s.emptyTitle}>No notifications yet</div>
-          <div style={s.emptyText}>Budget alerts and account events will appear here.</div>
+          <div style={s.emptyTitle}>{showAll ? 'No notifications yet' : 'No unread notifications'}</div>
+          <div style={s.emptyText}>{showAll ? 'Budget alerts and account events will appear here.' : 'You’re all caught up. Select All to view your history.'}</div>
         </div>
       ) : (
         <div style={s.list}>
