@@ -19,6 +19,7 @@ class PasswordResetService
         private readonly MailerInterface $mailer,
         private readonly string $frontendUrl,
         private readonly LoggerInterface $logger,
+        private readonly string $mailerFrom = 'no-reply@nexo-finance.duckdns.org',
     ) {}
 
     /**
@@ -86,7 +87,7 @@ class PasswordResetService
         $resetUrl = sprintf('%s/reset-password?token=%s', $this->frontendUrl, $plainToken);
 
         $email = (new Email())
-            ->from('no-reply@nexo-finance.duckdns.org')
+            ->from($this->mailerFrom)
             ->to($user->getEmail())
             ->subject('Reset your Nexo Finance password')
             ->text(
