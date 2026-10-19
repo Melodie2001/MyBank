@@ -7,6 +7,7 @@ use App\DTO\RegisterDTO;
 use App\Entity\User;
 use App\Repository\UserRepository;
 use App\Service\ActivityLogService;
+use App\Service\AccountActivationMailer;
 use App\Service\NotificationService;
 use App\Service\SessionRevocationService;
 use Doctrine\ORM\EntityManagerInterface;
@@ -257,7 +258,8 @@ final class UserController extends AbstractController
         UserRepository $repository,
         EntityManagerInterface $em,
         NotificationService $notificationService,
-        SessionRevocationService $sessions
+        SessionRevocationService $sessions,
+        AccountActivationMailer $activationMailer
     ): JsonResponse {
         if (!$this->isGranted('ROLE_ADMIN')) {
             return $this->json(['message' => 'Access denied'], 403);
@@ -291,8 +293,17 @@ final class UserController extends AbstractController
             }
         });
 
+        // Send only after the activation has been committed successfully.
+        $activationEmailSent = null;
+        if ($previousStatus !== 'active' && $data['status'] === 'active') {
+            $activationEmailSent = $activationMailer->send($user);
+        }
+
         return $this->json([
-            'message' => 'User status updated',
+            'message' => $activationEmailSent === false
+                ? 'User status updated, but the activation email could not be sent'
+                : 'User status updated',
+            'activationEmailSent' => $activationEmailSent,
             'user' => $this->formatUser($user)
         ]);
     }

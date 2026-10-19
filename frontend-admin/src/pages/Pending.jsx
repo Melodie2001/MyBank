@@ -23,9 +23,12 @@ export default function Pending() {
 
   async function handleStatusChange(id, status) {
     try {
-      await updateUserStatus(id, status);
+      const result = await updateUserStatus(id, status);
       setPendingUsers(prev => prev.filter(u => u.id !== id));
       refreshPendingCount();
+      if (result.activationEmailSent === false) {
+        alert('The account is active, but the activation email could not be sent.');
+      }
     } catch (err) {
       alert(err.response?.data?.message || 'An error occurred');
     }

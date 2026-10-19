@@ -23,7 +23,10 @@ export default function Users() {
 
   async function handleStatusChange(id, status) {
     try {
-      await updateUserStatus(id, status);
+      const result = await updateUserStatus(id, status);
+      if (result.activationEmailSent === false) {
+        alert('The account is active, but the activation email could not be sent.');
+      }
       setUsers(prev => prev.map(u => u.id === id ? { ...u, status } : u));
     } catch (err) {
       alert(err.response?.data?.message || 'An error occurred');
