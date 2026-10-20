@@ -29,19 +29,13 @@ const LogoIcon = () => (
   </div>
 );
 
-function getPasswordStrength(pwd) {
-  if (!pwd) return { score: 0, label: '', color: '' };
-  let score = 0;
-  if (pwd.length >= 8) score++;
-  if (pwd.length >= 12) score++;
-  if (/[A-Z]/.test(pwd)) score++;
-  if (/[0-9]/.test(pwd)) score++;
-  if (/[^A-Za-z0-9]/.test(pwd)) score++;
-  if (score <= 1) return { score, label: 'Weak', color: '#DC2626' };
-  if (score <= 3) return { score, label: 'Fair', color: '#D97706' };
-  if (score === 4) return { score, label: 'Good', color: '#2563EB' };
-  return { score, label: 'Strong', color: '#16A34A' };
-}
+const PASSWORD_REQUIREMENTS = [
+  { label: 'At least 8 characters', test: value => value.length >= 8 },
+  { label: 'One uppercase letter (A–Z)', test: value => /[A-Z]/.test(value) },
+  { label: 'One lowercase letter (a–z)', test: value => /[a-z]/.test(value) },
+  { label: 'One number (0–9)', test: value => /\d/.test(value) },
+  { label: 'One special character (e.g. !, @, #)', test: value => /[\W_]/.test(value) },
+];
 
 export default function Register() {
   const navigate = useNavigate();
@@ -61,7 +55,6 @@ export default function Register() {
 
   const [showPrivacy, setShowPrivacy] = useState(false);
   const isMobile = useIsMobile();
-  const pwdStrength = getPasswordStrength(password);
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -265,10 +258,14 @@ export default function Register() {
               </div>
 
               <div style={styles.field}>
-                <label style={styles.label}>PASSWORD</label>
+                <label htmlFor="register-password" style={styles.label}>PASSWORD</label>
                 <div style={styles.inputWrapper}>
                   <span style={styles.inputIcon}><Icon name="key" /></span>
                   <input
+                    id="register-password"
+                    autoComplete="new-password"
+                    aria-describedby="password-requirements"
+                    maxLength={4096}
                     type={showPassword ? 'text' : 'password'}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
@@ -282,21 +279,20 @@ export default function Register() {
                 </div>
               </div>
 
-              {password && (
-                <div style={styles.strengthWrapper}>
-                  <div style={styles.strengthBars}>
-                    {[1, 2, 3, 4, 5].map(i => (
-                      <div key={i} style={{
-                        ...styles.strengthBar,
-                        backgroundColor: i <= pwdStrength.score ? pwdStrength.color : 'var(--color-border)',
-                      }} />
-                    ))}
-                  </div>
-                  <span style={{ ...styles.strengthLabel, color: pwdStrength.color }}>
-                    {pwdStrength.label}
-                  </span>
-                </div>
-              )}
+              <div id="password-requirements" style={styles.requirements}>
+                <p style={styles.requirementsTitle}>Your password must contain:</p>
+                <ul style={styles.requirementsList} aria-label="Password requirements">
+                  {PASSWORD_REQUIREMENTS.map(({ label, test }) => {
+                    const met = test(password);
+                    return (
+                      <li key={label} style={{ ...styles.requirement, color: met ? 'var(--color-success, #15803D)' : 'var(--color-text-light)' }}>
+                        <Icon name={met ? 'check' : 'lock'} size={14} />
+                        <span>{label}<span style={styles.visuallyHidden}>{met ? ' — met' : ' — not yet met'}</span></span>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
 
               <div style={styles.field}>
                 <label style={styles.label}>CONFIRM PASSWORD</label>
@@ -676,28 +672,43 @@ const styles = {
     fontWeight: '600',
     color: 'var(--color-text-light)',
   },
-  strengthWrapper: {
+  requirements: {
+    marginTop: '-6px',
+    padding: '12px 14px',
+    borderRadius: '10px',
+    backgroundColor: 'var(--color-input-bg)',
+  },
+  visuallyHidden: {
+    position: 'absolute',
+    width: '1px',
+    height: '1px',
+    padding: 0,
+    margin: '-1px',
+    overflow: 'hidden',
+    clipPath: 'inset(50%)',
+    whiteSpace: 'nowrap',
+    border: 0,
+  },
+  requirementsTitle: {
+    margin: '0 0 8px',
+    fontSize: '12px',
+    fontWeight: '600',
+    color: 'var(--color-text)',
+  },
+  requirementsList: {
+    listStyle: 'none',
+    margin: 0,
+    padding: 0,
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '6px',
+  },
+  requirement: {
     display: 'flex',
     alignItems: 'center',
-    gap: '10px',
-    marginTop: '-6px',
-  },
-  strengthBars: {
-    display: 'flex',
-    gap: '4px',
-    flex: 1,
-  },
-  strengthBar: {
-    flex: 1,
-    height: '4px',
-    borderRadius: '999px',
-    transition: 'background-color 0.2s',
-  },
-  strengthLabel: {
-    fontSize: '11px',
-    fontWeight: '700',
-    minWidth: '44px',
-    textAlign: 'right',
+    gap: '8px',
+    fontSize: '12px',
+    lineHeight: 1.5,
   },
   genderGroup: {
     display: 'grid',
