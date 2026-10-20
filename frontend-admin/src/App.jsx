@@ -8,7 +8,6 @@ import './styles/global.css';
 const Login = lazy(() => import('./pages/Login'));
 const Dashboard = lazy(() => import('./pages/Dashboard'));
 const Users = lazy(() => import('./pages/Users'));
-const Pending = lazy(() => import('./pages/Pending'));
 const Operations = lazy(() => import('./pages/Operations'));
 const ActivityLogs = lazy(() => import('./pages/ActivityLogs'));
 const NotFound = lazy(() => import('./pages/NotFound'));
@@ -49,7 +48,7 @@ export default function App() {
           >
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/users" element={<Users />} />
-            <Route path="/pending" element={<Pending />} />
+            <Route path="/pending" element={<Navigate to="/users" replace />} />
             <Route path="/operations" element={<Operations />} />
             <Route path="/activity-logs" element={<ActivityLogs />} />
           </Route>

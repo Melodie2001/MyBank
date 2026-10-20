@@ -25,7 +25,7 @@ export default function Users() {
     try {
       const result = await updateUserStatus(id, status);
       if (result.activationEmailSent === false) {
-        alert('The account is active, but the activation email could not be sent.');
+        alert('The account is active, but the welcome email could not be sent.');
       }
       setUsers(prev => prev.map(u => u.id === id ? { ...u, status } : u));
     } catch (err) {
@@ -152,12 +152,12 @@ export default function Users() {
               <span style={styles.actions}>
                 {user.status !== 'active' && (
                   <button style={styles.btnApprove} onClick={() => handleStatusChange(user.id, 'active')}>
-                    Approve
+                    Activate
                   </button>
                 )}
                 {user.status !== 'rejected' && (
                   <button style={styles.btnReject} onClick={() => handleStatusChange(user.id, 'rejected')}>
-                    Reject
+                    Disable
                   </button>
                 )}
                 <button

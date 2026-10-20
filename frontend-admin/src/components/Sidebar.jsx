@@ -48,7 +48,7 @@ const icons = {
   ),
 };
 
-export default function Sidebar({ pendingCount = 0 }) {
+export default function Sidebar() {
   const navigate = useNavigate();
   const { dark, toggleDark } = useTheme();
   const user = getUser();
@@ -93,17 +93,6 @@ export default function Sidebar({ pendingCount = 0 }) {
         >
           {icons.users}
           Users
-        </NavLink>
-
-        <NavLink
-          to="/pending"
-          style={({ isActive }) => ({ ...styles.link, ...(isActive ? styles.linkActive : {}) })}
-        >
-          {icons.pending}
-          Pending approvals
-          {pendingCount > 0 && (
-            <span style={styles.badge}>{pendingCount}</span>
-          )}
         </NavLink>
 
         <NavLink

@@ -16,6 +16,7 @@ final class AccountActivationMailerTest extends TestCase
     {
         $mailer = $this->createMock(MailerInterface::class);
         $mailer->expects(self::once())->method('send')->with(self::callback(static function (Email $email): bool {
+            self::assertSame('Bienvenue sur Nexo Finance', $email->getSubject());
             self::assertSame('sender@example.test', $email->getFrom()[0]->getAddress());
             self::assertSame('member@example.test', $email->getTo()[0]->getAddress());
             self::assertStringContainsString('https://app.example.test/login', $email->getTextBody());

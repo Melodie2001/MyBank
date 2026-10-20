@@ -85,7 +85,7 @@ export default function Register() {
     try {
       await register(email, password, firstName, lastName, phone || undefined, birthDate || undefined, gender || undefined);
       navigate('/login', {
-        state: { message: 'Account created! Wait for admin approval before signing in.' }
+        state: { message: 'Account created! You can now sign in.' }
       });
     } catch (err) {
       setError(err.response?.data?.message || 'Registration failed');

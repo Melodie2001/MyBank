@@ -187,7 +187,8 @@ final class UserController extends AbstractController
         EntityManagerInterface $em,
         UserPasswordHasherInterface $passwordHasher,
         UserRepository $userRepository,
-        ValidatorInterface $validator
+        ValidatorInterface $validator,
+        AccountActivationMailer $activationMailer
     ): JsonResponse {
         $data = \App\Http\JsonInput::read($request);
 
@@ -210,7 +211,7 @@ final class UserController extends AbstractController
 
         $user = new User();
         $user->setEmail($dto->email);
-        $user->setStatus('pending');
+        $user->setStatus('active');
 
         if ($dto->firstName) {
             $user->setFirstName($dto->firstName);
@@ -246,7 +247,8 @@ final class UserController extends AbstractController
         $em->flush();
 
         return $this->json([
-            'message' => 'User created — waiting for admin approval',
+            'message' => 'User created — you can now sign in',
+            'welcomeEmailSent' => $activationMailer->send($user),
             'user' => $this->formatUser($user)
         ], 201);
     }

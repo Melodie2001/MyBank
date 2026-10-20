@@ -39,7 +39,7 @@ export default function Dashboard() {
     .reduce((sum, op) => sum + Number(op.amount), 0);
 
   const activeUsers = users.filter(u => u.status === 'active').length;
-  const pendingUsers = users.filter(u => u.status === 'pending').length;
+  const disabledUsers = users.filter(u => u.status !== 'active').length;
   const rejectedUsers = users.filter(u => u.status === 'rejected').length;
 
   const adminCount = users.filter(u => u.roles.includes('ROLE_ADMIN')).length;
@@ -93,11 +93,11 @@ export default function Dashboard() {
           <div style={{ ...styles.kpiValue, color: '#16A34A' }}>{activeUsers}</div>
         </div>
         <div style={{ ...styles.kpiCard, borderTop: '3px solid #D97706' }}>
-          <div style={styles.kpiLabel}>Pending users</div>
-          <div style={{ ...styles.kpiValue, color: '#D97706' }}>{pendingUsers}</div>
+          <div style={styles.kpiLabel}>Disabled users</div>
+          <div style={{ ...styles.kpiValue, color: '#D97706' }}>{disabledUsers}</div>
         </div>
         <div style={{ ...styles.kpiCard, borderTop: '3px solid #DC2626' }}>
-          <div style={styles.kpiLabel}>Rejected users</div>
+          <div style={styles.kpiLabel}>Blocked users</div>
           <div style={{ ...styles.kpiValue, color: '#DC2626' }}>{rejectedUsers}</div>
         </div>
       </div>

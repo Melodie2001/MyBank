@@ -26,7 +26,7 @@ const LogoIcon = () => (
 const OAUTH_ERRORS = {
   google_auth_failed: 'Google sign-in failed. Please try again.',
   google_email_unverified: 'Your Google account e-mail is not verified. Verify it with Google and try again.',
-  account_pending: 'Your account is waiting for admin approval.',
+  account_pending: 'Your account is currently disabled. Please contact support.',
 };
 
 export default function Login() {

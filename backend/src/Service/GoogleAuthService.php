@@ -12,6 +12,7 @@ class GoogleAuthService
     public function __construct(
         private readonly EntityManagerInterface $em,
         private readonly UserRepository $userRepository,
+        private readonly AccountActivationMailer $activationMailer,
     ) {}
 
     public function findOrCreateUser(GoogleUser $googleUser): User
@@ -37,12 +38,13 @@ class GoogleAuthService
         $user->setGoogleId($googleUser->getId());
         $user->setFirstName($googleUser->getFirstName());
         $user->setLastName($googleUser->getLastName());
-        $user->setStatus('pending');
+        $user->setStatus('active');
         $user->setRoles(['ROLE_USER']);
         $user->setPassword(null);
 
         $this->em->persist($user);
         $this->em->flush();
+        $this->activationMailer->send($user);
 
         return $user;
     }

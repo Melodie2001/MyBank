@@ -9,7 +9,7 @@ class UserTest extends TestCase
     public function testUserStatusDefault(): void
     {
         $user = new \App\Entity\User();
-        $this->assertEquals('pending', $user->getStatus());
+        $this->assertEquals('active', $user->getStatus());
     }
 
     public function testUserRolesDefault(): void

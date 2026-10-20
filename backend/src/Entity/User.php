@@ -48,7 +48,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     private ?string $lastName = null;
 
     #[ORM\Column(length: 20)]
-    private string $status = 'pending';
+    private string $status = 'active';
 
     #[ORM\Column(length: 20, nullable: true)]
     private ?string $phone = null;

@@ -23,9 +23,9 @@ final class AccountActivationMailer
         $email = (new Email())
             ->from($this->mailerFrom)
             ->to($user->getEmail())
-            ->subject('Votre compte Nexo Finance a été validé')
-            ->text("Bonjour,\n\nVotre compte Nexo Finance a été validé par un administrateur.\nVous pouvez maintenant vous connecter avec votre adresse e-mail et le mot de passe choisi lors de votre inscription :\n\n".$loginUrl."\n\nL’équipe Nexo Finance")
-            ->html('<p>Bonjour,</p><p>Votre compte Nexo Finance a été validé par un administrateur.</p><p>Vous pouvez maintenant vous connecter avec votre adresse e-mail et le mot de passe choisi lors de votre inscription.</p><p><a href="'.htmlspecialchars($loginUrl, ENT_QUOTES).'">Se connecter à Nexo Finance</a></p><p>L’équipe Nexo Finance</p>');
+            ->subject('Bienvenue sur Nexo Finance')
+            ->text("Bonjour,\n\nBienvenue sur Nexo Finance ! Votre compte est prêt à être utilisé.\nVous pouvez maintenant vous connecter avec la méthode de connexion choisie lors de votre inscription :\n\n".$loginUrl."\n\nL’équipe Nexo Finance")
+            ->html('<p>Bonjour,</p><p>Bienvenue sur Nexo Finance ! Votre compte est prêt à être utilisé.</p><p>Vous pouvez maintenant vous connecter avec la méthode de connexion choisie lors de votre inscription.</p><p><a href="'.htmlspecialchars($loginUrl, ENT_QUOTES).'">Se connecter à Nexo Finance</a></p><p>L’équipe Nexo Finance</p>');
 
         try {
             $this->mailer->send($email);

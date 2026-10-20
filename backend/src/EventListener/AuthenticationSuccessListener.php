@@ -19,7 +19,7 @@ class AuthenticationSuccessListener
         if ($user->getStatus() === 'pending') {
             $event->setData([]);
             $response = new JsonResponse([
-                'message' => 'Your account is pending approval from an administrator'
+                'message' => 'Your account is currently disabled. Please contact support.'
             ], 403);
             $event->getResponse()->setStatusCode(403);
             $event->getResponse()->setContent($response->getContent());

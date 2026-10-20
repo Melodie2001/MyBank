@@ -154,8 +154,8 @@ export default function LandingPage() {
             <div className="timeline-content">
               <h3>Create your account</h3>
               <p>
-                Sign up in seconds with your email. Your account is reviewed
-                and activated quickly so you can get started fast.
+                Sign up in seconds with your email. Your account is ready
+                immediately so you can get started right away.
               </p>
             </div>
           </div>

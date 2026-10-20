@@ -40,9 +40,12 @@ class ApiIntegrationTest extends WebTestCase
         $response = json_decode($this->client->getResponse()->getContent(), true);
 
         $this->assertResponseStatusCodeSame(201);
-        $this->assertEquals('User created — waiting for admin approval', $response['message']);
+        $this->assertEquals('User created — you can now sign in', $response['message']);
         $this->assertEquals($email, $response['user']['email']);
-        $this->assertEquals('pending', $response['user']['status']);
+        $this->assertEquals('active', $response['user']['status']);
+        $this->assertEquals(['ROLE_USER'], $response['user']['roles']);
+        $this->client->request('POST', '/api/login', [], [], ['CONTENT_TYPE' => 'application/json'], json_encode(['email' => $email, 'password' => 'Password123!']));
+        $this->assertResponseIsSuccessful();
         static::getContainer()->get(EntityManagerInterface::class)->getConnection()->delete('user', ['email'=>$email]);
     }
 
