@@ -1,3 +1,4 @@
+import Icon from '../components/Icon';
 import { useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { resetPassword } from '../services/authService';
@@ -107,7 +108,7 @@ export default function ResetPassword() {
                 onClick={() => setShowPassword(!showPassword)}
                 style={styles.eyeBtn}
               >
-                {showPassword ? '🙈' : '👁️'}
+                <Icon name={showPassword ? 'eyeOff' : 'eye'} />
               </button>
             </div>
           </div>

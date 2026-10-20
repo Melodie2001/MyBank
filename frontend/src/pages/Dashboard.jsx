@@ -1,3 +1,5 @@
+import Icon from '../components/Icon';
+import CategoryIcon from '../components/CategoryIcon';
 import { useState, useEffect } from 'react';
 import LoadError from '../components/LoadError';
 import { Link } from 'react-router-dom';
@@ -12,26 +14,6 @@ import { useTheme } from '../context/useTheme';
 import { useIsMobile } from '../hooks/useIsMobile';
 
 const CHART_COLORS = ['#2563EB', '#16A34A', '#D97706', '#DC2626', '#7C3AED', '#0EA5E9'];
-
-function getCategoryEmoji(categoryName) {
-  const n = (categoryName || '').toLowerCase();
-  if (n.includes('work') || n.includes('salary') || n.includes('emploi')) return '💼';
-  if (n.includes('food') || n.includes('eat') || n.includes('nourriture') || n.includes('repas')) return '🍔';
-  if (n.includes('coffee') || n.includes('café') || n.includes('cafe')) return '☕';
-  if (n.includes('shop') || n.includes('achat') || n.includes('cloth') || n.includes('mode')) return '🛍️';
-  if (n.includes('travel') || n.includes('voyage') || n.includes('vacation') || n.includes('trip')) return '✈️';
-  if (n.includes('transport') || n.includes('voiture') || n.includes('car') || n.includes('taxi')) return '🚗';
-  if (n.includes('health') || n.includes('santé') || n.includes('doctor') || n.includes('médecin')) return '💊';
-  if (n.includes('sport') || n.includes('gym') || n.includes('fitness')) return '🏃';
-  if (n.includes('entertain') || n.includes('cinema') || n.includes('film') || n.includes('movie')) return '🎬';
-  if (n.includes('home') || n.includes('loyer') || n.includes('rent') || n.includes('maison')) return '🏠';
-  if (n.includes('education') || n.includes('school') || n.includes('livre') || n.includes('book')) return '📚';
-  if (n.includes('tech') || n.includes('computer') || n.includes('phone') || n.includes('ordi')) return '💻';
-  if (n.includes('sub') || n.includes('abonn') || n.includes('netflix') || n.includes('spotify')) return '📱';
-  if (n.includes('income') || n.includes('revenu') || n.includes('salaire')) return '💰';
-  if (n.includes('transfer') || n.includes('virement')) return '💸';
-  return '💳';
-}
 
 export default function Dashboard() {
   const { dark } = useTheme();
@@ -126,7 +108,7 @@ export default function Dashboard() {
     <div>
       <div style={styles.header}>
         <div>
-          <h1 style={styles.title}>Good morning 👋</h1>
+          <h1 style={styles.title}>Good morning</h1>
           <p style={styles.subtitle}>Here's what's happening with your account today.</p>
         </div>
         <Link to="/operations" state={{ openModal: true }}>
@@ -139,7 +121,7 @@ export default function Dashboard() {
         <div style={styles.statCard}>
           <div style={styles.statTop}>
             <span style={styles.statLabel}>Total Balance</span>
-            <div style={{ ...styles.statIcon, backgroundColor: 'var(--color-bg-soft)', color: '#2563EB' }}>👛</div>
+            <div style={{ ...styles.statIcon, backgroundColor: 'var(--color-bg-soft)', color: '#2563EB' }}><Icon name="wallet" /></div>
           </div>
           <div style={styles.statValue}>
             {Number(data?.balance || 0).toFixed(2)} €
@@ -149,7 +131,7 @@ export default function Dashboard() {
         <div style={styles.statCard}>
           <div style={styles.statTop}>
             <span style={styles.statLabel}>Total Income</span>
-            <div style={{ ...styles.statIcon, backgroundColor: '#ECFDF5', color: '#16A34A' }}>⬇</div>
+            <div style={{ ...styles.statIcon, backgroundColor: '#ECFDF5', color: '#16A34A' }}><Icon name="down" /></div>
           </div>
           <div style={{ ...styles.statValue, color: '#16A34A' }}>
             {Number(data?.income || 0).toFixed(2)} €
@@ -165,7 +147,7 @@ export default function Dashboard() {
         <div style={styles.statCard}>
           <div style={styles.statTop}>
             <span style={styles.statLabel}>Total Expenses</span>
-            <div style={{ ...styles.statIcon, backgroundColor: '#FEF2F2', color: '#DC2626' }}>⬆</div>
+            <div style={{ ...styles.statIcon, backgroundColor: '#FEF2F2', color: '#DC2626' }}><Icon name="up" /></div>
           </div>
           <div style={{ ...styles.statValue, color: '#DC2626' }}>
             {Number(data?.expenses || 0).toFixed(2)} €
@@ -236,7 +218,7 @@ export default function Dashboard() {
                     ...styles.opIcon,
                     backgroundColor: op.category.color + '22',
                   }}>
-                    {getCategoryEmoji(op.category.name)}
+                    <CategoryIcon category={op.category} size={20} />
                   </div>
                   {/* Label + category subtitle */}
                   <div style={styles.opInfo}>

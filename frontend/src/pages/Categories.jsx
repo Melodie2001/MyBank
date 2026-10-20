@@ -1,3 +1,5 @@
+import Icon from '../components/Icon';
+import CategoryIcon from '../components/CategoryIcon';
 import { useState, useEffect } from 'react';
 import LoadError from '../components/LoadError';
 import { getCategories, getMyCategories, addToMyCategories, removeFromMyCategories } from '../services/categoryService';
@@ -5,13 +7,6 @@ import { getOperations } from '../services/operationService';
 import { getBudgets, createBudget, updateBudget } from '../services/budgetService';
 import { useIsMobile } from '../hooks/useIsMobile';
 
-const ICONS = {
-  'house.png': '🏠', 'train.png': '🚆', 'healthcare.png': '❤️',
-  'books.png': '📚', 'plane.png': '✈️', 'dog.png': '🐾',
-  'briefcase.png': '💼', 'gamepad.png': '🎮', 'burger.png': '🍔',
-  'pills.png': '💊', 'entertainment.png': '🎬', 'cart.png': '🛒',
-  'transfer.png': '💸',
-};
 
 export default function Categories() {
   const isMobile = useIsMobile();
@@ -166,7 +161,7 @@ export default function Categories() {
                 {/* Top: icon + name/ops + dot */}
                 <div style={s.cardTop}>
                   <div style={{ ...s.iconBox, backgroundColor: cat.color + '22' }}>
-                    <span style={{ fontSize: '22px' }}>{ICONS[cat.icon] || '💰'}</span>
+                    <span style={{ fontSize: '22px' }}><CategoryIcon category={cat} /></span>
                   </div>
                   <div style={s.cardInfo}>
                     <span style={s.catName}>{cat.name}</span>
@@ -185,14 +180,14 @@ export default function Categories() {
                       {cat.monthlyCount} operation{cat.monthlyCount !== 1 ? 's' : ''} this month
                     </span>
                   </div>
-                  {isOver && <span style={s.overBadge}>⚠ Over budget</span>}
+                  {isOver && <span style={s.overBadge}><Icon name="alert" /> Over budget</span>}
                 </div>
 
                 {/* Budget — only for expense-capable categories */}
                 {(cat.hasExpenses || budget) && budget ? (
                   <div style={s.budgetBox}>
                     <div style={s.budgetHeader}>
-                      <span style={s.budgetLabel}>🎯 Monthly budget</span>
+                      <span style={s.budgetLabel}><Icon name="target" /> Monthly budget</span>
                       {!isEditing && (
                         <button
                           style={s.btnEdit}
@@ -319,7 +314,7 @@ function SelectCategoryModal({ categories, catalogEmpty, onClose, onAdd }) {
             {categories.map(cat => (
               <div key={cat.id} style={s.catOption} onClick={() => onAdd(cat.id)}>
                 <div style={{ ...s.iconBox, backgroundColor: cat.color + '22' }}>
-                  <span style={{ fontSize: '24px' }}>{ICONS[cat.icon] || '💰'}</span>
+                  <span style={{ fontSize: '24px' }}><CategoryIcon category={cat} /></span>
                 </div>
                 <span style={s.optionName}>{cat.name}</span>
                 <div style={{ ...s.dot, backgroundColor: cat.color }} />

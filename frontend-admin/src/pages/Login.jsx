@@ -1,3 +1,4 @@
+import Icon from '../components/Icon';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { login } from '../services/authService';
@@ -41,7 +42,7 @@ export default function Login() {
       </button>
 
       <div style={styles.container}>
-        <div style={styles.shield}>🛡️</div>
+        <div style={styles.shield}><Icon name="shield" /></div>
 
         <div style={styles.logoWrapper}>
           <div style={styles.logoIcon}>N</div>
@@ -58,7 +59,7 @@ export default function Login() {
           <div style={styles.field}>
             <label style={styles.label}>EMAIL ADDRESS</label>
             <div style={styles.inputWrapper}>
-              <span style={styles.inputIcon}>📧</span>
+              <span style={styles.inputIcon}><Icon name="mail" /></span>
               <input
                 type="email"
                 value={email}
@@ -73,7 +74,7 @@ export default function Login() {
           <div style={styles.field}>
             <label style={styles.label}>PASSWORD</label>
             <div style={styles.inputWrapper}>
-              <span style={styles.inputIcon}>🔑</span>
+              <span style={styles.inputIcon}><Icon name="key" /></span>
               <input
                 type={showPassword ? 'text' : 'password'}
                 value={password}
@@ -84,10 +85,10 @@ export default function Login() {
               />
               <button
                 type="button"
-                onClick={() => setShowPassword(!showPassword)}
+                onClick={() => setShowPassword(!showPassword)} aria-label={showPassword ? "Hide password" : "Show password"}
                 style={styles.eyeBtn}
               >
-                {showPassword ? '🙈' : '👁️'}
+                <Icon name={showPassword ? 'eyeOff' : 'eye'} />
               </button>
             </div>
           </div>

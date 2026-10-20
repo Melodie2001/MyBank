@@ -1,3 +1,4 @@
+import Icon from './Icon';
 function Section({ icon, title, children }) {
   return (
     <div style={s.section}>
@@ -48,13 +49,13 @@ export default function PrivacyPolicyModal({ isOpen, onClose }) {
           {/* Quick summary cards */}
           <div style={s.summaryGrid}>
             {[
-              { icon: '🔒', label: 'Passwords hashed', desc: 'Never stored in plain text' },
-              { icon: '🔑', label: 'JWT secured', desc: 'Sessions protected by signed tokens' },
-              { icon: '🚫', label: 'No third-party sharing', desc: 'Your data stays within Nexo Finance' },
-              { icon: '🗑️', label: 'Right to deletion', desc: 'Delete your account anytime' },
+              { icon: 'lock', label: 'Passwords hashed', desc: 'Never stored in plain text' },
+              { icon: 'key', label: 'JWT secured', desc: 'Sessions protected by signed tokens' },
+              { icon: 'ban', label: 'No third-party sharing', desc: 'Your data stays within Nexo Finance' },
+              { icon: 'trash', label: 'Right to deletion', desc: 'Delete your account anytime' },
             ].map(item => (
               <div key={item.label} style={s.summaryCard}>
-                <span style={s.summaryIcon}>{item.icon}</span>
+                <span style={s.summaryIcon}><Icon name={item.icon} size={22} /></span>
                 <div style={s.summaryLabel}>{item.label}</div>
                 <div style={s.summaryDesc}>{item.desc}</div>
               </div>
@@ -62,7 +63,7 @@ export default function PrivacyPolicyModal({ isOpen, onClose }) {
           </div>
 
           {/* Sections */}
-          <Section icon="📋" title="1. Data we collect">
+          <Section icon={<Icon name="clipboard" />} title="1. Data we collect">
             <p style={s.p}>
               When you create an account and use Nexo Finance, we collect the following personal data:
             </p>
@@ -80,7 +81,7 @@ export default function PrivacyPolicyModal({ isOpen, onClose }) {
             </div>
           </Section>
 
-          <Section icon="🎯" title="2. Why we collect this data">
+          <Section icon={<Icon name="target" />} title="2. Why we collect this data">
             <p style={s.p}>
               We only collect what is strictly necessary to provide the Nexo Finance service. Each piece of data serves a specific purpose:
             </p>
@@ -93,7 +94,7 @@ export default function PrivacyPolicyModal({ isOpen, onClose }) {
             <p style={s.p}>We do not use your data for advertising, profiling, or any purpose beyond operating the service.</p>
           </Section>
 
-          <Section icon="🛡️" title="3. How your data is protected">
+          <Section icon={<Icon name="shield" />} title="3. How your data is protected">
             <p style={s.p}>We take several technical measures to protect your data:</p>
             <ul style={s.list}>
               <li style={s.listItem}>
@@ -128,7 +129,7 @@ export default function PrivacyPolicyModal({ isOpen, onClose }) {
             </p>
           </Section>
 
-          <Section icon="🗑️" title="5. How to delete your account">
+          <Section icon={<Icon name="trash" />} title="5. How to delete your account">
             <p style={s.p}>
               You have the right to delete your account and all associated data at any time. When you delete your account:
             </p>
@@ -139,7 +140,7 @@ export default function PrivacyPolicyModal({ isOpen, onClose }) {
               <li style={s.listItem}>Your account credentials are permanently removed.</li>
             </ul>
             <div style={s.deleteTip}>
-              <span style={s.deleteTipIcon}>💡</span>
+              <span style={s.deleteTipIcon}><Icon name="info" /></span>
               <span>
                 To delete your account, go to <strong>Profile → Danger zone → Delete my account</strong>.
                 Deletion is immediate and irreversible — no recovery is possible after confirmation.
@@ -151,13 +152,13 @@ export default function PrivacyPolicyModal({ isOpen, onClose }) {
             </p>
           </Section>
 
-          <Section icon="📬" title="6. Contact">
+          <Section icon={<Icon name="mail" />} title="6. Contact">
             <p style={s.p}>
               For any questions about this privacy policy or how we handle your data, you can reach us at:
             </p>
             <div style={s.contactBox}>
-              <div style={s.contactRow}><span style={s.contactIcon}>📧</span> <a href="mailto:support@nexofinance.app" style={s.link}>support@nexofinance.app</a></div>
-              <div style={s.contactRow}><span style={s.contactIcon}>🌐</span> Nexo Finance — personal finance management platform</div>
+              <div style={s.contactRow}><span style={s.contactIcon}><Icon name="mail" /></span> <a href="mailto:support@nexofinance.app" style={s.link}>support@nexofinance.app</a></div>
+              <div style={s.contactRow}><span style={s.contactIcon}><Icon name="globe" /></span> Nexo Finance — personal finance management platform</div>
             </div>
           </Section>
 

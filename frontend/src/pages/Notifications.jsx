@@ -1,12 +1,13 @@
+import Icon from '../components/Icon';
 import { useState, useEffect } from 'react';
 import LoadError from '../components/LoadError';
 import { getNotifications, markAsRead, markAllAsRead, deleteNotification } from '../services/notificationService';
 
 const TYPE_CONFIG = {
-  operation_added:   { icon: '💰', color: '#2563EB', bg: 'rgba(37,99,235,0.1)' },
-  budget_warning:    { icon: '⚠️', color: '#D97706', bg: 'rgba(217,119,6,0.1)' },
-  budget_exceeded:   { icon: '🚨', color: '#DC2626', bg: 'rgba(220,38,38,0.1)' },
-  account_validated: { icon: '✅', color: '#16A34A', bg: 'rgba(22,163,74,0.1)' },
+  operation_added:   { icon: 'wallet', color: '#2563EB', bg: 'rgba(37,99,235,0.1)' },
+  budget_warning:    { icon: 'alert', color: '#D97706', bg: 'rgba(217,119,6,0.1)' },
+  budget_exceeded:   { icon: 'alert', color: '#DC2626', bg: 'rgba(220,38,38,0.1)' },
+  account_validated: { icon: 'check', color: '#16A34A', bg: 'rgba(22,163,74,0.1)' },
 };
 
 function relativeTime(dateStr) {
@@ -103,7 +104,7 @@ export default function Notifications() {
         </div>
         {unreadCount > 0 && (
           <button style={s.btnReadAll} onClick={handleReadAll}>
-            ✓ Mark all as read
+            <Icon name="check" size={16} /> Mark all as read
           </button>
         )}
       </div>
@@ -115,7 +116,7 @@ export default function Notifications() {
 
       {visibleNotifications.length === 0 ? (
         <div style={s.empty}>
-          <div style={s.emptyIcon}>🔔</div>
+          <div style={s.emptyIcon}><Icon name="bell" /></div>
           <div style={s.emptyTitle}>{showAll ? 'No notifications yet' : 'No unread notifications'}</div>
           <div style={s.emptyText}>{showAll ? 'Budget alerts and account events will appear here.' : 'You’re all caught up. Select All to view your history.'}</div>
         </div>
@@ -133,7 +134,7 @@ export default function Notifications() {
                     onClick={() => handleRead(n.id)}
                   >
                     <div style={{ ...s.iconBox, backgroundColor: cfg.bg }}>
-                      <span style={s.iconEmoji}>{cfg.icon}</span>
+                      <span style={s.iconSymbol}><Icon name={cfg.icon} size={22} style={{ color: cfg.color }} /></span>
                     </div>
 
                     <div style={s.content}>
@@ -212,7 +213,7 @@ const s = {
     width: '42px', height: '42px', borderRadius: '12px', flexShrink: 0,
     display: 'flex', alignItems: 'center', justifyContent: 'center',
   },
-  iconEmoji: { fontSize: '20px', lineHeight: 1 },
+  iconSymbol: { fontSize: '20px', lineHeight: 1 },
   content: { flex: 1, minWidth: 0 },
   cardHeader: {
     display: 'flex', justifyContent: 'space-between', alignItems: 'center',

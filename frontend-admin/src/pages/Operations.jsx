@@ -1,3 +1,4 @@
+import Icon from '../components/Icon';
 import { useState, useEffect } from 'react';
 import { getAllOperations } from '../services/adminService';
 
@@ -80,7 +81,7 @@ export default function Operations() {
             ))}
           </div>
           <div style={styles.searchBar}>
-            <span>🔍</span>
+            <span><Icon name="search" /></span>
             <input
               type="text"
               placeholder="Search by label or user email..."

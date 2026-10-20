@@ -58,7 +58,7 @@ export default function ForgotPassword() {
 
         {submitted ? (
           <>
-            <h2 style={styles.title}>Check your inbox 📬</h2>
+            <h2 style={styles.title}>Check your inbox</h2>
             <p style={styles.subtitle}>
               If an account exists for <strong>{email}</strong>, we've sent a link to reset your password.
               The link is valid for 1 hour.

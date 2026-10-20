@@ -1,12 +1,13 @@
+import Icon from '../components/Icon';
 import { useState, useEffect } from 'react';
 import { getActivityLogs } from '../services/adminService';
 
 const ACTION_CONFIG = {
-  login:              { label: 'Login',             color: '#2563EB', bg: 'rgba(37,99,235,0.1)',   icon: '🔐' },
-  operation_created:  { label: 'Operation created', color: '#16A34A', bg: 'rgba(22,163,74,0.1)',   icon: '➕' },
-  operation_updated:  { label: 'Operation updated', color: '#D97706', bg: 'rgba(217,119,6,0.1)',   icon: '✏️' },
-  operation_deleted:  { label: 'Operation deleted', color: '#DC2626', bg: 'rgba(220,38,38,0.1)',   icon: '🗑️' },
-  profile_updated:    { label: 'Profile updated',   color: '#7C3AED', bg: 'rgba(124,58,237,0.1)', icon: '👤' },
+  login:              { label: 'Login',             color: '#2563EB', bg: 'rgba(37,99,235,0.1)',   icon: 'key' },
+  operation_created:  { label: 'Operation created', color: '#16A34A', bg: 'rgba(22,163,74,0.1)',   icon: 'plus' },
+  operation_updated:  { label: 'Operation updated', color: '#D97706', bg: 'rgba(217,119,6,0.1)',   icon: 'edit' },
+  operation_deleted:  { label: 'Operation deleted', color: '#DC2626', bg: 'rgba(220,38,38,0.1)',   icon: 'trash' },
+  profile_updated:    { label: 'Profile updated',   color: '#7C3AED', bg: 'rgba(124,58,237,0.1)', icon: 'user' },
 };
 
 function relativeTime(dateStr) {
@@ -76,7 +77,7 @@ export default function ActivityLogs() {
           const cfg = ACTION_CONFIG[t];
           return (
             <div key={t} style={{ ...s.statCard, borderTop: `3px solid ${cfg.color}` }}>
-              <div style={s.statIcon}>{cfg.icon}</div>
+              <div style={s.statIcon}><Icon name={cfg.icon} /></div>
               <div style={s.statCount}>{counts[t] ?? 0}</div>
               <div style={s.statLabel}>{cfg.label}</div>
             </div>
@@ -88,7 +89,7 @@ export default function ActivityLogs() {
       <div style={s.toolbar}>
         <input
           type="text"
-          placeholder="🔍  Search by email..."
+          placeholder="Search by email..."
           value={search}
           onChange={e => setSearch(e.target.value)}
           style={s.searchInput}
@@ -128,7 +129,7 @@ export default function ActivityLogs() {
                 </div>
                 <div>
                   <span style={{ ...s.badge, backgroundColor: cfg.bg, color: cfg.color }}>
-                    {cfg.icon} {cfg.label}
+                    <Icon name={cfg.icon} /> {cfg.label}
                   </span>
                 </div>
                 <div style={s.details}>

@@ -21,7 +21,7 @@ describe('monthly budget preview', () => {
     fireEvent.change(screen.getByLabelText('AMOUNT €'), { target: { value: '40' } });
     expect(await screen.findByText('70.00 € + 40.00 € = 110.00 € after saving')).toBeInTheDocument();
     expect(screen.getByText('110% of 100.00 €')).toBeInTheDocument();
-    expect(screen.getByText('⚠️ Over budget by 10.00 €')).toBeInTheDocument();
+    expect(screen.getByText('Over budget by 10.00 €')).toBeInTheDocument();
     expect(getBudgets).toHaveBeenCalledWith('2026-01');
   });
 
@@ -74,7 +74,7 @@ describe('monthly budget preview', () => {
     getBudgets.mockResolvedValue([budget(1, 100)]);
     updateOperation.mockResolvedValue({});
     show();
-    await screen.findByText('⚠️ Budget reached');
+    await screen.findByText('Budget reached');
     fireEvent.click(screen.getByRole('button', { name: 'Edit budget' }));
     fireEvent.change(screen.getByPlaceholderText('e.g. 300'), { target: { value: '200' } });
     expect(screen.getByText('50% of 200.00 €')).toBeInTheDocument();

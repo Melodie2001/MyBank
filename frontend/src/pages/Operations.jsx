@@ -1,3 +1,4 @@
+import Icon from '../components/Icon';
 import { useState, useEffect } from 'react';
 import LoadError from '../components/LoadError';
 import { useLocation } from 'react-router-dom';
@@ -103,7 +104,7 @@ export default function Operations() {
             ))}
           </div>
           <div style={styles.searchBar}>
-            <span>🔍</span>
+            <span><Icon name="search" /></span>
             <input
               type="text"
               placeholder="Search operations"
@@ -300,7 +301,7 @@ export function OperationModal({ categories, operation, onClose, onSaved }) {
             <div style={styles.budgetSection}>
               <div style={styles.budgetSectionHeader}>
                 <span style={styles.budgetSectionTitle}>
-                  🎯 Budget — {selectedCategory?.name} · {selectedMonth}
+                  Budget — {selectedCategory?.name} · {selectedMonth}
                 </span>
                 {linkedBudget && !editingLimit && !(amountNum > 0 && (isOver || newPct >= 80)) && (
                   <button type="button" style={styles.btnEditLimit} onClick={() => { setEditingLimit(true); setNewBudgetLimit(String(linkedBudget.monthly_limit)); }}>
@@ -327,7 +328,7 @@ export function OperationModal({ categories, operation, onClose, onSaved }) {
                       </div>
                       {isOver && (
                         <div style={{ ...styles.budgetWarning, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
-                          <span>{impact.remaining === 0 ? '⚠️ Budget reached' : `⚠️ Over budget by ${(-impact.remaining).toFixed(2)} €`}</span>
+                          <span>{impact.remaining === 0 ? 'Budget reached' : `Over budget by ${(-impact.remaining).toFixed(2)} €`}</span>
                           {!editingLimit && (
                             <button type="button" style={styles.btnEditBudget} onClick={() => { setEditingLimit(true); setNewBudgetLimit(String(linkedBudget.monthly_limit)); }}>
                               Edit budget
@@ -337,7 +338,7 @@ export function OperationModal({ categories, operation, onClose, onSaved }) {
                       )}
                       {!isOver && newPct >= 80 && (
                         <div style={{ ...styles.budgetCaution, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
-                          <span>⚠️ Only {impact.remaining.toFixed(2)} € will remain</span>
+                          <span><Icon name="alert" /> Only {impact.remaining.toFixed(2)} € will remain</span>
                           {!editingLimit && (
                             <button type="button" style={styles.btnEditBudget} onClick={() => { setEditingLimit(true); setNewBudgetLimit(String(linkedBudget.monthly_limit)); }}>
                               Edit budget

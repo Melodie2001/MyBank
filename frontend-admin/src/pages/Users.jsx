@@ -1,3 +1,4 @@
+import Icon from '../components/Icon';
 import { useState, useEffect } from 'react';
 import { getUsers, updateUserStatus, updateUserRole, deleteUser } from '../services/adminService';
 
@@ -91,7 +92,7 @@ export default function Users() {
             ))}
           </div>
           <div style={styles.searchBar}>
-            <span>🔍</span>
+            <span><Icon name="search" /></span>
             <input
               type="text"
               placeholder="Search by name or email..."

@@ -1,3 +1,4 @@
+import Icon from '../components/Icon';
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { register } from '../services/authService';
@@ -157,7 +158,7 @@ export default function Register() {
         {/* Right panel */}
         <div style={{ ...styles.right, ...(isMobile ? { padding: '40px 24px', flex: 1 } : {}) }}>
           <div style={styles.rightInner}>
-            <h2 style={styles.rightTitle}>Create an account ✨</h2>
+            <h2 style={styles.rightTitle}>Create an account</h2>
             <p style={styles.rightSubtitle}>Join Nexo Finance and take control of your budget</p>
 
             {error && <div style={styles.error}>{error}</div>}
@@ -167,7 +168,7 @@ export default function Register() {
                 <div style={styles.field}>
                   <label style={styles.label}>FIRST NAME</label>
                   <div style={styles.inputWrapper}>
-                    <span style={styles.inputIcon}>👤</span>
+                    <span style={styles.inputIcon}><Icon name="user" /></span>
                     <input
                       type="text"
                       value={firstName}
@@ -181,7 +182,7 @@ export default function Register() {
                 <div style={styles.field}>
                   <label style={styles.label}>LAST NAME</label>
                   <div style={styles.inputWrapper}>
-                    <span style={styles.inputIcon}>👤</span>
+                    <span style={styles.inputIcon}><Icon name="user" /></span>
                     <input
                       type="text"
                       value={lastName}
@@ -197,7 +198,7 @@ export default function Register() {
               <div style={styles.field}>
                 <label style={styles.label}>EMAIL ADDRESS</label>
                 <div style={styles.inputWrapper}>
-                  <span style={styles.inputIcon}>📧</span>
+                  <span style={styles.inputIcon}><Icon name="mail" /></span>
                   <input
                     type="email"
                     value={email}
@@ -213,7 +214,7 @@ export default function Register() {
                 <div style={styles.field}>
                   <label style={styles.label}>PHONE NUMBER</label>
                   <div style={styles.inputWrapper}>
-                    <span style={styles.inputIcon}>📱</span>
+                    <span style={styles.inputIcon}><Icon name="phone" /></span>
                     <input
                       type="tel"
                       value={phone}
@@ -226,7 +227,7 @@ export default function Register() {
                 <div style={styles.field}>
                   <label style={styles.label}>DATE OF BIRTH</label>
                   <div style={styles.inputWrapper}>
-                    <span style={styles.inputIcon}>🎂</span>
+                    <span style={styles.inputIcon}><Icon name="calendar" /></span>
                     <input
                       type="date"
                       value={birthDate}
@@ -242,10 +243,10 @@ export default function Register() {
                 <label style={styles.label}>GENDER</label>
                 <div style={styles.genderGroup}>
                   {[
-                    { value: 'male', label: 'Male', emoji: '👨' },
-                    { value: 'female', label: 'Female', emoji: '👩' },
-                    { value: 'non-binary', label: 'Non-binary', emoji: '🧑' },
-                    { value: 'prefer_not_to_say', label: 'Prefer not to say', emoji: '🤐' },
+                    { value: 'male', label: 'Male' },
+                    { value: 'female', label: 'Female' },
+                    { value: 'non-binary', label: 'Non-binary' },
+                    { value: 'prefer_not_to_say', label: 'Prefer not to say' },
                   ].map(opt => (
                     <button
                       key={opt.value}
@@ -256,7 +257,7 @@ export default function Register() {
                         ...(gender === opt.value ? styles.genderBtnActive : {}),
                       }}
                     >
-                      <span>{opt.emoji}</span>
+
                       <span>{opt.label}</span>
                     </button>
                   ))}
@@ -266,7 +267,7 @@ export default function Register() {
               <div style={styles.field}>
                 <label style={styles.label}>PASSWORD</label>
                 <div style={styles.inputWrapper}>
-                  <span style={styles.inputIcon}>🔑</span>
+                  <span style={styles.inputIcon}><Icon name="key" /></span>
                   <input
                     type={showPassword ? 'text' : 'password'}
                     value={password}
@@ -275,8 +276,8 @@ export default function Register() {
                     placeholder="Min. 8 characters"
                     required
                   />
-                  <button type="button" onClick={() => setShowPassword(!showPassword)} style={styles.eyeBtn}>
-                    {showPassword ? '🙈' : '👁️'}
+                  <button type="button" onClick={() => setShowPassword(!showPassword)} aria-label={showPassword ? "Hide password" : "Show password"} style={styles.eyeBtn}>
+                    <Icon name={showPassword ? 'eyeOff' : 'eye'} />
                   </button>
                 </div>
               </div>
@@ -300,7 +301,7 @@ export default function Register() {
               <div style={styles.field}>
                 <label style={styles.label}>CONFIRM PASSWORD</label>
                 <div style={styles.inputWrapper}>
-                  <span style={styles.inputIcon}>🔒</span>
+                  <span style={styles.inputIcon}><Icon name="lock" /></span>
                   <input
                     type={showConfirm ? 'text' : 'password'}
                     value={confirmPassword}
@@ -309,8 +310,8 @@ export default function Register() {
                     placeholder="Repeat your password"
                     required
                   />
-                  <button type="button" onClick={() => setShowConfirm(!showConfirm)} style={styles.eyeBtn}>
-                    {showConfirm ? '🙈' : '👁️'}
+                  <button type="button" onClick={() => setShowConfirm(!showConfirm)} aria-label={showConfirm ? "Hide password" : "Show password"} style={styles.eyeBtn}>
+                    <Icon name={showConfirm ? 'eyeOff' : 'eye'} />
                   </button>
                 </div>
               </div>

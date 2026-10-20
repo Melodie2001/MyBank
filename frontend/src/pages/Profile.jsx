@@ -1,3 +1,4 @@
+import Icon from '../components/Icon';
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useIsMobile } from '../hooks/useIsMobile';
@@ -5,10 +6,10 @@ import { getMe, updateMe, updatePassword, deleteMe } from '../services/userServi
 import { logout } from '../services/authService';
 
 const GENDER_LABELS = {
-  male: { label: 'Male', emoji: '👨' },
-  female: { label: 'Female', emoji: '👩' },
-  'non-binary': { label: 'Non-binary', emoji: '🧑' },
-  prefer_not_to_say: { label: 'Prefer not to say', emoji: '🤐' },
+  male: { label: 'Male' },
+  female: { label: 'Female' },
+  'non-binary': { label: 'Non-binary' },
+  prefer_not_to_say: { label: 'Prefer not to say' },
 };
 
 function formatBirthDate(dateStr) {
@@ -173,13 +174,13 @@ export default function Profile() {
           <div style={styles.fullName}>{fullName}</div>
           <div style={styles.emailText}>{user?.email}</div>
           <div style={styles.roleBadge}>
-            {user?.roles?.includes('ROLE_ADMIN') ? '🛡️ Administrator' : '👤 Account holder'}
+            {user?.roles?.includes('ROLE_ADMIN') ? 'Administrator' : 'Account holder'}
           </div>
 
           <div style={styles.infoList}>
             {user?.phone && (
               <div style={styles.infoRow}>
-                <span style={styles.infoIcon}>📱</span>
+                <span style={styles.infoIcon}><Icon name="phone" /></span>
                 <div>
                   <div style={styles.infoLabel}>Phone</div>
                   <div style={styles.infoValue}>{user.phone}</div>
@@ -188,7 +189,7 @@ export default function Profile() {
             )}
             {user?.birthDate && (
               <div style={styles.infoRow}>
-                <span style={styles.infoIcon}>🎂</span>
+                <span style={styles.infoIcon}><Icon name="calendar" /></span>
                 <div>
                   <div style={styles.infoLabel}>Date of birth</div>
                   <div style={styles.infoValue}>
@@ -200,7 +201,7 @@ export default function Profile() {
             )}
             {genderInfo && (
               <div style={styles.infoRow}>
-                <span style={styles.infoIcon}>{genderInfo.emoji}</span>
+                <span style={styles.infoIcon}><Icon name="user" /></span>
                 <div>
                   <div style={styles.infoLabel}>Gender</div>
                   <div style={styles.infoValue}>{genderInfo.label}</div>
@@ -289,10 +290,10 @@ export default function Profile() {
                 <label style={styles.label}>GENDER</label>
                 <div style={styles.genderGroup}>
                   {[
-                    { value: 'male', label: 'Male', emoji: '👨' },
-                    { value: 'female', label: 'Female', emoji: '👩' },
-                    { value: 'non-binary', label: 'Non-binary', emoji: '🧑' },
-                    { value: 'prefer_not_to_say', label: 'Prefer not to say', emoji: '🤐' },
+                    { value: 'male', label: 'Male' },
+                    { value: 'female', label: 'Female' },
+                    { value: 'non-binary', label: 'Non-binary' },
+                    { value: 'prefer_not_to_say', label: 'Prefer not to say' },
                   ].map(opt => (
                     <button
                       key={opt.value}
@@ -303,7 +304,7 @@ export default function Profile() {
                         ...(gender === opt.value ? styles.genderBtnActive : {}),
                       }}
                     >
-                      <span>{opt.emoji}</span>
+
                       <span>{opt.label}</span>
                     </button>
                   ))}
@@ -337,8 +338,8 @@ export default function Profile() {
                     placeholder="••••••••"
                     required
                   />
-                  <button type="button" onClick={() => setShowCurrent(!showCurrent)} style={styles.eyeBtn}>
-                    {showCurrent ? '🙈' : '👁️'}
+                  <button type="button" onClick={() => setShowCurrent(!showCurrent)} aria-label={showCurrent ? "Hide password" : "Show password"} style={styles.eyeBtn}>
+                    <Icon name={showCurrent ? 'eyeOff' : 'eye'} />
                   </button>
                 </div>
               </div>
@@ -355,8 +356,8 @@ export default function Profile() {
                       placeholder="Min. 6 characters"
                       required
                     />
-                    <button type="button" onClick={() => setShowNew(!showNew)} style={styles.eyeBtn}>
-                      {showNew ? '🙈' : '👁️'}
+                    <button type="button" onClick={() => setShowNew(!showNew)} aria-label={showNew ? "Hide password" : "Show password"} style={styles.eyeBtn}>
+                      <Icon name={showNew ? 'eyeOff' : 'eye'} />
                     </button>
                   </div>
                 </div>
@@ -403,7 +404,7 @@ export default function Profile() {
       {showDeleteModal && (
         <div style={styles.overlay}>
           <div style={{ ...styles.deleteModal, ...(isMobile ? { padding: '24px 16px', maxHeight: '90vh', overflowY: 'auto', margin: '0 16px' } : {}) }}>
-            <div style={styles.deleteModalIcon}>⚠️</div>
+            <div style={styles.deleteModalIcon}><Icon name="alert" /></div>
             <h2 style={styles.deleteModalTitle}>Delete your account?</h2>
             <p style={styles.deleteModalText}>
               This will permanently delete your account and all associated data:

@@ -1,3 +1,4 @@
+import Icon from '../components/Icon';
 import { useState } from 'react';
 import { Link, useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { login } from '../services/authService';
@@ -94,15 +95,15 @@ export default function Login() {
 
           <div style={styles.features}>
             <div style={styles.feature}>
-              <span style={styles.featureIcon}>📊</span>
+              <span style={styles.featureIcon}><Icon name="dashboard" /></span>
               Visualize all your expenses at a glance
             </div>
             <div style={styles.feature}>
-              <span style={styles.featureIcon}>🏷️</span>
+              <span style={styles.featureIcon}><Icon name="tag" /></span>
               Organize by categories you define
             </div>
             <div style={styles.feature}>
-              <span style={styles.featureIcon}>🔒</span>
+              <span style={styles.featureIcon}><Icon name="lock" /></span>
               Secure and private — your data stays yours
             </div>
           </div>
@@ -111,7 +112,7 @@ export default function Login() {
         {/* Right panel */}
         <div style={{ ...styles.right, ...(isMobile ? { padding: '40px 24px', flex: 1 } : {}) }}>
           <div style={styles.rightInner}>
-            <h2 style={styles.rightTitle}>Welcome back 👋</h2>
+            <h2 style={styles.rightTitle}>Welcome back</h2>
             <p style={styles.rightSubtitle}>Sign in to manage your expenses</p>
 
             {successMessage && (
@@ -123,7 +124,7 @@ export default function Login() {
               <div style={styles.field}>
                 <label style={styles.label}>EMAIL ADDRESS</label>
                 <div style={styles.inputWrapper}>
-                  <span style={styles.inputIcon}>📧</span>
+                  <span style={styles.inputIcon}><Icon name="mail" /></span>
                   <input
                     type="email"
                     value={email}
@@ -138,7 +139,7 @@ export default function Login() {
               <div style={styles.field}>
                 <label style={styles.label}>PASSWORD</label>
                 <div style={styles.inputWrapper}>
-                  <span style={styles.inputIcon}>🔑</span>
+                  <span style={styles.inputIcon}><Icon name="key" /></span>
                   <input
                     type={showPassword ? 'text' : 'password'}
                     value={password}
@@ -149,10 +150,10 @@ export default function Login() {
                   />
                   <button
                     type="button"
-                    onClick={() => setShowPassword(!showPassword)}
+                    onClick={() => setShowPassword(!showPassword)} aria-label={showPassword ? "Hide password" : "Show password"}
                     style={styles.eyeBtn}
                   >
-                    {showPassword ? '🙈' : '👁️'}
+                    <Icon name={showPassword ? 'eyeOff' : 'eye'} />
                   </button>
                 </div>
               </div>

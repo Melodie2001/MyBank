@@ -1,22 +1,8 @@
+import CategoryIcon from '../components/CategoryIcon';
 import { useState, useEffect } from 'react';
 import { getBudgets, createBudget, updateBudget, deleteBudget } from '../services/budgetService';
 import { getCategories } from '../services/categoryService';
 
-const ICONS = {
-  'house.png': '🏠',
-  'train.png': '🚆',
-  'healthcare.png': '❤️',
-  'books.png': '📚',
-  'plane.png': '✈️',
-  'dog.png': '🐾',
-  'briefcase.png': '💼',
-  'gamepad.png': '🎮',
-  'burger.png': '🍔',
-  'pills.png': '💊',
-  'entertainment.png': '🎬',
-  'cart.png': '🛒',
-  'transfer.png': '💸',
-};
 
 export default function Budgets() {
   const [budgets, setBudgets] = useState([]);
@@ -102,7 +88,7 @@ export default function Budgets() {
               <div key={budget.id} style={styles.card}>
                 <div style={styles.cardTop}>
                   <div style={{ ...styles.iconBox, backgroundColor: budget.category.color + '22' }}>
-                    <span style={styles.iconEmoji}>{ICONS[budget.category.icon] || '💰'}</span>
+                    <span style={styles.iconSymbol}><CategoryIcon category={budget.category} /></span>
                   </div>
                   <div style={styles.cardActions}>
                     <button style={styles.btnEdit} onClick={() => handleEdit(budget)}>Edit</button>
@@ -131,11 +117,11 @@ export default function Budgets() {
                   </span>
                   {isOver ? (
                     <span style={styles.alertOver}>
-                      ⚠️ Over budget by {Math.abs(budget.remaining).toFixed(2)} €
+                      Over budget by {Math.abs(budget.remaining).toFixed(2)} €
                     </span>
                   ) : isWarn ? (
                     <span style={styles.alertWarn}>
-                      ⚠️ {budget.remaining.toFixed(2)} € left this month
+                      {budget.remaining.toFixed(2)} € left this month
                     </span>
                   ) : (
                     <span style={styles.alertOk}>

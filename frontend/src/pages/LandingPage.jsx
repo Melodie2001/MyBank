@@ -1,3 +1,4 @@
+import Icon from '../components/Icon';
 import { useTheme } from "../context/useTheme";
 import "../styles/LandingPage.css";
 
@@ -20,7 +21,7 @@ export default function LandingPage() {
 
         <div className="header-actions">
           <button className="theme-toggle" onClick={toggleDark} aria-label="Toggle dark mode">
-            {darkMode ? "☀️" : "🌙"}
+            <Icon name={darkMode ? "sun" : "moon"} />
           </button>
 
           <a href="/login" className="btn btn-ghost">Log in</a>
@@ -72,7 +73,7 @@ export default function LandingPage() {
             <div className="preview-rows">
               <div className="preview-row">
                 <div className="preview-row-left">
-                  <span className="preview-row-icon">🛒</span>
+                  <span className="preview-row-icon"><Icon name="cart" /></span>
                   <div>
                     <span className="preview-row-title">Groceries</span>
                     <span className="preview-row-sub">Today · Food &amp; drink</span>
@@ -82,7 +83,7 @@ export default function LandingPage() {
               </div>
               <div className="preview-row">
                 <div className="preview-row-left">
-                  <span className="preview-row-icon">💼</span>
+                  <span className="preview-row-icon"><Icon name="briefcase" /></span>
                   <div>
                     <span className="preview-row-title">Monthly salary</span>
                     <span className="preview-row-sub">Jun 1 · Income</span>
@@ -92,7 +93,7 @@ export default function LandingPage() {
               </div>
               <div className="preview-row">
                 <div className="preview-row-left">
-                  <span className="preview-row-icon">🎬</span>
+                  <span className="preview-row-icon"><Icon name="film" /></span>
                   <div>
                     <span className="preview-row-title">Streaming subscription</span>
                     <span className="preview-row-sub">Jun 3 · Subscriptions</span>
@@ -104,7 +105,7 @@ export default function LandingPage() {
           </div>
 
           <div className="floating-tag">
-            <span className="floating-tag-icon">🎯</span>
+            <span className="floating-tag-icon"><Icon name="target" /></span>
             <div>
               <span className="floating-tag-title">Dining budget</span>
               <span className="floating-tag-sub">245€ /250€ this month</span>
@@ -192,7 +193,7 @@ export default function LandingPage() {
 
         <div className="feature-row">
           <div className="feature-text">
-            <span className="feature-icon">📊</span>
+            <span className="feature-icon"><Icon name="dashboard" /></span>
             <h3>A dashboard that breathes</h3>
             <p>
               See your balance, income, and spending update in real time.
@@ -223,7 +224,7 @@ export default function LandingPage() {
 
         <div className="feature-row reverse">
           <div className="feature-text">
-            <span className="feature-icon">🏷️</span>
+            <span className="feature-icon"><Icon name="tag" /></span>
             <h3>Categories your way</h3>
             <p>
                 Choose categories from the available catalogue, add them to
@@ -234,11 +235,11 @@ export default function LandingPage() {
             <div className="mini-card">
               <span className="mini-card-label">Your categories</span>
               <div className="mini-tags">
-                <span className="mini-tag">🛒 Groceries</span>
-                <span className="mini-tag">🚌 Transport</span>
-                <span className="mini-tag">🎬 Subscriptions</span>
-                <span className="mini-tag">🍽️ Dining out</span>
-                <span className="mini-tag">⚡ Utilities</span>
+                <span className="mini-tag"><Icon name="cart" /> Groceries</span>
+                <span className="mini-tag"><Icon name="train" /> Transport</span>
+                <span className="mini-tag"><Icon name="film" /> Subscriptions</span>
+                <span className="mini-tag"><Icon name="food" /> Dining out</span>
+                <span className="mini-tag"><Icon name="bolt" /> Utilities</span>
                 <span className="mini-tag add">+ New</span>
               </div>
             </div>
@@ -247,7 +248,7 @@ export default function LandingPage() {
 
         <div className="feature-row">
           <div className="feature-text">
-            <span className="feature-icon">🎯</span>
+            <span className="feature-icon"><Icon name="target" /></span>
             <h3>Gentle budget nudges</h3>
             <p>
               Set a monthly limit per category and get a clear heads-up the
@@ -266,7 +267,7 @@ export default function LandingPage() {
                 <div className="mini-progress-fill warn" style={{ width: "98%" }} />
               </div>
               <div className="mini-alert">
-                ⚠️ Almost at your limit for this category
+                Almost at your limit for this category
               </div>
             </div>
           </div>
