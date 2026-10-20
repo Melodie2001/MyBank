@@ -65,9 +65,10 @@
   box-shadow: 0 6px 16px -6px rgba(37, 99, 235, 0.5);
 }
 
-.topbar-link-emoji {
-  font-size: 14px;
-  line-height: 1;
+.topbar-link-icon {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
 }
 
 /* Right actions */
@@ -254,8 +255,9 @@ body.dark .topbar-dropdown-logout:hover {
     display: none;
   }
 
-  .topbar-link-emoji {
-    font-size: 18px;
+  .topbar-link-icon {
+    width: 20px;
+    height: 20px;
   }
 
   .topbar-link span:last-child {
