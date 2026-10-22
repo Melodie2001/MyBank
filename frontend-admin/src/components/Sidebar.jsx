@@ -48,7 +48,7 @@ const icons = {
   ),
 };
 
-export default function Sidebar() {
+export default function Sidebar({ open, onClose, sidebarRef }) {
   const navigate = useNavigate();
   const { dark, toggleDark } = useTheme();
   const user = getUser();
@@ -67,7 +67,8 @@ export default function Sidebar() {
   }
 
   return (
-    <aside style={styles.sidebar}>
+    <aside id="admin-navigation" ref={sidebarRef} className={`admin-sidebar${open ? ' is-open' : ''}`} style={styles.sidebar} aria-label="Administration navigation">
+      <button type="button" className="admin-menu-close" onClick={onClose}>Close menu</button>
       {/* Logo */}
       <div style={styles.logo}>
         <div style={styles.logoIcon}>N</div>
@@ -78,7 +79,7 @@ export default function Sidebar() {
       </div>
 
       {/* Nav */}
-      <nav style={styles.nav}>
+      <nav style={styles.nav} onClick={event => { if (event.target.closest('a')) onClose?.(); }}>
         <NavLink
           to="/dashboard"
           style={({ isActive }) => ({ ...styles.link, ...(isActive ? styles.linkActive : {}) })}

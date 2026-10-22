@@ -1,3 +1,5 @@
+import DataRow from '../components/DataRow';
+import LoadError from '../components/LoadError';
 import Icon from '../components/Icon';
 import { useState, useEffect } from 'react';
 import { getActivityLogs } from '../services/adminService';
@@ -23,6 +25,7 @@ const ACTION_TYPES = ['all', 'login', 'operation_created', 'operation_updated', 
 export default function ActivityLogs() {
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
   const [refreshing, setRefreshing] = useState(false);
   const [search, setSearch] = useState('');
   const [actionFilter, setActionFilter] = useState('all');
@@ -32,10 +35,12 @@ export default function ActivityLogs() {
   async function fetchLogs() {
     try {
       setRefreshing(true);
+      setLoadError('');
       const data = await getActivityLogs();
       setLogs(data);
     } catch (err) {
       console.error(err);
+        setLoadError('Unable to load this page. Check your connection and try again.');
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -53,11 +58,12 @@ export default function ActivityLogs() {
     return acc;
   }, {});
 
+  if (loadError) return <LoadError message={loadError} />;
   if (loading) return <div style={s.loading}>Loading...</div>;
 
   return (
-    <div>
-      <div style={s.header}>
+    <div className="admin-page admin-page-activitylogs">
+      <div className="admin-page-header" style={s.header}>
         <div>
           <h1 style={s.title}>Activity Logs</h1>
           <p style={s.subtitle}>{logs.length} events recorded in MongoDB</p>
@@ -72,12 +78,12 @@ export default function ActivityLogs() {
       </div>
 
       {/* Stats row */}
-      <div style={s.statsRow}>
+      <div className="admin-stat-grid" style={s.statsRow}>
         {ACTION_TYPES.slice(1).map(t => {
           const cfg = ACTION_CONFIG[t];
           return (
             <div key={t} style={{ ...s.statCard, borderTop: `3px solid ${cfg.color}` }}>
-              <div style={s.statIcon}><Icon name={cfg.icon} /></div>
+              <div className="admin-log-icon" style={s.statIcon}><Icon name={cfg.icon} /></div>
               <div style={s.statCount}>{counts[t] ?? 0}</div>
               <div style={s.statLabel}>{cfg.label}</div>
             </div>
@@ -86,30 +92,30 @@ export default function ActivityLogs() {
       </div>
 
       {/* Filters */}
-      <div style={s.toolbar}>
+      <div className="admin-toolbar" style={s.toolbar}>
         <input
           type="text"
-          placeholder="Search by email..."
+          aria-label="Search activitylogs" placeholder="Search by email..."
           value={search}
           onChange={e => setSearch(e.target.value)}
           style={s.searchInput}
         />
-        <div style={s.filterGroup}>
+        <div className="admin-filters" style={s.filterGroup}>
           {ACTION_TYPES.map(t => (
             <button
               key={t}
-              onClick={() => setActionFilter(t)}
+              aria-pressed={actionFilter === t} onClick={() => setActionFilter(t)}
               style={{ ...s.filterBtn, ...(actionFilter === t ? s.filterBtnActive : {}) }}
             >
-              {t === 'all' ? 'All' : (ACTION_CONFIG[t]?.icon + ' ' + ACTION_CONFIG[t]?.label)}
+              {t === 'all' ? 'All' : <><Icon name={ACTION_CONFIG[t].icon} size={16} />{ACTION_CONFIG[t].label}</>}
             </button>
           ))}
         </div>
       </div>
 
       {/* Table */}
-      <div style={s.card}>
-        <div style={s.tableHead}>
+      <div className="admin-card" style={s.card}>
+        <div className="admin-table-head" style={s.tableHead}>
           <span style={s.th}>User</span>
           <span style={s.th}>Action</span>
           <span style={s.th}>Details</span>
@@ -122,13 +128,13 @@ export default function ActivityLogs() {
           filtered.map(log => {
             const cfg = ACTION_CONFIG[log.actionType] || ACTION_CONFIG.login;
             return (
-              <div key={log.id} style={s.row}>
+              <DataRow key={log.id} labels={["User", "Action", "Details", "Time"]} style={s.row}>
                 <div style={s.userCell}>
                   <div style={s.avatar}>{log.userEmail[0]?.toUpperCase()}</div>
                   <span style={s.email}>{log.userEmail}</span>
                 </div>
                 <div>
-                  <span style={{ ...s.badge, backgroundColor: cfg.bg, color: cfg.color }}>
+                  <span className="admin-log-badge" style={{ ...s.badge, backgroundColor: cfg.bg, color: cfg.color }}>
                     <Icon name={cfg.icon} /> {cfg.label}
                   </span>
                 </div>
@@ -140,7 +146,7 @@ export default function ActivityLogs() {
                   ))}
                 </div>
                 <span style={{ ...s.time, textAlign: 'right' }}>{relativeTime(log.createdAt)}</span>
-              </div>
+              </DataRow>
             );
           })
         )}

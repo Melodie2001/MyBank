@@ -1,3 +1,5 @@
+import DataRow from '../components/DataRow';
+import LoadError from '../components/LoadError';
 import { useState, useEffect } from 'react';
 import {
   PieChart, Pie, Cell, ResponsiveContainer,
@@ -11,6 +13,7 @@ export default function Dashboard() {
   const [users, setUsers] = useState([]);
   const [operations, setOperations] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
 
   useEffect(() => {
     async function fetchData() {
@@ -23,6 +26,7 @@ export default function Dashboard() {
         setOperations(opsData);
       } catch (err) {
         console.error(err);
+        setLoadError('Unable to load this page. Check your connection and try again.');
       } finally {
         setLoading(false);
       }
@@ -40,7 +44,7 @@ export default function Dashboard() {
 
   const activeUsers = users.filter(u => u.status === 'active').length;
   const disabledUsers = users.filter(u => u.status !== 'active').length;
-  const rejectedUsers = users.filter(u => u.status === 'rejected').length;
+  const adminUsers = users.filter(u => u.roles.includes('ROLE_ADMIN')).length;
 
   const adminCount = users.filter(u => u.roles.includes('ROLE_ADMIN')).length;
   const userCount = users.length - adminCount;
@@ -73,17 +77,18 @@ export default function Dashboard() {
     };
   });
 
+  if (loadError) return <LoadError message={loadError} />;
   if (loading) return <div style={styles.loading}>Loading...</div>;
 
   return (
-    <div>
-      <div style={styles.header}>
+    <div className="admin-page admin-page-dashboard">
+      <div className="admin-page-header" style={styles.header}>
         <h1 style={styles.title}>Dashboard</h1>
         <p style={styles.subtitle}>Overview of the Nexo Finance platform</p>
       </div>
 
       {/* User KPI cards */}
-      <div style={styles.kpiGrid}>
+      <div className="admin-kpi-grid" style={styles.kpiGrid}>
         <div style={styles.kpiCard}>
           <div style={styles.kpiLabel}>Total users</div>
           <div style={styles.kpiValue}>{users.length}</div>
@@ -97,20 +102,20 @@ export default function Dashboard() {
           <div style={{ ...styles.kpiValue, color: '#D97706' }}>{disabledUsers}</div>
         </div>
         <div style={{ ...styles.kpiCard, borderTop: '3px solid #DC2626' }}>
-          <div style={styles.kpiLabel}>Blocked users</div>
-          <div style={{ ...styles.kpiValue, color: '#DC2626' }}>{rejectedUsers}</div>
+          <div style={styles.kpiLabel}>Administrators</div>
+          <div style={{ ...styles.kpiValue, color: '#DC2626' }}>{adminUsers}</div>
         </div>
       </div>
 
       {/* Main grid: financial overview + donut */}
-      <div style={styles.mainGrid}>
+      <div className="admin-chart-grid" style={styles.mainGrid}>
 
-        <div style={styles.card}>
+        <div className="admin-card" style={styles.card}>
           <div style={styles.cardHeader}>
             <span style={styles.cardTitle}>Financial overview</span>
           </div>
 
-          <div style={styles.financialStats}>
+          <div className="admin-financial-stats" style={styles.financialStats}>
             <div>
               <div style={styles.financialLabel}>Total income</div>
               <div style={{ ...styles.financialValue, color: '#16A34A' }}>
@@ -188,7 +193,7 @@ export default function Dashboard() {
           )}
         </div>
 
-        <div style={styles.card}>
+        <div className="admin-card" style={styles.card}>
           <div style={styles.cardHeader}>
             <span style={styles.cardTitle}>User distribution</span>
           </div>
@@ -196,7 +201,7 @@ export default function Dashboard() {
           {donutData.length === 0 ? (
             <div style={styles.empty}>No users yet</div>
           ) : (
-            <div style={styles.donutRow}>
+            <div className="admin-donut-row" style={styles.donutRow}>
               <div style={styles.donutWrap}>
                 <ResponsiveContainer width={150} height={150}>
                   <PieChart>
@@ -247,14 +252,14 @@ export default function Dashboard() {
         <div style={styles.cardHeader}>
           <span style={styles.cardTitle}>Recent registrations</span>
         </div>
-        <div style={styles.tableHeader}>
+        <div className="admin-table-head" style={styles.tableHeader}>
           <span style={styles.col}>NAME</span>
           <span style={styles.col}>EMAIL</span>
           <span style={styles.col}>ROLE</span>
           <span style={styles.col}>STATUS</span>
         </div>
         {users.slice(0, 5).map(user => (
-          <div key={user.id} style={styles.tableRow}>
+          <DataRow key={user.id} labels={["Name", "Email", "Role", "Status"]} style={styles.tableRow}>
             <span style={styles.col}>{user.firstName} {user.lastName}</span>
             <span style={styles.col}>{user.email}</span>
             <span style={styles.col}>
@@ -276,10 +281,10 @@ export default function Dashboard() {
                   user.status === 'active' ? '#16A34A' :
                   user.status === 'pending' ? '#D97706' : '#DC2626',
               }}>
-                {user.status}
+                {user.status === 'active' ? 'Active' : 'Disabled'}
               </span>
             </span>
-          </div>
+          </DataRow>
         ))}
         {users.length === 0 && (
           <div style={styles.empty}>No users yet</div>

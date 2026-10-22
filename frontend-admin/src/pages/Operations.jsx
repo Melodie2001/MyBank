@@ -1,3 +1,5 @@
+import DataRow from '../components/DataRow';
+import LoadError from '../components/LoadError';
 import Icon from '../components/Icon';
 import { useState, useEffect } from 'react';
 import { getAllOperations } from '../services/adminService';
@@ -5,6 +7,7 @@ import { getAllOperations } from '../services/adminService';
 export default function Operations() {
   const [operations, setOperations] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState('all');
 
@@ -15,6 +18,7 @@ export default function Operations() {
         setOperations(data);
       } catch (err) {
         console.error(err);
+        setLoadError('Unable to load this page. Check your connection and try again.');
       } finally {
         setLoading(false);
       }
@@ -38,18 +42,19 @@ export default function Operations() {
     .filter(op => op.type === 'expense')
     .reduce((sum, op) => sum + Number(op.amount), 0);
 
+  if (loadError) return <LoadError message={loadError} />;
   if (loading) return <div style={styles.loading}>Loading...</div>;
 
   return (
-    <div>
-      <div style={styles.header}>
+    <div className="admin-page admin-page-operations">
+      <div className="admin-page-header" style={styles.header}>
         <div>
           <h1 style={styles.title}>All operations</h1>
           <p style={styles.subtitle}>{operations.length} operations total</p>
         </div>
       </div>
 
-      <div style={styles.statsRow}>
+      <div className="admin-stat-grid" style={styles.statsRow}>
         <div style={styles.statCard}>
           <div style={styles.statLabel}>TOTAL OPERATIONS</div>
           <div style={styles.statValue}>{operations.length}</div>
@@ -64,13 +69,13 @@ export default function Operations() {
         </div>
       </div>
 
-      <div style={styles.card}>
-        <div style={styles.toolbar}>
-          <div style={styles.filters}>
+      <div className="admin-card" style={styles.card}>
+        <div className="admin-toolbar" style={styles.toolbar}>
+          <div className="admin-filters" style={styles.filters}>
             {['all', 'income', 'expense'].map(f => (
               <button
                 key={f}
-                onClick={() => setFilter(f)}
+                aria-pressed={filter === f} onClick={() => setFilter(f)}
                 style={{
                   ...styles.filterBtn,
                   ...(filter === f ? styles.filterBtnActive : {})
@@ -80,11 +85,11 @@ export default function Operations() {
               </button>
             ))}
           </div>
-          <div style={styles.searchBar}>
+          <div className="admin-search" style={styles.searchBar}>
             <span><Icon name="search" /></span>
             <input
               type="text"
-              placeholder="Search by label or user email..."
+              aria-label="Search operations" placeholder="Search by label or user email..."
               value={search}
               onChange={e => setSearch(e.target.value)}
               style={styles.searchInput}
@@ -92,7 +97,7 @@ export default function Operations() {
           </div>
         </div>
 
-        <div style={styles.tableHeader}>
+        <div className="admin-table-head" style={styles.tableHeader}>
           <span style={styles.col}>DESCRIPTION</span>
           <span style={styles.col}>USER</span>
           <span style={styles.col}>CATEGORY</span>
@@ -104,7 +109,7 @@ export default function Operations() {
           <div style={styles.empty}>No operations found</div>
         ) : (
           filtered.map(op => (
-            <div key={op.id} style={styles.tableRow}>
+            <DataRow key={op.id} labels={["Description", "User", "Category", "Date", "Amount"]} style={styles.tableRow}>
               <span style={styles.opLabel}>{op.label}</span>
               <span style={styles.opUser}>{op.user.email}</span>
               <span>
@@ -123,7 +128,7 @@ export default function Operations() {
               }}>
                 {op.type === 'income' ? '+' : '-'}{Number(op.amount).toFixed(2)} €
               </span>
-            </div>
+            </DataRow>
           ))
         )}
       </div>

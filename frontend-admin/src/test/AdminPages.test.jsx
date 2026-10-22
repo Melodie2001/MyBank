@@ -1,0 +1,46 @@
+import { render, screen, fireEvent, cleanup, waitFor } from '@testing-library/react';
+import { MemoryRouter, Routes, Route } from 'react-router-dom';
+import { afterEach, beforeEach, expect, it, vi } from 'vitest';
+import Users from '../pages/Users';
+import Layout from '../components/Layout';
+import { ThemeProvider } from '../context/ThemeContext';
+import { getUsers, updateUserStatus } from '../services/adminService';
+vi.mock('../services/adminService', () => ({ getUsers: vi.fn(), updateUserStatus: vi.fn(), updateUserRole: vi.fn(), deleteUser: vi.fn() }));
+const user = { id: 2, firstName: 'Alex', lastName: 'Test', email: 'alex@example.test', roles: ['ROLE_USER'], status: 'active' };
+beforeEach(() => { vi.resetAllMocks(); localStorage.clear(); });
+afterEach(cleanup);
+it('shows a load failure instead of pretending the user list is empty', async () => {
+  vi.spyOn(console, 'error').mockImplementation(() => {});
+  getUsers.mockRejectedValueOnce(new Error('offline'));
+  render(<Users />);
+  expect(await screen.findByRole('alert')).toHaveTextContent('Unable to load');
+  expect(screen.queryByText('No users found')).not.toBeInTheDocument();
+  vi.restoreAllMocks();
+});
+it('locks account actions while saving and presents a failed action inline', async () => {
+  getUsers.mockResolvedValueOnce([user]);
+  let rejectSave;
+  updateUserStatus.mockImplementationOnce(() => new Promise((_, reject) => { rejectSave = reject; }));
+  render(<Users />);
+  const disable = await screen.findByRole('button', { name: 'Disable' });
+  fireEvent.click(disable);
+  expect(disable).toBeDisabled();
+  expect(screen.getByRole('button', { name: 'Make Admin' })).toBeDisabled();
+  fireEvent.click(disable);
+  expect(updateUserStatus).toHaveBeenCalledTimes(1);
+  rejectSave(new Error('offline'));
+  await waitFor(() => expect(disable).toBeEnabled());
+  expect(screen.getByRole('status')).toHaveTextContent('An error occurred');
+});
+it('closes the mobile navigation on Escape and on route selection', () => {
+  render(<ThemeProvider><MemoryRouter><Routes><Route element={<Layout />}><Route path="*" element={<p>Content</p>} /></Route></Routes></MemoryRouter></ThemeProvider>);
+  const toggle = screen.getByRole('button', { name: 'Open navigation' });
+  fireEvent.click(toggle);
+  expect(toggle).toHaveAttribute('aria-expanded', 'true');
+  fireEvent.keyDown(document, { key: 'Escape' });
+  expect(toggle).toHaveAttribute('aria-expanded', 'false');
+  expect(toggle).toHaveFocus();
+  fireEvent.click(toggle);
+  fireEvent.click(screen.getByRole('link', { name: 'Users' }));
+  expect(toggle).toHaveAttribute('aria-expanded', 'false');
+});

@@ -41,7 +41,7 @@ export default function Login() {
         </svg>
       </button>
 
-      <div style={styles.container}>
+      <div className="admin-login-card" style={styles.container}>
         <div style={styles.shield}><Icon name="shield" /></div>
 
         <div style={styles.logoWrapper}>
@@ -57,11 +57,11 @@ export default function Login() {
 
         <form onSubmit={handleSubmit} style={styles.form}>
           <div style={styles.field}>
-            <label style={styles.label}>EMAIL ADDRESS</label>
+            <label htmlFor="admin-email" style={styles.label}>EMAIL ADDRESS</label>
             <div style={styles.inputWrapper}>
               <span style={styles.inputIcon}><Icon name="mail" /></span>
               <input
-                type="email"
+                id="admin-email" autoComplete="username" type="email"
                 value={email}
                 onChange={e => setEmail(e.target.value)}
                 style={styles.input}
@@ -72,11 +72,11 @@ export default function Login() {
           </div>
 
           <div style={styles.field}>
-            <label style={styles.label}>PASSWORD</label>
+            <label htmlFor="admin-password" style={styles.label}>PASSWORD</label>
             <div style={styles.inputWrapper}>
               <span style={styles.inputIcon}><Icon name="key" /></span>
               <input
-                type={showPassword ? 'text' : 'password'}
+                id="admin-password" autoComplete="current-password" type={showPassword ? 'text' : 'password'}
                 value={password}
                 onChange={e => setPassword(e.target.value)}
                 style={{ ...styles.input, paddingRight: '40px' }}

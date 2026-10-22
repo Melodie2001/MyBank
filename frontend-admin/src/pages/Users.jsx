@@ -1,3 +1,5 @@
+import DataRow from '../components/DataRow';
+import LoadError from '../components/LoadError';
 import Icon from '../components/Icon';
 import { useState, useEffect } from 'react';
 import { getUsers, updateUserStatus, updateUserRole, deleteUser } from '../services/adminService';
@@ -5,6 +7,9 @@ import { getUsers, updateUserStatus, updateUserRole, deleteUser } from '../servi
 export default function Users() {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
+  const [busyId, setBusyId] = useState(null);
+  const [notice, setNotice] = useState('');
   const [search, setSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
 
@@ -15,6 +20,7 @@ export default function Users() {
         setUsers(data);
       } catch (err) {
         console.error(err);
+        setLoadError('Unable to load this page. Check your connection and try again.');
       } finally {
         setLoading(false);
       }
@@ -23,36 +29,51 @@ export default function Users() {
   }, []);
 
   async function handleStatusChange(id, status) {
+    if (busyId !== null) return;
+    setBusyId(id);
+    setNotice('');
     try {
       const result = await updateUserStatus(id, status);
       if (result.activationEmailSent === false) {
-        alert('The account is active, but the welcome email could not be sent.');
+        setNotice('The account is active, but the welcome email could not be sent.');
       }
       setUsers(prev => prev.map(u => u.id === id ? { ...u, status } : u));
     } catch (err) {
-      alert(err.response?.data?.message || 'An error occurred');
+      setNotice(err.response?.data?.message || 'An error occurred');
+    } finally {
+      setBusyId(null);
     }
   }
 
   async function handleRoleChange(id, currentRoles) {
+    if (busyId !== null) return;
     const isAdmin = currentRoles.includes('ROLE_ADMIN');
     const newRoles = isAdmin ? ['ROLE_USER'] : ['ROLE_ADMIN', 'ROLE_USER'];
     if (!window.confirm(`${isAdmin ? 'Remove' : 'Grant'} admin role for this user?`)) return;
+    setBusyId(id);
+    setNotice('');
     try {
       await updateUserRole(id, newRoles);
       setUsers(prev => prev.map(u => u.id === id ? { ...u, roles: newRoles } : u));
     } catch (err) {
-      alert(err.response?.data?.message || 'An error occurred');
+      setNotice(err.response?.data?.message || 'An error occurred');
+    } finally {
+      setBusyId(null);
     }
   }
 
   async function handleDelete(id) {
+    if (busyId !== null) return;
     if (!window.confirm('Delete this user? This action cannot be undone.')) return;
+    setBusyId(id);
+    setNotice('');
     try {
       await deleteUser(id);
       setUsers(prev => prev.filter(u => u.id !== id));
     } catch (err) {
-      alert(err.response?.data?.message || 'Cannot delete this user');
+      setNotice(err.response?.data?.message || 'Cannot delete this user');
+    } finally {
+      setBusyId(null);
     }
   }
 
@@ -60,28 +81,30 @@ export default function Users() {
     const matchSearch =
       u.email.toLowerCase().includes(search.toLowerCase()) ||
       `${u.firstName} ${u.lastName}`.toLowerCase().includes(search.toLowerCase());
-    const matchStatus = filterStatus === 'all' || u.status === filterStatus;
+    const matchStatus = filterStatus === 'all' || (filterStatus === 'disabled' ? u.status !== 'active' : u.status === filterStatus);
     return matchSearch && matchStatus;
   });
 
+  if (loadError) return <LoadError message={loadError} />;
   if (loading) return <div style={styles.loading}>Loading...</div>;
 
   return (
-    <div>
-      <div style={styles.header}>
+    <div className="admin-page admin-page-users">
+      <div className="admin-page-header" style={styles.header}>
         <div>
           <h1 style={styles.title}>Users management</h1>
           <p style={styles.subtitle}>{users.length} users registered</p>
         </div>
       </div>
 
-      <div style={styles.card}>
-        <div style={styles.toolbar}>
-          <div style={styles.filters}>
-            {['all', 'active', 'pending', 'rejected'].map(f => (
+      {notice && <div role="status" className="admin-notice">{notice}</div>}
+      <div className="admin-card" style={styles.card}>
+        <div className="admin-toolbar" style={styles.toolbar}>
+          <div className="admin-filters" style={styles.filters}>
+            {['all', 'active', 'disabled'].map(f => (
               <button
                 key={f}
-                onClick={() => setFilterStatus(f)}
+                aria-pressed={filterStatus === f} onClick={() => setFilterStatus(f)}
                 style={{
                   ...styles.filterBtn,
                   ...(filterStatus === f ? styles.filterBtnActive : {})
@@ -91,11 +114,11 @@ export default function Users() {
               </button>
             ))}
           </div>
-          <div style={styles.searchBar}>
+          <div className="admin-search" style={styles.searchBar}>
             <span><Icon name="search" /></span>
             <input
               type="text"
-              placeholder="Search by name or email..."
+              aria-label="Search users" placeholder="Search by name or email..."
               value={search}
               onChange={e => setSearch(e.target.value)}
               style={styles.searchInput}
@@ -103,7 +126,7 @@ export default function Users() {
           </div>
         </div>
 
-        <div style={styles.tableHeader}>
+        <div className="admin-table-head" style={styles.tableHeader}>
           <span style={styles.col}>NAME</span>
           <span style={styles.col}>EMAIL</span>
           <span style={styles.col}>ROLE</span>
@@ -115,7 +138,7 @@ export default function Users() {
           <div style={styles.empty}>No users found</div>
         ) : (
           filtered.map(user => (
-            <div key={user.id} style={styles.tableRow}>
+            <DataRow key={user.id} labels={["Name", "Email", "Role", "Status", "Actions"]} style={styles.tableRow}>
               <span>
                 <div style={styles.userInfo}>
                   <div style={{
@@ -147,31 +170,32 @@ export default function Users() {
                     user.status === 'active' ? '#16A34A' :
                     user.status === 'pending' ? '#D97706' : '#DC2626',
                 }}>
-                  {user.status}
+                  {user.status === 'active' ? 'Active' : 'Disabled'}
                 </span>
               </span>
-              <span style={styles.actions}>
+              <span style={styles.actions} aria-busy={busyId === user.id}>
+                {busyId === user.id && <span role="status">Saving...</span>}
                 {user.status !== 'active' && (
-                  <button style={styles.btnApprove} onClick={() => handleStatusChange(user.id, 'active')}>
+                  <button disabled={busyId !== null} style={styles.btnApprove} onClick={() => handleStatusChange(user.id, 'active')}>
                     Activate
                   </button>
                 )}
                 {user.status !== 'rejected' && (
-                  <button style={styles.btnReject} onClick={() => handleStatusChange(user.id, 'rejected')}>
+                  <button disabled={busyId !== null} style={styles.btnReject} onClick={() => handleStatusChange(user.id, 'rejected')}>
                     Disable
                   </button>
                 )}
                 <button
-                  style={styles.btnRole}
+                  disabled={busyId !== null} style={styles.btnRole}
                   onClick={() => handleRoleChange(user.id, user.roles)}
                 >
                   {user.roles.includes('ROLE_ADMIN') ? 'Remove Admin' : 'Make Admin'}
                 </button>
-                <button style={styles.btnDelete} onClick={() => handleDelete(user.id)}>
+                <button disabled={busyId !== null} style={styles.btnDelete} onClick={() => handleDelete(user.id)}>
                   Delete
                 </button>
               </span>
-            </div>
+            </DataRow>
           ))
         )}
       </div>
