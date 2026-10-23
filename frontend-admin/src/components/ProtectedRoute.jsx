@@ -5,9 +5,11 @@ export default function ProtectedRoute({ children }) {
   const user = JSON.parse(localStorage.getItem('admin_user') || '{}');
   const isAdmin = user.roles?.includes('ROLE_ADMIN');
 
-  if (!token || !isAdmin) {
+  if (!token) {
     return <Navigate to="/login" replace />;
   }
+
+  if (!isAdmin) return <Navigate to="/forbidden" replace />;
 
   return children;
 }

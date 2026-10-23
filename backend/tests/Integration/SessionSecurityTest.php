@@ -64,6 +64,19 @@ final class SessionSecurityTest extends WebTestCase
         return $plain;
     }
 
+    public function testAdminAccessRequiresAnAuthenticatedAdministrator(): void
+    {
+        self::assertSame(401, $this->request('GET', '/api/admin/access')[0]);
+        $user = $this->user();
+        [$status, $body] = $this->request('GET', '/api/admin/access', null, $user['token']);
+        self::assertSame(403, $status);
+        self::assertSame('This area is reserved for administrators', $body['message']);
+        $admin = $this->user(['ROLE_ADMIN']);
+        [$status, $body] = $this->request('GET', '/api/admin/access', null, $admin['token']);
+        self::assertSame(200, $status);
+        self::assertSame(['access' => 'granted'], $body);
+    }
+
     public function testSuspensionAndReactivationDoNotRestoreOldSessions(): void
     {
         $admin = $this->user(['ROLE_ADMIN']);

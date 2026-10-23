@@ -12,6 +12,7 @@ describe('authService', () => {
 
   it('login stores admin token and user in localStorage', async () => {
     api.post.mockResolvedValueOnce({ data: { token: 'admin-token' } });
+    api.get.mockResolvedValueOnce({data: {access: 'granted'}});
     api.get.mockResolvedValueOnce({
       data: {
         id: 1,
@@ -32,6 +33,7 @@ describe('authService', () => {
 
   it('login throws error if user is not admin', async () => {
     api.post.mockResolvedValueOnce({ data: { token: 'user-token' } });
+    api.get.mockResolvedValueOnce({data: {access: 'granted'}});
     api.get.mockResolvedValueOnce({
       data: {
         id: 2,
@@ -40,8 +42,18 @@ describe('authService', () => {
       }
     });
 
-    await expect(login('user@test.com', 'password')).rejects.toThrow('Access denied. Admin only.');
+    await expect(login('user@test.com', 'password')).rejects.toThrow('This area is reserved for administrators');
     expect(localStorage.getItem('admin_token')).toBeNull();
+  });
+
+  it('clears tokens and identifies a real server authorization refusal', async () => {
+    api.post.mockResolvedValueOnce({ data: { token: 'user-token', refresh_token: 'user-refresh' } });
+    api.get.mockRejectedValueOnce({ response: { status: 403 } });
+    await expect(login('user@test.com', 'password')).rejects.toMatchObject({ code: 'ADMIN_ACCESS_DENIED' });
+    expect(api.get).toHaveBeenCalledWith('/api/admin/access');
+    expect(api.get).not.toHaveBeenCalledWith('/api/me');
+    expect(localStorage.getItem('admin_token')).toBeNull();
+    expect(localStorage.getItem('admin_refresh_token')).toBeNull();
   });
 
   it('logout removes admin token and user from localStorage', () => {

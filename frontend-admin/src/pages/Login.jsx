@@ -21,7 +21,11 @@ export default function Login() {
       await login(email, password);
       navigate('/dashboard');
     } catch (err) {
-      setError(err.response?.data?.message || err.message || 'Invalid credentials');
+      if (err.code === 'ADMIN_ACCESS_DENIED') {
+        navigate('/forbidden', { replace: true });
+      } else {
+        setError(err.response?.status === 401 ? 'Incorrect email or password.' : err.response?.data?.message || 'Unable to sign in. Please try again.');
+      }
     } finally {
       setLoading(false);
     }

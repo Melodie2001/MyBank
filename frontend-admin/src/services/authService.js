@@ -1,6 +1,5 @@
 import api from '../api/axios';
 
-const userPortalUrl = import.meta.env.VITE_USER_URL || 'http://localhost:5173';
 
 export async function login(email, password) {
   const response = await api.post('/api/login', { email, password });
@@ -10,15 +9,22 @@ export async function login(email, password) {
     localStorage.setItem('admin_refresh_token', refreshToken);
   }
 
-  const me = await api.get('/api/me');
-
-  if (!me.data.roles.includes('ROLE_ADMIN')) {
+  try {
+    // The server must authorize the role before the administration session is kept.
+    await api.get('/api/admin/access');
+    const me = await api.get('/api/me');
+    if (!me.data.roles.includes('ROLE_ADMIN')) {
+      const error = new Error('This area is reserved for administrators');
+      error.code = 'ADMIN_ACCESS_DENIED';
+      throw error;
+    }
+    localStorage.setItem('admin_user', JSON.stringify(me.data));
+    return me.data;
+  } catch (error) {
     logout();
-    throw new Error(`Access denied. Admin only. User accounts must use ${userPortalUrl}.`);
+    if (error.response?.status === 403) error.code = 'ADMIN_ACCESS_DENIED';
+    throw error;
   }
-
-  localStorage.setItem('admin_user', JSON.stringify(me.data));
-  return me.data;
 }
 
 export function logout() {

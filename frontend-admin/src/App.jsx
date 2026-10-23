@@ -10,6 +10,7 @@ const Dashboard = lazy(() => import('./pages/Dashboard'));
 const Users = lazy(() => import('./pages/Users'));
 const Operations = lazy(() => import('./pages/Operations'));
 const ActivityLogs = lazy(() => import('./pages/ActivityLogs'));
+const Forbidden = lazy(() => import('./pages/Forbidden'));
 const NotFound = lazy(() => import('./pages/NotFound'));
 
 function PageLoader() {
@@ -37,6 +38,7 @@ export default function App() {
         <Routes>
           {/* Public */}
           <Route path="/login" element={<Login />} />
+          <Route path="/forbidden" element={<Forbidden />} />
 
           {/* Protected */}
           <Route

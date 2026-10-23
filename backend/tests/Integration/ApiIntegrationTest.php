@@ -39,11 +39,8 @@ class ApiIntegrationTest extends WebTestCase
 
         $response = json_decode($this->client->getResponse()->getContent(), true);
 
-        $this->assertResponseStatusCodeSame(201);
-        $this->assertEquals('User created — you can now sign in', $response['message']);
-        $this->assertEquals($email, $response['user']['email']);
-        $this->assertEquals('active', $response['user']['status']);
-        $this->assertEquals(['ROLE_USER'], $response['user']['roles']);
+        $this->assertResponseStatusCodeSame(202);
+        $this->assertSame(['message' => \App\Controller\UserController::REGISTRATION_MESSAGE], $response);
         $this->client->request('POST', '/api/login', [], [], ['CONTENT_TYPE' => 'application/json'], json_encode(['email' => $email, 'password' => 'Password123!']));
         $this->assertResponseIsSuccessful();
         static::getContainer()->get(EntityManagerInterface::class)->getConnection()->delete('user', ['email'=>$email]);
@@ -79,7 +76,8 @@ class ApiIntegrationTest extends WebTestCase
             ])
         );
 
-        $this->assertResponseStatusCodeSame(409);
+        $this->assertResponseStatusCodeSame(202);
+        $this->assertSame(['message' => \App\Controller\UserController::REGISTRATION_MESSAGE], json_decode($this->client->getResponse()->getContent(), true));
     }
 
     public function testRegisterWithInvalidEmail(): void

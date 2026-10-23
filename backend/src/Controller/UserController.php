@@ -20,6 +20,17 @@ use Symfony\Component\Validator\Validator\ValidatorInterface;
 
 final class UserController extends AbstractController
 {
+    public const REGISTRATION_MESSAGE = 'Your request has been processed. Sign in or reset your password if you already have an account.';
+
+    #[Route('/api/admin/access', methods: ['GET'])]
+    public function adminAccess(): JsonResponse
+    {
+        if (!$this->isGranted('ROLE_ADMIN')) {
+            return $this->json(['message' => 'This area is reserved for administrators'], 403);
+        }
+        return $this->json(['access' => 'granted']);
+    }
+
     #[Route('/api/users', methods: ['GET'])]
     public function index(UserRepository $repository): JsonResponse
     {
@@ -188,8 +199,13 @@ final class UserController extends AbstractController
         UserPasswordHasherInterface $passwordHasher,
         UserRepository $userRepository,
         ValidatorInterface $validator,
-        AccountActivationMailer $activationMailer
+        AccountActivationMailer $activationMailer,
+        #[\Symfony\Component\DependencyInjection\Attribute\Autowire(service: 'limiter.registration')]
+        ?\Symfony\Component\RateLimiter\RateLimiterFactory $registrationLimiter = null
     ): JsonResponse {
+        if ($registrationLimiter && !$registrationLimiter->create($request->getClientIp() ?? 'unknown')->consume(1)->isAccepted()) {
+            return $this->json(['message' => 'Too many registration attempts. Please try again later.'], 429);
+        }
         $data = \App\Http\JsonInput::read($request);
 
         if (!$data) {
@@ -203,10 +219,12 @@ final class UserController extends AbstractController
             return $this->json(['message' => $violations[0]->getMessage()], 400);
         }
 
+        // Perform password hashing for both outcomes; never overwrite an existing account.
+        $hashedPassword = $passwordHasher->hashPassword(new User(), $dto->password);
         $existingUser = $userRepository->findOneBy(['email' => $dto->email]);
 
         if ($existingUser) {
-            return $this->json(['message' => 'Email already exists'], 409);
+            return $this->json(['message' => self::REGISTRATION_MESSAGE], 202);
         }
 
         $user = new User();
@@ -240,17 +258,17 @@ final class UserController extends AbstractController
         // L'attribution de ROLE_ADMIN se fait exclusivement via UserController::updateRole().
         $user->setRoles(['ROLE_USER']);
 
-        $hashedPassword = $passwordHasher->hashPassword($user, $dto->password);
         $user->setPassword($hashedPassword);
 
         $em->persist($user);
-        $em->flush();
-
-        return $this->json([
-            'message' => 'User created — you can now sign in',
-            'welcomeEmailSent' => $activationMailer->send($user),
-            'user' => $this->formatUser($user)
-        ], 201);
+        try {
+            $em->flush();
+        } catch (\Doctrine\DBAL\Exception\UniqueConstraintViolationException) {
+            return $this->json(['message' => self::REGISTRATION_MESSAGE], 202);
+        }
+        $activationMailer->send($user);
+        // Same status and body whether the email was already registered or is new.
+        return $this->json(['message' => self::REGISTRATION_MESSAGE], 202);
     }
 
     #[Route('/api/users/{id}/status', methods: ['PUT'])]

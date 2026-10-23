@@ -57,6 +57,6 @@ it('redirects a successful registration to login with immediate access confirmat
   fireEvent.change(screen.getByPlaceholderText('Repeat your password'), { target: { value: 'Password123!' } });
   fireEvent.click(screen.getByRole('checkbox'));
   fireEvent.click(screen.getByRole('button', { name: /Create my account/ }));
-  expect(await screen.findByRole('heading', { name: 'Account created! You can now sign in.' })).toBeInTheDocument();
+  expect(await screen.findByRole('heading', { name: 'Your request has been processed. Sign in or reset your password if you already have an account.' })).toBeInTheDocument();
   expect(register).toHaveBeenCalledTimes(1);
 });

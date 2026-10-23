@@ -1,7 +1,8 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import ProtectedRoute from '../components/ProtectedRoute';
+import Forbidden from '../pages/Forbidden';
 
 describe('ProtectedRoute Admin', () => {
   beforeEach(() => {
@@ -37,20 +38,23 @@ describe('ProtectedRoute Admin', () => {
     expect(screen.queryByText('Admin Content')).not.toBeInTheDocument();
   });
 
-  it('redirects to login when user is not admin', () => {
+  it('shows the forbidden page and user login link when user is not admin', () => {
     localStorage.setItem('admin_token', 'fake-token');
     localStorage.setItem('admin_user', JSON.stringify({
       roles: ['ROLE_USER']
     }));
 
     render(
-      <MemoryRouter>
-        <ProtectedRoute>
-          <div>Admin Content</div>
-        </ProtectedRoute>
+      <MemoryRouter initialEntries={['/dashboard']}>
+        <Routes>
+          <Route path="/dashboard" element={<ProtectedRoute><div>Admin Content</div></ProtectedRoute>} />
+          <Route path="/forbidden" element={<Forbidden />} />
+        </Routes>
       </MemoryRouter>
     );
 
     expect(screen.queryByText('Admin Content')).not.toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Access denied' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Go to user login' })).toHaveAttribute('href', 'https://nexo-finance.duckdns.org/login');
   });
 });

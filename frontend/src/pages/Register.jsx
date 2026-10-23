@@ -79,10 +79,10 @@ export default function Register() {
     try {
       await register(email, password, firstName, lastName, phone || undefined, birthDate || undefined, gender || undefined);
       navigate('/login', {
-        state: { message: 'Account created! You can now sign in.' }
+        state: { message: 'Your request has been processed. Sign in or reset your password if you already have an account.' }
       });
     } catch (err) {
-      setError(err.response?.data?.message || 'Registration failed');
+      setError(err.response?.status === 409 ? 'Unable to complete registration. If you already have an account, sign in or reset your password.' : err.response?.data?.message || 'Registration failed');
     } finally {
       setLoading(false);
     }
@@ -154,7 +154,9 @@ export default function Register() {
             <h2 style={styles.rightTitle}>Create an account</h2>
             <p style={styles.rightSubtitle}>Join Nexo Finance and take control of your budget</p>
 
-            {error && <div style={styles.error}>{error}</div>}
+            {error && <div role="alert" style={styles.error}>{error}
+              <div style={{ marginTop: '8px', display: 'flex', gap: '16px', flexWrap: 'wrap' }}><Link to="/login">Sign in</Link><Link to="/forgot-password">Forgot password?</Link></div>
+            </div>}
 
             <p style={{ fontSize: '12px', color: 'var(--color-text-light)', marginBottom: '16px' }}>Fields marked * are required. Other fields are optional.</p>
             <form onSubmit={handleSubmit} style={styles.form}>

@@ -1,0 +1,4 @@
+framework:
+    rate_limiter:
+        registration:
+            limit: 10000
