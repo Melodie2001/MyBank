@@ -17,7 +17,7 @@ class StrongPassword extends Compound
         return [
             new Assert\NotBlank(message: 'Password is required'),
             new Assert\Length(
-                min: 8,
+                min: 12,
                 max: 4096,
                 minMessage: 'Password must contain at least {{ limit }} characters',
             ),

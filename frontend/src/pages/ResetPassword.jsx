@@ -23,8 +23,8 @@ const LogoIcon = () => (
 );
 
 // Même règle de complexité que le backend (App\DTO\ResetPasswordDTO) :
-// au moins 8 caractères, une majuscule, une minuscule, un chiffre, un caractère spécial.
-const PASSWORD_RULE = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/;
+// au moins 12 caractères, une majuscule, une minuscule, un chiffre, un caractère spécial.
+const PASSWORD_RULE = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{12,}$/;
 
 export default function ResetPassword() {
   const navigate = useNavigate();
@@ -52,7 +52,7 @@ export default function ResetPassword() {
     }
 
     if (!PASSWORD_RULE.test(newPassword)) {
-      setError('Password must be at least 8 characters and include an uppercase letter, a lowercase letter, a digit and a special character');
+      setError('Password must be at least 12 characters and include an uppercase letter, a lowercase letter, a digit and a special character');
       return;
     }
 
@@ -87,6 +87,7 @@ export default function ResetPassword() {
         )}
         {error && <div role="alert" style={styles.error}>{error}</div>}
 
+        <p style={{ fontSize: '12px', color: 'var(--color-text-light)', marginBottom: '16px' }}>At least 12 characters, including an uppercase letter, a lowercase letter, a number and a special character.</p>
         <form onSubmit={handleSubmit} style={styles.form}>
           <div style={styles.field}>
             <label htmlFor="reset-new-password" style={styles.label}>NEW PASSWORD</label>
@@ -94,6 +95,7 @@ export default function ResetPassword() {
               <input
                 id="reset-new-password"
                 autoComplete="new-password"
+                minLength={12}
                 type={showPassword ? 'text' : 'password'}
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
@@ -118,6 +120,7 @@ export default function ResetPassword() {
             <input
               id="reset-confirm-password"
               autoComplete="new-password"
+                minLength={12}
               type={showPassword ? 'text' : 'password'}
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}

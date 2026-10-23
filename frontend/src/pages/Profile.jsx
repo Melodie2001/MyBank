@@ -114,8 +114,8 @@ export default function Profile() {
       setPwdError('Passwords do not match');
       return;
     }
-    if (newPassword.length < 6) {
-      setPwdError('New password must be at least 6 characters');
+    if (!/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{12,}$/.test(newPassword)) {
+      setPwdError('New password must contain at least 12 characters, an uppercase letter, a lowercase letter, a number and a special character');
       return;
     }
 
@@ -349,11 +349,11 @@ export default function Profile() {
                   <label style={styles.label}>NEW PASSWORD</label>
                   <div style={styles.inputWrapper}>
                     <input
-                      type={showNew ? 'text' : 'password'}
+                      minLength={12} autoComplete="new-password" type={showNew ? 'text' : 'password'}
                       value={newPassword}
                       onChange={e => setNewPassword(e.target.value)}
                       style={{ ...styles.input, paddingRight: '40px' }}
-                      placeholder="Min. 6 characters"
+                      placeholder="Min. 12 characters"
                       required
                     />
                     <button type="button" onClick={() => setShowNew(!showNew)} aria-label={showNew ? "Hide password" : "Show password"} style={styles.eyeBtn}>
@@ -364,7 +364,7 @@ export default function Profile() {
                 <div style={styles.field}>
                   <label style={styles.label}>CONFIRM NEW PASSWORD</label>
                   <input
-                    type={showNew ? 'text' : 'password'}
+                    minLength={12} autoComplete="new-password" type={showNew ? 'text' : 'password'}
                     value={confirmPassword}
                     onChange={e => setConfirmPassword(e.target.value)}
                     style={styles.input}

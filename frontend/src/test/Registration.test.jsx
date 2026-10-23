@@ -14,15 +14,32 @@ function LoginPage() {
   return <h1>{location.state?.message}</h1>;
 }
 
+it('distinguishes required and optional fields and only validates length from 12 characters', () => {
+  render(<MemoryRouter><Register /></MemoryRouter>);
+  expect(screen.getByLabelText('FIRST NAME *')).toBeRequired();
+  expect(screen.getByLabelText('LAST NAME *')).toBeRequired();
+  expect(screen.getByLabelText('EMAIL ADDRESS *')).toBeRequired();
+  expect(screen.getByLabelText('PHONE NUMBER (optional)')).not.toBeRequired();
+  expect(screen.getByLabelText('DATE OF BIRTH (optional)')).not.toBeRequired();
+  expect(screen.getByRole('checkbox')).toBeRequired();
+  const password = screen.getByLabelText('PASSWORD *');
+  const requirement = screen.getByText('At least 12 characters');
+  fireEvent.change(password, { target: { value: 'Password12!' } });
+  expect(requirement).toHaveTextContent('not yet met');
+  fireEvent.change(password, { target: { value: 'Password123!' } });
+  expect(requirement).toHaveTextContent('— met');
+  expect(requirement).not.toHaveTextContent('not yet met');
+});
+
 it('shows each password requirement before typing and updates it when satisfied or removed', () => {
   render(<MemoryRouter><Register /></MemoryRouter>);
   const list = screen.getByRole('list', { name: 'Password requirements' });
   expect(within(list).getAllByText(/not yet met/)).toHaveLength(5);
-  const password = screen.getByLabelText('PASSWORD', { exact: true });
+  const password = screen.getByLabelText('PASSWORD *', { exact: true });
   expect(password).toHaveAttribute('aria-describedby', 'password-requirements');
-  fireEvent.change(password, { target: { value: 'Password1!' } });
+  fireEvent.change(password, { target: { value: 'LongPassword1!' } });
   expect(within(list).getAllByText(/^— met$/)).toHaveLength(5);
-  fireEvent.change(password, { target: { value: 'password1!' } });
+  fireEvent.change(password, { target: { value: 'longpassword1!' } });
   expect(within(list).getAllByText(/not yet met/)).toHaveLength(1);
   expect(within(list).getByText(/One uppercase letter/)).toHaveTextContent('not yet met');
 });
@@ -36,7 +53,7 @@ it('redirects a successful registration to login with immediate access confirmat
   fireEvent.change(screen.getByPlaceholderText('Jane'), { target: { value: 'Camille' } });
   fireEvent.change(screen.getByPlaceholderText('Doe'), { target: { value: 'Test' } });
   fireEvent.change(screen.getByPlaceholderText('you@example.com'), { target: { value: 'new@example.test' } });
-  fireEvent.change(screen.getByPlaceholderText('Min. 8 characters'), { target: { value: 'Password123!' } });
+  fireEvent.change(screen.getByPlaceholderText('Min. 12 characters'), { target: { value: 'Password123!' } });
   fireEvent.change(screen.getByPlaceholderText('Repeat your password'), { target: { value: 'Password123!' } });
   fireEvent.click(screen.getByRole('checkbox'));
   fireEvent.click(screen.getByRole('button', { name: /Create my account/ }));

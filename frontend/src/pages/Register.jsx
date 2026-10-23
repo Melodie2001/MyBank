@@ -7,8 +7,8 @@ import PrivacyPolicyModal from '../components/PrivacyPolicyModal';
 import GoogleButton from '../components/GoogleButton';
 
 // Même règle que le backend (App\DTO\RegisterDTO) :
-// au moins 8 caractères, une majuscule, une minuscule, un chiffre, un caractère spécial.
-const PASSWORD_RULE = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/;
+// au moins 12 caractères, une majuscule, une minuscule, un chiffre, un caractère spécial.
+const PASSWORD_RULE = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{12,}$/;
 
 const LogoIcon = () => (
   <div style={{
@@ -30,7 +30,7 @@ const LogoIcon = () => (
 );
 
 const PASSWORD_REQUIREMENTS = [
-  { label: 'At least 8 characters', test: value => value.length >= 8 },
+  { label: 'At least 12 characters', test: value => value.length >= 12 },
   { label: 'One uppercase letter (A–Z)', test: value => /[A-Z]/.test(value) },
   { label: 'One lowercase letter (a–z)', test: value => /[a-z]/.test(value) },
   { label: 'One number (0–9)', test: value => /\d/.test(value) },
@@ -71,7 +71,7 @@ export default function Register() {
     }
 
     if (!PASSWORD_RULE.test(password)) {
-      setError('Password must be at least 8 characters and include an uppercase letter, a lowercase letter, a digit and a special character');
+      setError('Password must be at least 12 characters and include an uppercase letter, a lowercase letter, a digit and a special character');
       return;
     }
 
@@ -156,14 +156,15 @@ export default function Register() {
 
             {error && <div style={styles.error}>{error}</div>}
 
+            <p style={{ fontSize: '12px', color: 'var(--color-text-light)', marginBottom: '16px' }}>Fields marked * are required. Other fields are optional.</p>
             <form onSubmit={handleSubmit} style={styles.form}>
               <div style={{ ...styles.row, ...(isMobile ? { flexDirection: 'column' } : {}) }}>
                 <div style={styles.field}>
-                  <label style={styles.label}>FIRST NAME</label>
+                  <label htmlFor="register-firstName" style={styles.label}>FIRST NAME *</label>
                   <div style={styles.inputWrapper}>
                     <span style={styles.inputIcon}><Icon name="user" /></span>
                     <input
-                      type="text"
+                      id="register-firstName" type="text"
                       value={firstName}
                       onChange={(e) => setFirstName(e.target.value)}
                       style={styles.input}
@@ -173,11 +174,11 @@ export default function Register() {
                   </div>
                 </div>
                 <div style={styles.field}>
-                  <label style={styles.label}>LAST NAME</label>
+                  <label htmlFor="register-lastName" style={styles.label}>LAST NAME *</label>
                   <div style={styles.inputWrapper}>
                     <span style={styles.inputIcon}><Icon name="user" /></span>
                     <input
-                      type="text"
+                      id="register-lastName" type="text"
                       value={lastName}
                       onChange={(e) => setLastName(e.target.value)}
                       style={styles.input}
@@ -189,11 +190,11 @@ export default function Register() {
               </div>
 
               <div style={styles.field}>
-                <label style={styles.label}>EMAIL ADDRESS</label>
+                <label htmlFor="register-email" style={styles.label}>EMAIL ADDRESS *</label>
                 <div style={styles.inputWrapper}>
                   <span style={styles.inputIcon}><Icon name="mail" /></span>
                   <input
-                    type="email"
+                    id="register-email" type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     style={styles.input}
@@ -205,11 +206,11 @@ export default function Register() {
 
               <div style={{ ...styles.row, ...(isMobile ? { flexDirection: 'column' } : {}) }}>
                 <div style={styles.field}>
-                  <label style={styles.label}>PHONE NUMBER</label>
+                  <label htmlFor="register-phone" style={styles.label}>PHONE NUMBER (optional)</label>
                   <div style={styles.inputWrapper}>
                     <span style={styles.inputIcon}><Icon name="phone" /></span>
                     <input
-                      type="tel"
+                      id="register-phone" type="tel"
                       value={phone}
                       onChange={(e) => setPhone(e.target.value)}
                       style={styles.input}
@@ -218,11 +219,11 @@ export default function Register() {
                   </div>
                 </div>
                 <div style={styles.field}>
-                  <label style={styles.label}>DATE OF BIRTH</label>
+                  <label htmlFor="register-birthDate" style={styles.label}>DATE OF BIRTH (optional)</label>
                   <div style={styles.inputWrapper}>
                     <span style={styles.inputIcon}><Icon name="calendar" /></span>
                     <input
-                      type="date"
+                      id="register-birthDate" type="date"
                       value={birthDate}
                       onChange={(e) => setBirthDate(e.target.value)}
                       style={styles.input}
@@ -233,8 +234,8 @@ export default function Register() {
               </div>
 
               <div style={styles.field}>
-                <label style={styles.label}>GENDER</label>
-                <div style={styles.genderGroup}>
+                <span id="register-gender-label" style={styles.label}>GENDER (optional)</span>
+                <div role="group" aria-labelledby="register-gender-label" style={styles.genderGroup}>
                   {[
                     { value: 'male', label: 'Male' },
                     { value: 'female', label: 'Female' },
@@ -258,19 +259,20 @@ export default function Register() {
               </div>
 
               <div style={styles.field}>
-                <label htmlFor="register-password" style={styles.label}>PASSWORD</label>
+                <label htmlFor="register-password" style={styles.label}>PASSWORD *</label>
                 <div style={styles.inputWrapper}>
                   <span style={styles.inputIcon}><Icon name="key" /></span>
                   <input
                     id="register-password"
                     autoComplete="new-password"
                     aria-describedby="password-requirements"
+                    minLength={12}
                     maxLength={4096}
                     type={showPassword ? 'text' : 'password'}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     style={{ ...styles.input, paddingRight: '40px' }}
-                    placeholder="Min. 8 characters"
+                    placeholder="Min. 12 characters"
                     required
                   />
                   <button type="button" onClick={() => setShowPassword(!showPassword)} aria-label={showPassword ? "Hide password" : "Show password"} style={styles.eyeBtn}>
@@ -295,11 +297,11 @@ export default function Register() {
               </div>
 
               <div style={styles.field}>
-                <label style={styles.label}>CONFIRM PASSWORD</label>
+                <label htmlFor="register-confirmPassword" style={styles.label}>CONFIRM PASSWORD *</label>
                 <div style={styles.inputWrapper}>
                   <span style={styles.inputIcon}><Icon name="lock" /></span>
                   <input
-                    type={showConfirm ? 'text' : 'password'}
+                    id="register-confirmPassword" autoComplete="new-password" minLength={12} type={showConfirm ? 'text' : 'password'}
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     style={{ ...styles.input, paddingRight: '40px' }}
@@ -315,6 +317,7 @@ export default function Register() {
               <label style={styles.checkboxLabel}>
                 <input
                   type="checkbox"
+                  required
                   checked={agreeTerms}
                   onChange={(e) => setAgreeTerms(e.target.checked)}
                   style={styles.checkbox}
@@ -324,7 +327,7 @@ export default function Register() {
                   <span style={styles.termsLink}>Terms of Service</span>
                   {' '}and{' '}
                   <button type="button" onClick={() => setShowPrivacy(true)} style={styles.termsLink}>Privacy Policy</button>
-                  {' '}of Nexo Finance
+                  {' '}of Nexo Finance *
                 </span>
               </label>
 
