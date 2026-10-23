@@ -63,3 +63,15 @@ a {
   text-decoration: none;
   color: inherit;
 }
+
+/* iOS zooms focused fields below 16px, leaving the page wider than the screen.
+   Keep pinch zoom available; fix the fields rather than disabling zoom. */
+@media (max-width: 768px), (hover: none) and (pointer: coarse) {
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]),
+  select,
+  textarea {
+    font-size: 16px !important;
+    min-width: 0;
+    max-width: 100%;
+  }
+}

@@ -273,7 +273,7 @@ body.dark .topbar-dropdown-logout:hover {
   }
 }
 
-@media (max-width: 380px) {
+@media (max-width: 480px) {
   .topbar { padding: 0 8px; gap: 4px; }
   .topbar-nav { gap: 0; min-width: 0; }
   .topbar-actions { gap: 4px; }

@@ -171,7 +171,7 @@ export default function Dashboard() {
             </div>
 
             {/* Search + Filters row */}
-            <div style={{ ...styles.searchRow, ...(isMobile ? { flexWrap: 'wrap', gap: '8px' } : {}) }}>
+            <div style={{ ...styles.searchRow, ...(isMobile ? { flexDirection: 'column', alignItems: 'stretch', gap: '8px' } : {}) }}>
               <div style={styles.searchBar}>
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ color: 'var(--color-text-light)', flexShrink: 0 }}>
                   <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
@@ -183,7 +183,7 @@ export default function Dashboard() {
                   onChange={e => setSearch(e.target.value)}
                   style={styles.searchInput}
                 />
-                <span style={styles.searchKbd}>⌘K</span>
+                {!isMobile && <span style={styles.searchKbd}>⌘K</span>}
               </div>
               <div style={styles.filters}>
                 {['All', 'Income', 'Expense'].map(f => (
@@ -627,6 +627,8 @@ const styles = {
     flexShrink: 0,
   },
   opInfo: {
+    minWidth: 0,
+    overflowWrap: 'anywhere',
     display: 'flex',
     flexDirection: 'column',
     gap: '2px',
