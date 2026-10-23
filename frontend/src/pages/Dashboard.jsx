@@ -161,7 +161,7 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <div style={{ ...styles.mainGrid, ...(isMobile ? { gridTemplateColumns: '1fr' } : {}) }}>
+      <div style={{ ...styles.mainGrid, ...(isMobile ? { gridTemplateColumns: 'minmax(0, 1fr)' } : {}) }}>
         {/* Left: Recent operations */}
         <div style={styles.leftCol}>
           <div style={styles.card}>
@@ -212,7 +212,7 @@ export default function Dashboard() {
               <div style={styles.empty}>No operations found</div>
             ) : (
               filteredOperations.slice(0, 8).map(op => (
-                <div key={op.id} style={{ ...styles.tableRow, gridTemplateColumns: isMobile ? '36px 1fr auto' : '36px 2fr 1fr 1fr 1fr' }}>
+                <div key={op.id} style={{ ...styles.tableRow, gridTemplateColumns: isMobile ? '36px minmax(0, 1fr) auto' : '36px 2fr 1fr 1fr 1fr' }}>
                   {/* Icon */}
                   <div style={{
                     ...styles.opIcon,
@@ -504,9 +504,10 @@ const styles = {
     gridTemplateColumns: '1fr 380px',
     gap: '16px',
   },
-  leftCol: {},
-  rightCol: {},
+  leftCol: { minWidth: 0 },
+  rightCol: { minWidth: 0 },
   card: {
+    minWidth: 0,
     backgroundColor: 'var(--color-white)',
     border: '1px solid var(--color-border)',
     borderRadius: '16px',
@@ -528,6 +529,7 @@ const styles = {
   },
   filters: {
     display: 'flex',
+    flexWrap: 'wrap',
     gap: '4px',
     backgroundColor: 'var(--color-bg)',
     borderRadius: '10px',
@@ -562,6 +564,7 @@ const styles = {
     marginBottom: '16px',
   },
   searchBar: {
+    minWidth: 0,
     display: 'flex',
     alignItems: 'center',
     gap: '8px',
@@ -572,6 +575,8 @@ const styles = {
     flex: 1,
   },
   searchInput: {
+    minWidth: 0,
+    width: '100%',
     border: 'none',
     background: 'transparent',
     outline: 'none',
