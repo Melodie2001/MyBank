@@ -141,4 +141,24 @@ final class InputAndDeletionTest extends WebTestCase
         self::assertNotNull($em->find(User::class, $user['id']));
         self::assertSame(200, $this->request('GET','/api/me',null,$user['token'])[0]);
     }
+    public function testPersonalCategoriesArePrivateAndUsableByTheirOwner(): void
+    {
+        $alice = $this->user();
+        $bob = $this->user();
+        [$status, $created] = $this->request('POST', '/api/my-categories/custom', ['name'=>'Private '.bin2hex(random_bytes(5)), 'color'=>'#2563EB', 'icon'=>'briefcase.png'], $alice['token']);
+        self::assertSame(201, $status);
+        $id = $created['category']['id'];
+        foreach (['/api/categories', '/api/my-categories'] as $path) {
+            $mine = $this->request('GET', $path, null, $alice['token'])[1];
+            self::assertContains($id, array_column($mine, 'id'));
+            $others = $this->request('GET', $path, null, $bob['token'])[1];
+            self::assertNotContains($id, array_column($others, 'id'));
+        }
+        self::assertSame(404, $this->request('GET', '/api/categories/'.$id, null, $bob['token'])[0]);
+        self::assertSame(404, $this->request('POST', '/api/my-categories', ['category_id'=>$id], $bob['token'])[0]);
+        $operation = ['label'=>'Private test', 'amount'=>10, 'type'=>'income', 'date'=>'2026-10-23', 'category_id'=>$id];
+        self::assertSame(404, $this->request('POST', '/api/operations', $operation, $bob['token'])[0]);
+        self::assertSame(201, $this->request('POST', '/api/operations', $operation, $alice['token'])[0]);
+        self::assertSame(404, $this->request('POST', '/api/budgets', ['category_id'=>$id,'monthly_limit'=>100], $bob['token'])[0]);
+    }
 }

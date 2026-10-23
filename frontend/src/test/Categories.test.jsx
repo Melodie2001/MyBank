@@ -1,11 +1,11 @@
-import { render, screen, fireEvent, cleanup } from '@testing-library/react';
+import { render, screen, fireEvent, cleanup, within, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import Categories from '../pages/Categories';
-import { getCategories, getMyCategories } from '../services/categoryService';
+import { getCategories, getMyCategories, createPersonalCategory } from '../services/categoryService';
 import { getOperations } from '../services/operationService';
 import { getBudgets } from '../services/budgetService';
 
-vi.mock('../services/categoryService', () => ({ getCategories: vi.fn(), getMyCategories: vi.fn(), addToMyCategories: vi.fn(), removeFromMyCategories: vi.fn() }));
+vi.mock('../services/categoryService', () => ({ getCategories: vi.fn(), getMyCategories: vi.fn(), addToMyCategories: vi.fn(), removeFromMyCategories: vi.fn(), createPersonalCategory: vi.fn() }));
 vi.mock('../services/operationService', () => ({ getOperations: vi.fn() }));
 vi.mock('../services/budgetService', () => ({ getBudgets: vi.fn(), createBudget: vi.fn(), updateBudget: vi.fn() }));
 vi.mock('../hooks/useIsMobile', () => ({ useIsMobile: () => false }));
@@ -44,6 +44,7 @@ it('excludes income and other months from spending totals', async () => {
   render(<Categories />);
   expect(await screen.findByText('25.00 € this month')).toBeInTheDocument();
   expect(screen.getByText('€25.00')).toBeInTheDocument();
+  expect(screen.getByText('€500.00')).toBeInTheDocument();
   expect(screen.getByText('3 operations total')).toBeInTheDocument();
 });
 
@@ -52,19 +53,41 @@ it('shows no expenses when a category contains only income', async () => {
   render(<Categories />);
   expect(await screen.findByText('No expenses yet')).toBeInTheDocument();
   expect(screen.getByText('€0.00')).toBeInTheDocument();
+  expect(screen.getByText('€500.00')).toBeInTheDocument();
 });
 
 it('explains an empty catalog separately from categories already added', async () => {
   getCategories.mockResolvedValue([]);
   getMyCategories.mockResolvedValue([]);
   render(<Categories />);
-  fireEvent.click(await screen.findByRole('button', { name: '+ Add category' }));
+  fireEvent.click(await screen.findByRole('button', { name: 'Browse catalog' }));
   expect(screen.getByText(/No categories are available yet/)).toBeInTheDocument();
   expect(screen.queryByText('All available categories are already in your list.')).not.toBeInTheDocument();
 });
 
 it('keeps the already-added message for a nonempty catalog', async () => {
   render(<Categories />);
-  fireEvent.click(await screen.findByRole('button', { name: '+ Add category' }));
+  fireEvent.click(await screen.findByRole('button', { name: 'Browse catalog' }));
   expect(screen.getByText('All available categories are already in your list.')).toBeInTheDocument();
+});
+
+it('creates a personal category and refreshes the category list', async () => {
+  createPersonalCategory.mockResolvedValueOnce({category:{id:9,name:'Freelance'}});
+  render(<Categories />);
+  fireEvent.click(await screen.findByRole('button', {name:'+ Create category'}));
+  const dialog=screen.getByRole('dialog', {name:'Create category'});
+  fireEvent.change(within(dialog).getByLabelText('Name *'), {target:{value:'  Freelance  '}});
+  fireEvent.click(within(dialog).getByRole('button', {name:'Create category',exact:true}));
+  await waitFor(()=>expect(createPersonalCategory).toHaveBeenCalledWith({name:'Freelance',color:'#2563EB',icon:'transfer.png'}));
+  await waitFor(()=>expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+  expect(getMyCategories).toHaveBeenCalledTimes(2);
+});
+it('keeps the creation form open when the server rejects a duplicate', async () => {
+  createPersonalCategory.mockRejectedValueOnce({response:{data:{message:'You already have a category with this name'}}});
+  render(<Categories />);
+  fireEvent.click(await screen.findByRole('button', {name:'+ Create category'}));
+  fireEvent.change(screen.getByLabelText('Name *'), {target:{value:'Duplicate'}});
+  fireEvent.click(screen.getByRole('button', {name:'Create category',exact:true}));
+  expect(await screen.findByRole('alert')).toHaveTextContent('already have');
+  expect(screen.getByRole('dialog')).toBeInTheDocument();
 });

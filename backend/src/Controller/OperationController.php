@@ -74,7 +74,7 @@ final class OperationController extends AbstractController
 
         $category = $categoryRepository->find($data['category_id']);
 
-        if (!$category) {
+        if (!$category || !$category->isAvailableTo($this->getUser())) {
             return $this->json(['message' => 'Category not found'], 404);
         }
 
@@ -167,7 +167,7 @@ final class OperationController extends AbstractController
         if (isset($data['category_id'])) {
             $category = $categoryRepository->find($data['category_id']);
 
-            if (!$category) {
+            if (!$category || !$category->isAvailableTo($this->getUser())) {
                 return $this->json(['message' => 'Category not found'], 404);
             }
 

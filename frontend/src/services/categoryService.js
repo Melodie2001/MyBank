@@ -23,3 +23,8 @@ export async function removeFromMyCategories(id) {
   const response = await api.delete(`/api/my-categories/${id}`);
   return response.data;
 }
+// Create a category private to the authenticated user and add it to their list.
+export async function createPersonalCategory({ name, color, icon }) {
+  const response = await api.post('/api/my-categories/custom', { name, color, icon });
+  return response.data;
+}

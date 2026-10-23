@@ -6,6 +6,8 @@ use App\Repository\CategoryRepository;
 use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity(repositoryClass: CategoryRepository::class)]
+#[ORM\Index(name: 'IDX_CATEGORY_OWNER', fields: ['owner'])]
+#[ORM\UniqueConstraint(name: 'UNIQ_CATEGORY_OWNER_NAME', fields: ['owner', 'name'])]
 class Category
 {
     #[ORM\Id]
@@ -21,6 +23,22 @@ class Category
 
     #[ORM\Column(length: 50)]
     private ?string $color = null;
+
+    #[ORM\ManyToOne]
+    #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
+    private ?User $owner = null;
+
+    #[ORM\Column(options: ['default' => true])]
+    private bool $shared = true;
+
+    public function getOwner(): ?User { return $this->owner; }
+    public function setOwner(?User $owner): static { $this->owner = $owner; return $this; }
+    public function isShared(): bool { return $this->shared; }
+    public function setShared(bool $shared): static { $this->shared = $shared; return $this; }
+    public function isAvailableTo(?User $user): bool
+    {
+        return $this->shared || ($user !== null && $this->owner !== null && $this->owner->getId() !== null && $this->owner->getId() === $user->getId());
+    }
 
     public function getId(): ?int
     {

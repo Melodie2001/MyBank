@@ -16,6 +16,12 @@ class CategoryRepository extends ServiceEntityRepository
         parent::__construct($registry, Category::class);
     }
 
+    public function availableTo(\App\Entity\User $user): array
+    {
+        return $this->createQueryBuilder('c')->where('c.shared = true OR c.owner = :user')
+            ->setParameter('user', $user)->orderBy('c.name', 'ASC')->getQuery()->getResult();
+    }
+
 //    /**
 //     * @return Category[] Returns an array of Category objects
 //     */

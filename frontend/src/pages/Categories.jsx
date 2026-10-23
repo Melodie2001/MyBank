@@ -2,7 +2,7 @@ import Icon from '../components/Icon';
 import CategoryIcon from '../components/CategoryIcon';
 import { useState, useEffect } from 'react';
 import LoadError from '../components/LoadError';
-import { getCategories, getMyCategories, addToMyCategories, removeFromMyCategories } from '../services/categoryService';
+import { getCategories, getMyCategories, addToMyCategories, removeFromMyCategories, createPersonalCategory } from '../services/categoryService';
 import { getOperations } from '../services/operationService';
 import { getBudgets, createBudget, updateBudget } from '../services/budgetService';
 import { useIsMobile } from '../hooks/useIsMobile';
@@ -17,6 +17,7 @@ export default function Categories() {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showCreateModal, setShowCreateModal] = useState(false);
   const [budgetEdit, setBudgetEdit] = useState(null); // { catId, value }
 
   useEffect(() => { fetchData(); }, []);
@@ -48,8 +49,9 @@ export default function Categories() {
     const catOps = operations.filter(op => op.category.id === catId);
     const monthlyOps = catOps.filter(op => op.date?.startsWith(thisMonth));
     const monthlyTotal = monthlyOps.filter(op => op.type === 'expense').reduce((s, op) => s + Number(op.amount), 0);
+    const monthlyIncome = monthlyOps.filter(op => op.type === 'income').reduce((sum, op) => sum + Number(op.amount), 0);
     const hasExpenses = catOps.some(op => op.type === 'expense');
-    return { count: catOps.length, monthlyCount: monthlyOps.length, monthlyTotal, hasExpenses };
+    return { count: catOps.length, monthlyCount: monthlyOps.length, monthlyTotal, monthlyIncome, hasExpenses };
   }
 
   function getCatBudget(catId) {
@@ -117,9 +119,12 @@ export default function Categories() {
       <div style={{ ...s.header, ...(isMobile ? { flexWrap: 'wrap', gap: '12px' } : {}) }}>
         <div>
           <h1 style={s.title}>Categories</h1>
-          <p style={s.subtitle}>Manage your expense categories and monthly budgets</p>
+          <p style={s.subtitle}>Manage your income, expense categories and monthly budgets</p>
         </div>
-        <button style={s.btnAdd} onClick={() => setShowAddModal(true)}>+ Add category</button>
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+          <button style={s.btnCancel} onClick={() => setShowAddModal(true)}>Browse catalog</button>
+          <button style={s.btnAdd} onClick={() => setShowCreateModal(true)}>+ Create category</button>
+        </div>
       </div>
 
       {/* Stats row */}
@@ -146,7 +151,7 @@ export default function Categories() {
 
       {/* Grid */}
       {myCategories.length === 0 ? (
-        <div style={s.empty}>No categories yet. Click "+ Add category" to add one.</div>
+        <div style={s.empty}>No categories yet. Create your own category or browse the catalog.</div>
       ) : (
         <div style={s.grid}>
           {cardData.map(cat => {
@@ -157,7 +162,7 @@ export default function Categories() {
             const barColor = isOver ? '#DC2626' : budget?.percentage >= 80 ? '#D97706' : '#16A34A';
 
             return (
-              <div key={cat.id} style={s.card}>
+              <section key={cat.id} aria-label={cat.name} style={s.card}>
                 {/* Top: icon + name/ops + dot */}
                 <div style={s.cardTop}>
                   <div style={{ ...s.iconBox, backgroundColor: cat.color + '22' }}>
@@ -173,6 +178,9 @@ export default function Categories() {
                 {/* Amount + badge */}
                 <div style={s.amountRow}>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                    <span style={s.thisMonth}>Income this month</span>
+                    <span style={{ ...s.catTotal, color: '#15803D' }}>€{cat.monthlyIncome.toFixed(2)}</span>
+                    <span style={{ ...s.thisMonth, marginTop: '8px' }}>Expenses this month</span>
                     <span style={{ ...s.catTotal, color: isOver ? '#DC2626' : 'var(--color-text)' }}>
                       €{cat.monthlyTotal.toFixed(2)}
                     </span>
@@ -261,13 +269,17 @@ export default function Categories() {
                   </button>
                 ) : null}
 
-                <button style={s.btnRemove} onClick={() => handleRemove(cat.id)}>Remove</button>
-              </div>
+                <button style={s.btnRemove} onClick={() => handleRemove(cat.id)}>Remove from my list</button>
+              </section>
             );
           })}
         </div>
       )}
 
+      {showCreateModal && <CreateCategoryModal onClose={() => setShowCreateModal(false)} onCreated={async () => {
+        setShowCreateModal(false);
+        await fetchData();
+      }} />}
       {showAddModal && (
         <SelectCategoryModal
           categories={availableCategories}
@@ -290,6 +302,50 @@ function StatCard({ label, value, sub, valueColor }) {
   );
 }
 
+function CreateCategoryModal({ onClose, onCreated }) {
+  const [name, setName] = useState('');
+  const [color, setColor] = useState('#2563EB');
+  const [icon, setIcon] = useState('transfer.png');
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+  async function handleSubmit(event) {
+    event.preventDefault();
+    if (saving) return;
+    if (!name.trim()) { setError('Category name is required'); return; }
+    setSaving(true);
+    setError('');
+    try {
+      await createPersonalCategory({ name: name.trim(), color, icon });
+      await onCreated();
+    } catch (err) {
+      setError(err.response?.data?.message || 'Unable to create the category. Please try again.');
+      setSaving(false);
+    }
+  }
+  return <div style={{ ...s.overlay, padding: '16px' }}>
+    <div role="dialog" aria-modal="true" aria-labelledby="create-category-title" style={{ ...s.modal, padding: '24px', maxHeight: '90dvh', overflowY: 'auto' }}>
+      <h2 id="create-category-title" style={s.modalTitle}>Create category</h2>
+      <p style={{ ...s.modalSubtitle, marginBottom: '20px' }}>Only you can use this category. It will appear in the category selector when you add an operation.</p>
+      {error && <p role="alert" style={{ color: '#DC2626', marginBottom: '12px' }}>{error}</p>}
+      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+        <label htmlFor="category-name">Name *</label>
+        <input id="category-name" value={name} onChange={e => setName(e.target.value)} maxLength={255} required autoFocus style={s.budgetInput} />
+        <label htmlFor="category-color">Color</label>
+        <input id="category-color" type="color" value={color} onChange={e => setColor(e.target.value)} />
+        <label htmlFor="category-icon">Icon</label>
+        <select id="category-icon" value={icon} onChange={e => setIcon(e.target.value)} style={s.budgetInput}>
+          {Object.entries({ 'transfer.png': 'General', 'cart.png': 'Shopping', 'house.png': 'Home', 'train.png': 'Transport', 'briefcase.png': 'Work', 'books.png': 'Education', 'plane.png': 'Travel', 'healthcare.png': 'Health', 'gamepad.png': 'Leisure' }).map(([value, label]) => <option value={value} key={value}>{label}</option>)}
+        </select>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', overflowWrap: 'anywhere' }}><CategoryIcon category={{ icon, color }} /><span>{name || 'Category preview'}</span></div>
+        <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+          <button type="button" disabled={saving} onClick={onClose} style={s.btnCancel}>Cancel</button>
+          <button type="submit" disabled={saving} style={{ ...s.btnAdd, opacity: saving ? .6 : 1 }}>{saving ? 'Creating...' : 'Create category'}</button>
+        </div>
+      </form>
+    </div>
+  </div>;
+}
+
 function SelectCategoryModal({ categories, catalogEmpty, onClose, onAdd }) {
   const isMobile = useIsMobile();
   return (
@@ -297,7 +353,7 @@ function SelectCategoryModal({ categories, catalogEmpty, onClose, onAdd }) {
       <div style={{ ...s.modal, ...(isMobile ? { padding: '24px 16px', maxHeight: '90vh', overflowY: 'auto', margin: '0 16px' } : {}) }}>
         <div style={s.modalHeader}>
           <div>
-            <h2 style={s.modalTitle}>Add a category</h2>
+            <h2 style={s.modalTitle}>Browse catalog</h2>
             <p style={s.modalSubtitle}>Select a category to add to your list</p>
           </div>
           <button onClick={onClose} style={s.closeBtn}>✕</button>

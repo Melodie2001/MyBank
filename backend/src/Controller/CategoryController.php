@@ -20,8 +20,34 @@ final class CategoryController extends AbstractController
     {
         return $this->json(array_map(
             fn($cat) => $this->formatCategory($cat),
-            $repository->findAll()
+            $repository->availableTo($this->getUser())
         ));
+    }
+
+    #[Route('/api/my-categories/custom', methods: ['POST'])]
+    public function createPersonal(Request $request, CategoryRepository $repository, EntityManagerInterface $em): JsonResponse
+    {
+        $user = $this->getUser();
+        $data = \App\Http\JsonInput::read($request);
+        $data['icon'] ??= 'transfer.png';
+        $error = $this->validateCategoryData($data, true);
+        if ($error) return $error;
+        $name = trim($data['name']);
+        if ($repository->findOneBy(['owner' => $user, 'name' => $name])) {
+            return $this->json(['message' => 'You already have a category with this name'], 409);
+        }
+        $category = (new Category())->setName($name)->setIcon(trim($data['icon']))
+            ->setColor($data['color'])->setOwner($user)->setShared(false);
+        $link = (new UserCategory())->setUser($user)->setCategory($category);
+        try {
+            $em->wrapInTransaction(function () use ($em, $category, $link): void {
+                $em->persist($category);
+                $em->persist($link);
+            });
+        } catch (\Doctrine\DBAL\Exception\UniqueConstraintViolationException) {
+            return $this->json(['message' => 'You already have a category with this name'], 409);
+        }
+        return $this->json(['message' => 'Category created', 'category' => $this->formatCategory($category)], 201);
     }
 
     // GET les categories de l'utilisateur connecté
@@ -58,7 +84,7 @@ final class CategoryController extends AbstractController
 
         $category = $categoryRepository->find($data['category_id']);
 
-        if (!$category) {
+        if (!$category || !$category->isAvailableTo($this->getUser())) {
             return $this->json(['message' => 'Category not found'], 404);
         }
 
@@ -98,7 +124,7 @@ final class CategoryController extends AbstractController
 
         $category = $categoryRepository->find($id);
 
-        if (!$category) {
+        if (!$category || !$category->isAvailableTo($this->getUser())) {
             return $this->json(['message' => 'Category not found'], 404);
         }
 
@@ -122,7 +148,7 @@ final class CategoryController extends AbstractController
     {
         $category = $repository->find($id);
 
-        if (!$category) {
+        if (!$category || !$category->isAvailableTo($this->getUser())) {
             return $this->json(['message' => 'Category not found'], 404);
         }
 
@@ -170,7 +196,7 @@ final class CategoryController extends AbstractController
 
         $category = $repository->find($id);
 
-        if (!$category) {
+        if (!$category || !$category->isAvailableTo($this->getUser())) {
             return $this->json(['message' => 'Category not found'], 404);
         }
 
@@ -205,7 +231,7 @@ final class CategoryController extends AbstractController
 
         $category = $repository->find($id);
 
-        if (!$category) {
+        if (!$category || !$category->isAvailableTo($this->getUser())) {
             return $this->json(['message' => 'Category not found'], 404);
         }
 
@@ -225,6 +251,12 @@ final class CategoryController extends AbstractController
     {
         if (!$data) {
             return $this->json(['message' => 'Invalid JSON body'], 400);
+        }
+
+        foreach (['name' => 255, 'icon' => 255, 'color' => 7] as $field => $max) {
+            if (array_key_exists($field, $data) && (!is_string($data[$field]) || mb_strlen($data[$field]) > $max)) {
+                return $this->json(['message' => 'Invalid category '.$field], 400);
+            }
         }
 
         if ($isCreate && empty($data['name'])) {
