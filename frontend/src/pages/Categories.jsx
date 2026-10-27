@@ -6,6 +6,7 @@ import { getCategories, getMyCategories, addToMyCategories, removeFromMyCategori
 import { getOperations } from '../services/operationService';
 import { getBudgets, createBudget, updateBudget } from '../services/budgetService';
 import { useIsMobile } from '../hooks/useIsMobile';
+import { acceptsOperation, categoryType } from '../utils/categoryType';
 
 
 export default function Categories() {
@@ -45,13 +46,14 @@ export default function Categories() {
   const now = new Date();
   const thisMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
 
-  function getCatStats(catId) {
-    const catOps = operations.filter(op => op.category.id === catId);
+  function getCatStats(category) {
+    const catOps = operations.filter(op => op.category.id === category.id);
     const monthlyOps = catOps.filter(op => op.date?.startsWith(thisMonth));
     const monthlyTotal = monthlyOps.filter(op => op.type === 'expense').reduce((s, op) => s + Number(op.amount), 0);
     const monthlyIncome = monthlyOps.filter(op => op.type === 'income').reduce((sum, op) => sum + Number(op.amount), 0);
     const hasExpenses = catOps.some(op => op.type === 'expense');
-    return { count: catOps.length, monthlyCount: monthlyOps.length, monthlyTotal, monthlyIncome, hasExpenses };
+    const incompatibleCount = catOps.filter(op => !acceptsOperation(category, op.type)).length;
+    return { count: catOps.length, monthlyCount: monthlyOps.length, monthlyTotal, monthlyIncome, hasExpenses, incompatibleCount };
   }
 
   function getCatBudget(catId) {
@@ -60,15 +62,16 @@ export default function Categories() {
 
   const cardData = myCategories.map(cat => ({
     ...cat,
-    ...getCatStats(cat.id),
+    ...getCatStats(cat),
     budget: getCatBudget(cat.id),
   }));
 
-  const mostSpent = cardData.length
-    ? cardData.reduce((m, c) => c.monthlyTotal > m.monthlyTotal ? c : m, cardData[0])
+  const expenseCategories = cardData.filter(c => acceptsOperation(c, 'expense'));
+  const mostSpent = expenseCategories.length
+    ? expenseCategories.reduce((m, c) => c.monthlyTotal > m.monthlyTotal ? c : m, expenseCategories[0])
     : null;
-  const budgetsSetCount = cardData.filter(c => c.budget).length;
-  const alertsCount = cardData.filter(c => c.budget && c.budget.percentage >= 80).length;
+  const budgetsSetCount = expenseCategories.filter(c => c.budget).length;
+  const alertsCount = expenseCategories.filter(c => c.budget && c.budget.percentage >= 80).length;
 
   async function handleSaveBudget(cat, existingBudget) {
     if (!budgetEdit?.value || parseFloat(budgetEdit.value) <= 0) return;
@@ -132,8 +135,8 @@ export default function Categories() {
         <StatCard label="TOTAL CATEGORIES" value={myCategories.length} sub="In your list" />
         <StatCard
           label="BUDGETS SET"
-          value={`${budgetsSetCount} / ${myCategories.length}`}
-          sub="Categories with a limit"
+          value={`${budgetsSetCount} / ${expenseCategories.length}`}
+          sub="Expense categories with a limit"
         />
         <StatCard
           label="MOST SPENT"
@@ -170,6 +173,7 @@ export default function Categories() {
                   </div>
                   <div style={s.cardInfo}>
                     <span style={s.catName}>{cat.name}</span>
+                    <span style={s.catOps}>{categoryType(cat) === 'both' ? 'Income & expense' : categoryType(cat) === 'income' ? 'Income only' : 'Expense only'}</span>
                     <span style={s.catOps}>{cat.count} {cat.count === 1 ? 'operation' : 'operations'} total</span>
                   </div>
                   <div style={{ ...s.dot, backgroundColor: cat.color }} />
@@ -178,12 +182,16 @@ export default function Categories() {
                 {/* Amount + badge */}
                 <div style={s.amountRow}>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                    <span style={s.thisMonth}>Income this month</span>
-                    <span style={{ ...s.catTotal, color: '#15803D' }}>€{cat.monthlyIncome.toFixed(2)}</span>
-                    <span style={{ ...s.thisMonth, marginTop: '8px' }}>Expenses this month</span>
+                    {acceptsOperation(cat, 'income') && <>
+                      <span style={s.thisMonth}>Income this month</span>
+                      <span style={{ ...s.catTotal, color: '#15803D' }}>€{cat.monthlyIncome.toFixed(2)}</span>
+                    </>}
+                    {acceptsOperation(cat, 'expense') && <>
+                    <span style={{ ...s.thisMonth, marginTop: acceptsOperation(cat, 'income') ? '8px' : 0 }}>Expenses this month</span>
                     <span style={{ ...s.catTotal, color: isOver ? '#DC2626' : 'var(--color-text)' }}>
                       €{cat.monthlyTotal.toFixed(2)}
                     </span>
+                    </>}
                     <span style={s.thisMonth}>
                       {cat.monthlyCount} operation{cat.monthlyCount !== 1 ? 's' : ''} this month
                     </span>
@@ -191,8 +199,12 @@ export default function Categories() {
                   {isOver && <span style={s.overBadge}><Icon name="alert" /> Over budget</span>}
                 </div>
 
+                {cat.incompatibleCount > 0 && <p role="alert" style={{ color: '#B45309', fontSize: '12px', marginBottom: '12px' }}>
+                  {cat.incompatibleCount} existing operation(s) use an incompatible type. They remain in your balance. Correct their category in <a href="/operations" style={{ textDecoration: 'underline' }}>Operations</a>.
+                </p>}
+
                 {/* Budget — only for expense-capable categories */}
-                {(cat.hasExpenses || budget) && budget ? (
+                {acceptsOperation(cat, 'expense') && budget ? (
                   <div style={s.budgetBox}>
                     <div style={s.budgetHeader}>
                       <span style={s.budgetLabel}><Icon name="target" /> Monthly budget</span>
@@ -241,7 +253,7 @@ export default function Categories() {
                       </>
                     )}
                   </div>
-                ) : (cat.hasExpenses || budget) && isEditing ? (
+                ) : acceptsOperation(cat, 'expense') && isEditing ? (
                   <div style={s.budgetBox}>
                     <div style={s.editRow}>
                       <input
@@ -260,7 +272,7 @@ export default function Categories() {
                       </div>
                     </div>
                   </div>
-                ) : cat.hasExpenses ? (
+                ) : acceptsOperation(cat, 'expense') ? (
                   <button
                     style={s.btnSetBudget}
                     onClick={() => setBudgetEdit({ catId: cat.id, value: '' })}
@@ -306,6 +318,7 @@ function CreateCategoryModal({ onClose, onCreated }) {
   const [name, setName] = useState('');
   const [color, setColor] = useState('#2563EB');
   const [icon, setIcon] = useState('transfer.png');
+  const [type, setType] = useState('expense');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   async function handleSubmit(event) {
@@ -315,7 +328,7 @@ function CreateCategoryModal({ onClose, onCreated }) {
     setSaving(true);
     setError('');
     try {
-      await createPersonalCategory({ name: name.trim(), color, icon });
+      await createPersonalCategory({ name: name.trim(), color, icon, type });
       await onCreated();
     } catch (err) {
       setError(err.response?.data?.message || 'Unable to create the category. Please try again.');
@@ -330,6 +343,12 @@ function CreateCategoryModal({ onClose, onCreated }) {
       <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
         <label htmlFor="category-name">Name *</label>
         <input id="category-name" value={name} onChange={e => setName(e.target.value)} maxLength={255} required autoFocus style={s.budgetInput} />
+        <label htmlFor="category-type">Category type *</label>
+        <select id="category-type" value={type} onChange={e => setType(e.target.value)} style={s.budgetInput}>
+          <option value="expense">Expense only</option>
+          <option value="income">Income only</option>
+          <option value="both">Income & expense</option>
+        </select>
         <label htmlFor="category-color">Color</label>
         <input id="category-color" type="color" value={color} onChange={e => setColor(e.target.value)} />
         <label htmlFor="category-icon">Icon</label>

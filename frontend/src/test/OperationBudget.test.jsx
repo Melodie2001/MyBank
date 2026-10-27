@@ -14,6 +14,21 @@ const show = () => render(<OperationModal categories={categories} operation={ope
 
 beforeEach(() => { vi.clearAllMocks(); });
 
+it('filters categories by direction and clears an incompatible selection on type change', async () => {
+  getBudgets.mockResolvedValue([]);
+  const typed = [{ ...categories[0], type: 'expense' }, { id: 3, name: 'Salaire', type: 'income' }, { id: 4, name: 'Autres', type: 'both' }];
+  render(<OperationModal categories={typed} operation={operation} onClose={vi.fn()} onSaved={vi.fn()} />);
+  const select = screen.getByLabelText('CATEGORY');
+  expect([...select.options].map(o => o.textContent)).toEqual(['Select a category', 'Food', 'Autres']);
+  fireEvent.change(screen.getByLabelText('TYPE'), { target: { value: 'income' } });
+  expect(select.value).toBe('');
+  expect([...select.options].map(o => o.textContent)).toEqual(['Select a category', 'Salaire', 'Autres']);
+  fireEvent.change(select, { target: { value: '4' } });
+  fireEvent.change(screen.getByLabelText('TYPE'), { target: { value: 'expense' } });
+  expect(select.value).toBe('4');
+  await waitFor(() => expect(getBudgets).toHaveBeenCalled());
+});
+
 describe('monthly budget preview', () => {
   it('replaces the original amount and shows percentages above 100', async () => {
     getBudgets.mockResolvedValue([budget(1, 100)]);

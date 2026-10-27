@@ -37,7 +37,7 @@ final class CategoryController extends AbstractController
             return $this->json(['message' => 'You already have a category with this name'], 409);
         }
         $category = (new Category())->setName($name)->setIcon(trim($data['icon']))
-            ->setColor($data['color'])->setOwner($user)->setShared(false);
+            ->setColor($data['color'])->setOwner($user)->setShared(false)->setType($data['type'] ?? 'expense');
         $link = (new UserCategory())->setUser($user)->setCategory($category);
         try {
             $em->wrapInTransaction(function () use ($em, $category, $link): void {
@@ -173,6 +173,7 @@ final class CategoryController extends AbstractController
         $category->setName(trim($data['name']));
         $category->setIcon(trim($data['icon']));
         $category->setColor(trim($data['color']));
+        $category->setType($data['type'] ?? 'expense');
 
         $em->persist($category);
         $em->flush();
@@ -207,6 +208,9 @@ final class CategoryController extends AbstractController
             return $validationError;
         }
 
+        if (isset($data['type']) && $data['type'] !== $category->getType()) {
+            return $this->json(['message' => 'Category type cannot be changed after creation'], 400);
+        }
         if (isset($data['name'])) $category->setName(trim($data['name']));
         if (isset($data['icon'])) $category->setIcon(trim($data['icon']));
         if (isset($data['color'])) $category->setColor(trim($data['color']));
@@ -253,6 +257,10 @@ final class CategoryController extends AbstractController
             return $this->json(['message' => 'Invalid JSON body'], 400);
         }
 
+        if (array_key_exists('type', $data) && !in_array($data['type'], ['income', 'expense', 'both'], true)) {
+            return $this->json(['message' => 'Category type must be income, expense or both'], 400);
+        }
+
         foreach (['name' => 255, 'icon' => 255, 'color' => 7] as $field => $max) {
             if (array_key_exists($field, $data) && (!is_string($data[$field]) || mb_strlen($data[$field]) > $max)) {
                 return $this->json(['message' => 'Invalid category '.$field], 400);
@@ -292,7 +300,8 @@ final class CategoryController extends AbstractController
             'id' => $category->getId(),
             'name' => $category->getName(),
             'icon' => $category->getIcon(),
-            'color' => $category->getColor()
+            'color' => $category->getColor(),
+            'type' => $category->getType()
         ];
     }
 }

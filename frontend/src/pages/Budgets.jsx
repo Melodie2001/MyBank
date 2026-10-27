@@ -197,7 +197,7 @@ function BudgetModal({ budget, categories, onClose, onSaved }) {
                 required
               >
                 <option value="">Select a category</option>
-                {categories.map(cat => (
+                {categories.filter(cat => cat.type !== 'income').map(cat => (
                   <option key={cat.id} value={cat.id}>{cat.name}</option>
                 ))}
               </select>

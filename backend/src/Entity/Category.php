@@ -31,6 +31,23 @@ class Category
     #[ORM\Column(options: ['default' => true])]
     private bool $shared = true;
 
+    #[ORM\Column(name: 'operation_type', length: 10, options: ['default' => 'expense'])]
+    private string $type = 'expense';
+
+    public function getType(): string { return $this->type; }
+    public function setType(string $type): static
+    {
+        if (!in_array($type, ['income', 'expense', 'both'], true)) {
+            throw new \InvalidArgumentException('Invalid category type');
+        }
+        $this->type = $type;
+        return $this;
+    }
+    public function accepts(string $operationType): bool
+    {
+        return in_array($operationType, ['income', 'expense'], true) && ($this->type === 'both' || $this->type === $operationType);
+    }
+
     public function getOwner(): ?User { return $this->owner; }
     public function setOwner(?User $owner): static { $this->owner = $owner; return $this; }
     public function isShared(): bool { return $this->shared; }

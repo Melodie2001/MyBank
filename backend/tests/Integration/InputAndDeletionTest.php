@@ -141,11 +141,39 @@ final class InputAndDeletionTest extends WebTestCase
         self::assertNotNull($em->find(User::class, $user['id']));
         self::assertSame(200, $this->request('GET','/api/me',null,$user['token'])[0]);
     }
+    public function testCategoryTypesAreEnforcedForOperationsAndBudgets(): void
+    {
+        $user = $this->user();
+        $ids = [];
+        foreach (['income', 'expense', 'both'] as $type) {
+            [$status, $created] = $this->request('POST', '/api/my-categories/custom', ['name'=>'Typed '.bin2hex(random_bytes(6)), 'color'=>'#2563EB', 'type'=>$type], $user['token']);
+            self::assertSame(201, $status);
+            self::assertSame($type, $created['category']['type']);
+            $ids[$type] = $created['category']['id'];
+        }
+        $draft = ['label'=>'Type test', 'amount'=>10, 'date'=>'2026-10-28'];
+        foreach (['income', 'expense', 'both'] as $categoryType) {
+            foreach (['income', 'expense'] as $operationType) {
+                $expected = $categoryType === 'both' || $categoryType === $operationType ? 201 : 400;
+                self::assertSame($expected, $this->request('POST', '/api/operations', $draft + ['type'=>$operationType, 'category_id'=>$ids[$categoryType]], $user['token'])[0]);
+            }
+        }
+        [, $created] = $this->request('POST', '/api/operations', $draft + ['type'=>'income', 'category_id'=>$ids['income']], $user['token']);
+        $path = '/api/operations/'.$created['operation']['id'];
+        self::assertSame(400, $this->request('PUT', $path, ['type'=>'expense'], $user['token'])[0]);
+        self::assertSame(400, $this->request('PUT', $path, ['category_id'=>$ids['expense']], $user['token'])[0]);
+        self::assertSame('income', $this->request('GET', $path, null, $user['token'])[1]['type']);
+        self::assertSame(200, $this->request('PUT', $path, ['type'=>'expense', 'category_id'=>$ids['expense']], $user['token'])[0]);
+        self::assertSame(400, $this->request('POST', '/api/budgets', ['category_id'=>$ids['income'], 'monthly_limit'=>100], $user['token'])[0]);
+        self::assertSame(201, $this->request('POST', '/api/budgets', ['category_id'=>$ids['both'], 'monthly_limit'=>100], $user['token'])[0]);
+        self::assertSame(400, $this->request('POST', '/api/my-categories/custom', ['name'=>'Bad type', 'color'=>'#2563EB', 'type'=>'invalid'], $user['token'])[0]);
+    }
+
     public function testPersonalCategoriesArePrivateAndUsableByTheirOwner(): void
     {
         $alice = $this->user();
         $bob = $this->user();
-        [$status, $created] = $this->request('POST', '/api/my-categories/custom', ['name'=>'Private '.bin2hex(random_bytes(5)), 'color'=>'#2563EB', 'icon'=>'briefcase.png'], $alice['token']);
+        [$status, $created] = $this->request('POST', '/api/my-categories/custom', ['name'=>'Private '.bin2hex(random_bytes(5)), 'color'=>'#2563EB', 'icon'=>'briefcase.png', 'type'=>'income'], $alice['token']);
         self::assertSame(201, $status);
         $id = $created['category']['id'];
         foreach (['/api/categories', '/api/my-categories'] as $path) {

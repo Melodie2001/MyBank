@@ -19,7 +19,7 @@ final class BudgetOperationsTest extends WebTestCase
         $em = static::getContainer()->get(EntityManagerInterface::class);
         $this->categories = [];
         foreach (['First', 'Second'] as $name) {
-            $category = (new Category())->setName('Budget test '.$name)->setIcon('test')->setColor('#2563EB');
+            $category = (new Category())->setName('Budget test '.$name)->setIcon('test')->setColor('#2563EB')->setType('both');
             $em->persist($category);
             $this->categories[] = $category;
         }

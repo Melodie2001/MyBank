@@ -24,7 +24,7 @@ export async function removeFromMyCategories(id) {
   return response.data;
 }
 // Create a category private to the authenticated user and add it to their list.
-export async function createPersonalCategory({ name, color, icon }) {
-  const response = await api.post('/api/my-categories/custom', { name, color, icon });
+export async function createPersonalCategory({ name, color, icon, type }) {
+  const response = await api.post('/api/my-categories/custom', { name, color, icon, type });
   return response.data;
 }

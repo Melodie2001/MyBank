@@ -79,6 +79,9 @@ final class OperationController extends AbstractController
         }
 
         $operation = new Operation();
+        if (!$category->accepts($data['type'])) {
+            return $this->json(['message' => 'This category does not accept this operation type'], 400);
+        }
         $operation->setLabel(trim($data['label']));
         $operation->setAmount((float) $data['amount']);
         $operation->setDate(new \DateTimeImmutable($data['date']));
@@ -146,6 +149,13 @@ final class OperationController extends AbstractController
             return $validationError;
         }
 
+        $category = isset($data['category_id']) ? $categoryRepository->find($data['category_id']) : $operation->getCategory();
+        if (!$category || !$category->isAvailableTo($operation->getUser())) {
+            return $this->json(['message' => 'Category not found'], 404);
+        }
+        if (!$category->accepts($data['type'] ?? $operation->getType())) {
+            return $this->json(['message' => 'Choose a category compatible with this operation type'], 400);
+        }
         $previous = clone $operation;
 
         if (isset($data['label'])) {
@@ -165,12 +175,6 @@ final class OperationController extends AbstractController
         }
 
         if (isset($data['category_id'])) {
-            $category = $categoryRepository->find($data['category_id']);
-
-            if (!$category || !$category->isAvailableTo($this->getUser())) {
-                return $this->json(['message' => 'Category not found'], 404);
-            }
-
             $operation->setCategory($category);
         }
 
@@ -330,7 +334,8 @@ final class OperationController extends AbstractController
                 'id' => $operation->getCategory()->getId(),
                 'name' => $operation->getCategory()->getName(),
                 'icon' => $operation->getCategory()->getIcon(),
-                'color' => $operation->getCategory()->getColor()
+                'color' => $operation->getCategory()->getColor(),
+                'type' => $operation->getCategory()->getType()
             ],
             'user' => [
                 'id' => $operation->getUser()->getId(),

@@ -69,6 +69,9 @@ final class BudgetController extends AbstractController
             return $this->json(['message' => 'Category not found'], 404);
         }
 
+        if (!$category->accepts('expense')) {
+            return $this->json(['message' => 'Budgets are only available for expense categories'], 400);
+        }
         $existing = $budgetRepository->findOneBy(['user' => $user, 'category' => $category]);
 
         if ($existing) {
@@ -123,6 +126,9 @@ final class BudgetController extends AbstractController
             return $this->json(['message' => 'Monthly limit must be a positive number'], 400);
         }
 
+        if (!$budget->getCategory()->accepts('expense')) {
+            return $this->json(['message' => 'Budgets are only available for expense categories'], 400);
+        }
         $budget->setMonthlyLimit((float) $data['monthly_limit']);
         $em->flush();
 
@@ -180,7 +186,8 @@ final class BudgetController extends AbstractController
                 'id' => $budget->getCategory()->getId(),
                 'name' => $budget->getCategory()->getName(),
                 'icon' => $budget->getCategory()->getIcon(),
-                'color' => $budget->getCategory()->getColor()
+                'color' => $budget->getCategory()->getColor(),
+                'type' => $budget->getCategory()->getType()
             ]
         ];
     }

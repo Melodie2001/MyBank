@@ -78,10 +78,28 @@ it('creates a personal category and refreshes the category list', async () => {
   const dialog=screen.getByRole('dialog', {name:'Create category'});
   fireEvent.change(within(dialog).getByLabelText('Name *'), {target:{value:'  Freelance  '}});
   fireEvent.click(within(dialog).getByRole('button', {name:'Create category',exact:true}));
-  await waitFor(()=>expect(createPersonalCategory).toHaveBeenCalledWith({name:'Freelance',color:'#2563EB',icon:'transfer.png'}));
+  await waitFor(()=>expect(createPersonalCategory).toHaveBeenCalledWith({name:'Freelance',color:'#2563EB',icon:'transfer.png',type:'expense'}));
   await waitFor(()=>expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
   expect(getMyCategories).toHaveBeenCalledTimes(2);
 });
+it('shows only allowed totals and preserves a warning for inconsistent history', async () => {
+  const typed = [{ ...category, type: 'expense' }, { ...category, id: 2, name: 'Salaire', type: 'income' }, { ...category, id: 3, name: 'Autres', type: 'both' }];
+  getMyCategories.mockResolvedValue(typed);
+  getOperations.mockResolvedValue([{ category: typed[1], date: new Date().toISOString().slice(0, 10), type: 'expense', amount: 400 }]);
+  render(<Categories />);
+  const food = await screen.findByRole('region', { name: 'QA Food' });
+  expect(within(food).queryByText('Income this month')).not.toBeInTheDocument();
+  expect(within(food).getByText('Expenses this month')).toBeInTheDocument();
+  const salary = screen.getByRole('region', { name: 'Salaire' });
+  expect(within(salary).queryByText('Expenses this month')).not.toBeInTheDocument();
+  expect(within(salary).getByText('Income this month')).toBeInTheDocument();
+  expect(within(salary).getByRole('alert')).toHaveTextContent('remain in your balance');
+  expect(within(salary).queryByRole('button', { name: /Set a monthly budget/ })).not.toBeInTheDocument();
+  const other = screen.getByRole('region', { name: 'Autres' });
+  expect(within(other).getByText('Income this month')).toBeInTheDocument();
+  expect(within(other).getByText('Expenses this month')).toBeInTheDocument();
+});
+
 it('keeps the creation form open when the server rejects a duplicate', async () => {
   createPersonalCategory.mockRejectedValueOnce({response:{data:{message:'You already have a category with this name'}}});
   render(<Categories />);

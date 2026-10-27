@@ -7,6 +7,7 @@ import { getCategories, addToMyCategories } from '../services/categoryService';
 import { getBudgets } from '../services/budgetService';
 import OperationCard from '../components/OperationCard';
 import { useIsMobile } from '../hooks/useIsMobile';
+import { acceptsOperation } from '../utils/categoryType';
 import { budgetImpact, localDateString } from '../utils/budgetImpact';
 
 export default function Operations() {
@@ -200,6 +201,8 @@ export function OperationModal({ categories, operation, onClose, onSaved }) {
 
   function handleTypeChange(e) {
     setType(e.target.value);
+    const category = categories.find(c => c.id === Number(categoryId));
+    if (category && !acceptsOperation(category, e.target.value)) setCategoryId('');
     setNewBudgetLimit('');
     setEditingLimit(false);
   }
@@ -208,6 +211,11 @@ export function OperationModal({ categories, operation, onClose, onSaved }) {
     e.preventDefault();
     if (type === 'expense' && (!budgetReady || budgetLoadError)) return;
     setError('');
+    const chosenCategory = categories.find(c => c.id === Number(categoryId));
+    if (!chosenCategory || !acceptsOperation(chosenCategory, type)) {
+      setError('Choose a category compatible with this operation type.');
+      return;
+    }
     setLoading(true);
 
     try {
@@ -252,6 +260,8 @@ export function OperationModal({ categories, operation, onClose, onSaved }) {
   }
 
   const selectedCategory = categories.find(c => c.id === parseInt(categoryId));
+  const compatibleCategories = categories.filter(c => acceptsOperation(c, type));
+  const incompatibleSelection = selectedCategory && !acceptsOperation(selectedCategory, type);
 
   return (
     <div style={styles.overlay}>
@@ -290,10 +300,11 @@ export function OperationModal({ categories, operation, onClose, onSaved }) {
             <label htmlFor="operation-category" style={styles.label}>CATEGORY</label>
             <select id="operation-category" value={categoryId} onChange={handleCategoryChange} style={styles.input} required>
               <option value="">Select a category</option>
-              {categories.map(cat => (
+              {compatibleCategories.map(cat => (
                 <option key={cat.id} value={cat.id}>{cat.name}</option>
               ))}
             </select>
+            {incompatibleSelection && <p role="alert">This existing operation uses an incompatible category. Choose another category before saving.</p>}
           </div>
 
           {/* Inline budget management — expense + category selected */}
