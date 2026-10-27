@@ -481,7 +481,7 @@ const styles = {
   },
   tableHeader: {
     display: 'grid',
-    gridTemplateColumns: '2fr 1fr 1fr 1fr 80px',
+    gridTemplateColumns: 'minmax(0, 2fr) repeat(3, minmax(0, 1fr)) 120px',
     padding: '12px 0',
     borderBottom: '1px solid var(--color-border)',
     marginBottom: '8px',

@@ -1,6 +1,7 @@
 import Icon from '../components/Icon';
 import { useState, useEffect } from 'react';
 import LoadError from '../components/LoadError';
+import { relativeTime } from '../utils/relativeTime';
 import { getNotifications, markAsRead, markAllAsRead, deleteNotification } from '../services/notificationService';
 
 const TYPE_CONFIG = {
@@ -9,15 +10,6 @@ const TYPE_CONFIG = {
   budget_exceeded:   { icon: 'alert', color: '#DC2626', bg: 'rgba(220,38,38,0.1)' },
   account_validated: { icon: 'check', color: '#16A34A', bg: 'rgba(22,163,74,0.1)' },
 };
-
-function relativeTime(dateStr) {
-  const diff = (Date.now() - new Date(dateStr).getTime()) / 1000;
-  if (diff < 60) return 'Just now';
-  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
-  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
-  if (diff < 86400 * 7) return `${Math.floor(diff / 86400)}d ago`;
-  return new Date(dateStr).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
-}
 
 function groupByDate(notifications) {
   const today = new Date().toDateString();
@@ -39,6 +31,12 @@ export default function Notifications() {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
   const [showAll, setShowAll] = useState(false);
+  const [now, setNow] = useState(Date.now);
+
+  useEffect(() => {
+    const timer = setInterval(() => setNow(Date.now()), 30000);
+    return () => clearInterval(timer);
+  }, []);
 
   useEffect(() => {
     async function fetchAll() {
@@ -143,7 +141,7 @@ export default function Notifications() {
                           {n.title}
                         </span>
                         <div style={s.metaRight}>
-                          <span style={s.time}>{relativeTime(n.createdAt)}</span>
+                          <time dateTime={n.createdAt} style={s.time}>{relativeTime(n.createdAt, now)}</time>
                           {!n.isRead && <span style={s.unreadDot} />}
                         </div>
                       </div>
@@ -217,6 +215,7 @@ const s = {
   content: { flex: 1, minWidth: 0 },
   cardHeader: {
     display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+    flexWrap: 'wrap',
     marginBottom: '4px', gap: '12px',
   },
   cardTitle: {

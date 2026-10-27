@@ -3,7 +3,7 @@ import { useIsMobile } from '../hooks/useIsMobile';
 export default function OperationCard({ operation, onDelete, onEdit }) {
   const isMobile = useIsMobile();
   return (
-    <div style={{ ...styles.row, gridTemplateColumns: isMobile ? '1fr auto 80px' : '2fr 1fr 1fr 1fr 80px' }}>
+    <div style={{ ...styles.row, gridTemplateColumns: isMobile ? 'minmax(0, 1fr) auto' : 'minmax(0, 2fr) repeat(3, minmax(0, 1fr)) 120px' }}>
       <span style={styles.label}>{operation.label}</span>
       <span style={{ ...styles.col, ...(isMobile ? { display: 'none' } : {}) }}>
         <span style={{
@@ -22,7 +22,7 @@ export default function OperationCard({ operation, onDelete, onEdit }) {
       }}>
         {operation.type === 'income' ? '+' : '-'}{Number(operation.amount).toFixed(2)} €
       </span>
-      <span style={styles.actions}>
+      <span style={{ ...styles.actions, ...(isMobile ? { gridColumn: '1 / -1', justifyContent: 'flex-end' } : {}) }}>
         <button style={styles.btnEdit} onClick={() => onEdit(operation)}>Edit</button>
         <button style={styles.btnDelete} onClick={() => onDelete(operation.id)}>Delete</button>
       </span>
@@ -37,13 +37,18 @@ const styles = {
     padding: '12px 0',
     borderBottom: '1px solid var(--color-bg-soft)',
     alignItems: 'center',
+    gap: '10px',
   },
   label: {
+    minWidth: 0,
+    overflowWrap: 'anywhere',
     fontSize: '13px',
     fontWeight: '500',
     color: 'var(--color-text)',
   },
   col: {
+    minWidth: 0,
+    overflowWrap: 'anywhere',
     fontSize: '13px',
     color: 'var(--color-text)',
   },
@@ -55,6 +60,8 @@ const styles = {
   },
   actions: {
     display: 'flex',
+    flexWrap: 'wrap',
+    minWidth: 0,
     gap: '6px',
   },
   btnEdit: {
