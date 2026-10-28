@@ -1,39 +1,22 @@
 import Icon from '../components/Icon';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useIsMobile } from '../hooks/useIsMobile';
+import PasswordRequirements from '../components/PasswordRequirements';
+import LoadError from '../components/LoadError';
+import '../styles/profile.css';
 import { getMe, updateMe, updatePassword, deleteMe } from '../services/userService';
 import { logout } from '../services/authService';
-
-const GENDER_LABELS = {
-  male: { label: 'Male' },
-  female: { label: 'Female' },
-  'non-binary': { label: 'Non-binary' },
-  prefer_not_to_say: { label: 'Prefer not to say' },
-};
-
-function formatBirthDate(dateStr) {
-  if (!dateStr) return null;
-  const d = new Date(dateStr);
-  return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
-}
-
-function calcAge(dateStr) {
-  if (!dateStr) return null;
-  const birth = new Date(dateStr);
-  const now = new Date();
-  let age = now.getFullYear() - birth.getFullYear();
-  if (
-    now.getMonth() < birth.getMonth() ||
-    (now.getMonth() === birth.getMonth() && now.getDate() < birth.getDate())
-  ) age--;
-  return age;
-}
 
 export default function Profile() {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
   const [user, setUser] = useState(null);
+  const [tab, setTab] = useState('personal');
+  const [loadError, setLoadError] = useState(false);
+  const tabRefs = useRef({});
+  const dialogRef = useRef(null);
+  const deleteOpenerRef = useRef(null);
   const [loading, setLoading] = useState(true);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState('');
@@ -73,6 +56,7 @@ export default function Profile() {
         setGender(data.gender || '');
       } catch (err) {
         console.error(err);
+        setLoadError(true);
       } finally {
         setLoading(false);
       }
@@ -148,6 +132,27 @@ export default function Profile() {
     }
   }
 
+  useEffect(() => {
+    if (!showDeleteModal) return;
+    const previousOverflow = document.body.style.overflow;
+    const opener = deleteOpenerRef.current;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      opener?.focus();
+    };
+  }, [showDeleteModal]);
+
+  function handleDialogKey(event) {
+    if (event.key === 'Escape' && !deleteLoading) setShowDeleteModal(false);
+    if (event.key !== 'Tab') return;
+    const controls = [...dialogRef.current.querySelectorAll('input:not(:disabled), button:not(:disabled)')];
+    const first = controls[0], last = controls[controls.length - 1];
+    if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus(); }
+    if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }
+  }
+
+  if (loadError) return <LoadError />;
   if (loading) return <div style={styles.loading}>Loading...</div>;
 
   const initials = user?.firstName
@@ -157,81 +162,56 @@ export default function Profile() {
     ? `${user.firstName} ${user.lastName || ''}`
     : 'Account holder';
 
-  const age = calcAge(user?.birthDate);
-  const genderInfo = GENDER_LABELS[user?.gender];
-
+  function selectTab(next) {
+    setTab(next);
+    if (next === 'personal') {
+      setCurrentPassword(''); setNewPassword(''); setConfirmPassword(''); setPwdError('');
+    }
+  }
+  function handleTabKey(event, current) {
+    let next;
+    if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') next = current === 'personal' ? 'security' : 'personal';
+    if (event.key === 'Home') next = 'personal';
+    if (event.key === 'End') next = 'security';
+    if (!next) return;
+    event.preventDefault(); selectTab(next); tabRefs.current[next]?.focus();
+  }
   return (
-    <div>
+    <div className="profile-page">
+      <div inert={showDeleteModal ? true : undefined}>
       <div style={styles.header}>
-        <h1 style={styles.title}>Profile</h1>
+        <h1 style={styles.title}>My profile</h1>
         <p style={styles.subtitle}>Manage your account information and security</p>
       </div>
-
-      <div style={{ ...styles.grid, ...(isMobile ? { gridTemplateColumns: '1fr' } : {}) }}>
-        {/* Left: avatar card */}
-        <div style={{ ...styles.card, textAlign: 'center' }}>
-          <div style={styles.avatarBig}>{initials}</div>
-          <div style={styles.fullName}>{fullName}</div>
-          <div style={styles.emailText}>{user?.email}</div>
-          <div style={styles.roleBadge}>
-            {user?.roles?.includes('ROLE_ADMIN') ? 'Administrator' : 'Account holder'}
-          </div>
-
-          <div style={styles.infoList}>
-            {user?.phone && (
-              <div style={styles.infoRow}>
-                <span style={styles.infoIcon}><Icon name="phone" /></span>
-                <div>
-                  <div style={styles.infoLabel}>Phone</div>
-                  <div style={styles.infoValue}>{user.phone}</div>
-                </div>
-              </div>
-            )}
-            {user?.birthDate && (
-              <div style={styles.infoRow}>
-                <span style={styles.infoIcon}><Icon name="calendar" /></span>
-                <div>
-                  <div style={styles.infoLabel}>Date of birth</div>
-                  <div style={styles.infoValue}>
-                    {formatBirthDate(user.birthDate)}
-                    {age !== null && <span style={styles.ageBadge}>{age} years</span>}
-                  </div>
-                </div>
-              </div>
-            )}
-            {genderInfo && (
-              <div style={styles.infoRow}>
-                <span style={styles.infoIcon}><Icon name="user" /></span>
-                <div>
-                  <div style={styles.infoLabel}>Gender</div>
-                  <div style={styles.infoValue}>{genderInfo.label}</div>
-                </div>
-              </div>
-            )}
-            {!user?.phone && !user?.birthDate && !user?.gender && (
-              <div style={styles.emptyInfo}>
-                Complete your profile by filling in the form →
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Right: forms */}
-        <div style={styles.rightCol}>
-
+      <section className="profile-identity" aria-label="Account summary">
+        <div className="profile-avatar" aria-hidden="true">{initials}</div>
+        <div className="profile-identity-text"><h2>{fullName}</h2><p>{user?.email}</p></div>
+        <span className="profile-badge">{user?.roles?.includes('ROLE_ADMIN') ? 'Administrator' : 'Personal account'}</span>
+      </section>
+      <div role="tablist" aria-label="Profile settings" className="profile-tabs">
+        {[['personal', 'Personal information'], ['security', 'Security']].map(([key, title]) => (
+          <button type="button" key={key} role="tab" id={`profile-tab-${key}`} aria-selected={tab === key}
+            aria-controls={`profile-panel-${key}`} tabIndex={tab === key ? 0 : -1}
+            ref={element => { tabRefs.current[key] = element; }} disabled={infoLoading || pwdLoading}
+            onClick={() => selectTab(key)} onKeyDown={event => handleTabKey(event, key)}>{title}</button>
+        ))}
+      </div>
+      <div style={styles.rightCol}>
+        <div>
           {/* Personal info */}
-          <div style={styles.card}>
+          <div role="tabpanel" id="profile-panel-personal" aria-labelledby="profile-tab-personal" hidden={tab !== 'personal'} className="profile-card" style={styles.card}>
             <h2 style={styles.cardTitle}>Personal information</h2>
             <p style={styles.cardSubtitle}>Update your personal details</p>
 
-            {infoSuccess && <div style={styles.success}>{infoSuccess}</div>}
-            {infoError && <div style={styles.error}>{infoError}</div>}
+            {infoSuccess && <div role="status" style={styles.success}>{infoSuccess}</div>}
+            {infoError && <div role="alert" style={styles.error}>{infoError}</div>}
 
-            <form onSubmit={handleInfoSubmit} style={styles.form}>
-              <div style={{ ...styles.row, ...(isMobile ? { flexDirection: 'column' } : {}) }}>
+            <form onSubmit={handleInfoSubmit} className="profile-personal-form" style={styles.form}>
+              <div className="profile-form-row" style={styles.row}>
                 <div style={styles.field}>
-                  <label style={styles.label}>FIRST NAME</label>
+                  <label htmlFor="profile-first-name" style={styles.label}>First name *</label>
                   <input
+                    id="profile-first-name" autoComplete="given-name" required maxLength={100}
                     type="text"
                     value={firstName}
                     onChange={e => setFirstName(e.target.value)}
@@ -240,8 +220,9 @@ export default function Profile() {
                   />
                 </div>
                 <div style={styles.field}>
-                  <label style={styles.label}>LAST NAME</label>
+                  <label htmlFor="profile-last-name" style={styles.label}>Last name *</label>
                   <input
+                    id="profile-last-name" autoComplete="family-name" required maxLength={100}
                     type="text"
                     value={lastName}
                     onChange={e => setLastName(e.target.value)}
@@ -252,8 +233,9 @@ export default function Profile() {
               </div>
 
               <div style={styles.field}>
-                <label style={styles.label}>EMAIL ADDRESS</label>
+                <label htmlFor="profile-email" style={styles.label}>Email address *</label>
                 <input
+                  id="profile-email" autoComplete="email"
                   type="email"
                   value={email}
                   onChange={e => setEmail(e.target.value)}
@@ -263,10 +245,11 @@ export default function Profile() {
                 />
               </div>
 
-              <div style={{ ...styles.row, ...(isMobile ? { flexDirection: 'column' } : {}) }}>
+              <div className="profile-form-row" style={styles.row}>
                 <div style={styles.field}>
-                  <label style={styles.label}>PHONE NUMBER</label>
+                  <label htmlFor="profile-phone" style={styles.label}>Phone number (optional)</label>
                   <input
+                    id="profile-phone" autoComplete="tel" maxLength={30}
                     type="tel"
                     value={phone}
                     onChange={e => setPhone(e.target.value)}
@@ -275,8 +258,9 @@ export default function Profile() {
                   />
                 </div>
                 <div style={styles.field}>
-                  <label style={styles.label}>DATE OF BIRTH</label>
+                  <label htmlFor="profile-birth-date" style={styles.label}>Date of birth (optional)</label>
                   <input
+                    id="profile-birth-date" autoComplete="bday"
                     type="date"
                     value={birthDate}
                     onChange={e => setBirthDate(e.target.value)}
@@ -287,31 +271,22 @@ export default function Profile() {
               </div>
 
               <div style={styles.field}>
-                <label style={styles.label}>GENDER</label>
-                <div style={styles.genderGroup}>
+                <label htmlFor="profile-gender" style={styles.label}>Gender (optional)</label>
+                <select id="profile-gender" value={gender} onChange={e => setGender(e.target.value)} style={styles.input}>
+                  <option value="">Not provided</option>
                   {[
                     { value: 'male', label: 'Male' },
                     { value: 'female', label: 'Female' },
                     { value: 'non-binary', label: 'Non-binary' },
                     { value: 'prefer_not_to_say', label: 'Prefer not to say' },
                   ].map(opt => (
-                    <button
-                      key={opt.value}
-                      type="button"
-                      onClick={() => setGender(gender === opt.value ? '' : opt.value)}
-                      style={{
-                        ...styles.genderBtn,
-                        ...(gender === opt.value ? styles.genderBtnActive : {}),
-                      }}
-                    >
-
-                      <span>{opt.label}</span>
-                    </button>
+                    <option key={opt.value} value={opt.value}>{opt.label}</option>
                   ))}
-                </div>
+                </select>
               </div>
 
-              <div style={styles.formActions}>
+              <div className="profile-personal-actions" style={styles.formActions}>
+                <p className="profile-required-note">* Required fields</p>
                 <button type="submit" style={styles.btnSave} disabled={infoLoading}>
                   {infoLoading ? 'Saving...' : 'Save changes'}
                 </button>
@@ -319,18 +294,20 @@ export default function Profile() {
             </form>
           </div>
 
+          <section role="tabpanel" id="profile-panel-security" aria-labelledby="profile-tab-security" hidden={tab !== 'security'}>
           {/* Security */}
-          <div style={{ ...styles.card, marginTop: '16px' }}>
-            <h2 style={styles.cardTitle}>Security</h2>
-            <p style={styles.cardSubtitle}>Change your password</p>
+          <div className="profile-card" style={styles.card}>
+            <h2 style={styles.cardTitle}><Icon name="shield" /> Change my password</h2>
+            <p style={styles.cardSubtitle}>You will need to sign in again after changing your password.</p>
 
-            {pwdError && <div style={styles.error}>{pwdError}</div>}
+            {pwdError && <div role="alert" style={styles.error}>{pwdError}</div>}
 
             <form onSubmit={handlePasswordSubmit} style={styles.form}>
               <div style={styles.field}>
-                <label style={styles.label}>CURRENT PASSWORD</label>
+                <label htmlFor="profile-current-password" style={styles.label}>Current password *</label>
                 <div style={styles.inputWrapper}>
                   <input
+                    id="profile-current-password" autoComplete="current-password"
                     type={showCurrent ? 'text' : 'password'}
                     value={currentPassword}
                     onChange={e => setCurrentPassword(e.target.value)}
@@ -346,9 +323,10 @@ export default function Profile() {
 
               <div style={{ ...styles.row, ...(isMobile ? { flexDirection: 'column' } : {}) }}>
                 <div style={styles.field}>
-                  <label style={styles.label}>NEW PASSWORD</label>
+                  <label htmlFor="profile-new-password" style={styles.label}>New password *</label>
                   <div style={styles.inputWrapper}>
                     <input
+                      id="profile-new-password" aria-describedby="profile-password-requirements" maxLength={4096}
                       minLength={12} autoComplete="new-password" type={showNew ? 'text' : 'password'}
                       value={newPassword}
                       onChange={e => setNewPassword(e.target.value)}
@@ -362,8 +340,9 @@ export default function Profile() {
                   </div>
                 </div>
                 <div style={styles.field}>
-                  <label style={styles.label}>CONFIRM NEW PASSWORD</label>
+                  <label htmlFor="profile-confirm-password" style={styles.label}>Confirm new password *</label>
                   <input
+                    id="profile-confirm-password" maxLength={4096}
                     minLength={12} autoComplete="new-password" type={showNew ? 'text' : 'password'}
                     value={confirmPassword}
                     onChange={e => setConfirmPassword(e.target.value)}
@@ -374,6 +353,7 @@ export default function Profile() {
                 </div>
               </div>
 
+              <PasswordRequirements password={newPassword} />
               <div style={styles.formActions}>
                 <button type="submit" style={styles.btnSave} disabled={pwdLoading}>
                   {pwdLoading ? 'Updating...' : 'Update password'}
@@ -383,37 +363,37 @@ export default function Profile() {
           </div>
 
           {/* Account deletion */}
-          <div style={{ ...styles.card, marginTop: '16px' }}>
+          <div className="profile-card profile-delete-card" style={styles.card}>
             <h2 style={styles.cardTitle}>Delete account</h2>
-            <p style={styles.cardSubtitle}>Permanently remove your account and all associated data</p>
-
             <div style={styles.dangerRow}>
               <div style={styles.dangerDesc}>
-                Once deleted, your operations, budgets, categories and notifications cannot be recovered.
+                Permanently delete your account and associated data. This action cannot be undone.
               </div>
-              <button style={styles.btnDanger} onClick={() => { setShowDeleteModal(true); setDeleteConfirm(''); setDeleteError(''); }}>
+              <button ref={deleteOpenerRef} className="profile-delete-outline" style={styles.btnDanger} onClick={() => { setShowDeleteModal(true); setDeleteConfirm(''); setDeleteError(''); }}>
                 Delete my account
               </button>
             </div>
           </div>
-
+          </section>
         </div>
+      </div>
       </div>
 
       {/* Delete confirmation modal */}
       {showDeleteModal && (
         <div style={styles.overlay}>
-          <div style={{ ...styles.deleteModal, ...(isMobile ? { padding: '24px 16px', maxHeight: '90vh', overflowY: 'auto', margin: '0 16px' } : {}) }}>
+          <div ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="profile-delete-dialog-title" aria-describedby="profile-delete-description" onKeyDown={handleDialogKey} style={{ ...styles.deleteModal, ...(isMobile ? { padding: '24px 16px', maxHeight: '90vh', overflowY: 'auto', margin: '0 16px' } : {}) }}>
             <div style={styles.deleteModalIcon}><Icon name="alert" /></div>
-            <h2 style={styles.deleteModalTitle}>Delete your account?</h2>
-            <p style={styles.deleteModalText}>
+            <h2 id="profile-delete-dialog-title" style={styles.deleteModalTitle}>Delete your account?</h2>
+            <p id="profile-delete-description" style={styles.deleteModalText}>
               This will permanently delete your account and all associated data:
               operations, budgets, categories, and notifications.
               <strong> This action cannot be undone.</strong>
             </p>
             <div style={styles.deleteModalConfirmBox}>
-              <label style={styles.label}>Type <strong>DELETE</strong> to confirm</label>
+              <label htmlFor="profile-delete-confirm" style={styles.label}>Type <strong>DELETE</strong> to confirm</label>
               <input
+                id="profile-delete-confirm" disabled={deleteLoading}
                 type="text"
                 value={deleteConfirm}
                 onChange={e => setDeleteConfirm(e.target.value)}
@@ -422,7 +402,7 @@ export default function Profile() {
                 autoFocus
               />
             </div>
-            {deleteError && <div style={styles.error}>{deleteError}</div>}
+            {deleteError && <div role="alert" style={styles.error}>{deleteError}</div>}
             <div style={styles.deleteModalActions}>
               <button
                 style={styles.btnCancel}
@@ -477,109 +457,12 @@ const styles = {
     fontWeight: '500',
     fontFamily: 'Inter, sans-serif',
   },
-  grid: {
-    display: 'grid',
-    gridTemplateColumns: '280px 1fr',
-    gap: '16px',
-    alignItems: 'start',
-  },
   card: {
     backgroundColor: 'var(--color-white)',
     border: '1px solid var(--color-border)',
     borderRadius: '16px',
     padding: '28px',
     fontFamily: 'Inter, sans-serif',
-  },
-  avatarBig: {
-    width: '80px',
-    height: '80px',
-    borderRadius: '20px',
-    backgroundColor: '#2563EB',
-    color: '#fff',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    fontSize: '28px',
-    fontWeight: '800',
-    margin: '0 auto 16px',
-  },
-  fullName: {
-    fontSize: '17px',
-    fontWeight: '800',
-    color: 'var(--color-text)',
-    marginBottom: '4px',
-    textAlign: 'center',
-  },
-  emailText: {
-    fontSize: '12px',
-    color: 'var(--color-text-light)',
-    fontWeight: '500',
-    marginBottom: '14px',
-    textAlign: 'center',
-    wordBreak: 'break-all',
-  },
-  roleBadge: {
-    display: 'inline-block',
-    fontSize: '11px',
-    fontWeight: '700',
-    color: '#2563EB',
-    backgroundColor: 'var(--color-bg-soft)',
-    padding: '6px 14px',
-    borderRadius: '999px',
-    textAlign: 'center',
-    width: '100%',
-    marginBottom: '20px',
-  },
-  infoList: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '14px',
-    borderTop: '1px solid var(--color-border)',
-    paddingTop: '20px',
-    textAlign: 'left',
-  },
-  infoRow: {
-    display: 'flex',
-    alignItems: 'flex-start',
-    gap: '12px',
-  },
-  infoIcon: {
-    fontSize: '18px',
-    lineHeight: 1,
-    marginTop: '2px',
-    flexShrink: 0,
-  },
-  infoLabel: {
-    fontSize: '10px',
-    fontWeight: '700',
-    color: 'var(--color-text-light)',
-    letterSpacing: '0.06em',
-    textTransform: 'uppercase',
-    marginBottom: '2px',
-  },
-  infoValue: {
-    fontSize: '13px',
-    fontWeight: '600',
-    color: 'var(--color-text)',
-    display: 'flex',
-    alignItems: 'center',
-    gap: '8px',
-    flexWrap: 'wrap',
-  },
-  ageBadge: {
-    fontSize: '11px',
-    fontWeight: '700',
-    color: '#2563EB',
-    backgroundColor: 'var(--color-bg-soft)',
-    padding: '2px 8px',
-    borderRadius: '999px',
-  },
-  emptyInfo: {
-    fontSize: '12px',
-    color: 'var(--color-text-light)',
-    fontStyle: 'italic',
-    textAlign: 'center',
-    lineHeight: '1.6',
   },
   rightCol: {
     display: 'flex',
@@ -625,6 +508,7 @@ const styles = {
     gap: '12px',
   },
   field: {
+    minWidth: 0,
     display: 'flex',
     flexDirection: 'column',
     gap: '6px',
@@ -659,31 +543,6 @@ const styles = {
     border: 'none',
     cursor: 'pointer',
     fontSize: '16px',
-  },
-  genderGroup: {
-    display: 'grid',
-    gridTemplateColumns: '1fr 1fr',
-    gap: '8px',
-  },
-  genderBtn: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '8px',
-    padding: '10px 14px',
-    borderRadius: '12px',
-    border: '1.5px solid var(--color-border)',
-    backgroundColor: 'var(--color-input-bg)',
-    color: 'var(--color-text-light)',
-    fontSize: '13px',
-    fontWeight: '600',
-    fontFamily: 'Inter, sans-serif',
-    cursor: 'pointer',
-    transition: 'border-color 0.15s, color 0.15s, background 0.15s',
-  },
-  genderBtnActive: {
-    borderColor: '#2563EB',
-    backgroundColor: 'rgba(37,99,235,0.08)',
-    color: '#2563EB',
   },
   formActions: {
     display: 'flex',
@@ -784,6 +643,7 @@ const styles = {
   },
   deleteModalActions: {
     display: 'flex',
+    flexWrap: 'wrap',
     gap: '12px',
     justifyContent: 'flex-end',
     marginTop: '8px',
