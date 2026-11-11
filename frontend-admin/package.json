@@ -35,5 +35,13 @@
     "jsdom": "^29.1.1",
     "vite": "^8.0.12",
     "vitest": "^4.1.12"
+  },
+  "overrides": {
+    "eslint": {
+      "minimatch": "^11.0.1"
+    },
+    "@eslint/config-array": {
+      "minimatch": "^11.0.1"
+    }
   }
 }

@@ -18,6 +18,12 @@ MyBank is a full-stack personal finance management application developed with Sy
 | CI/CD | GitHub Actions |
 | Testing | Vitest (Frontend), PHPUnit (Backend) |
 
+The frontend npm manifests scope a `minimatch` override to ESLint and
+`@eslint/config-array`: version 11.0.1 or newer in branch 11 fixes the glob
+amplification advisory while keeping ESLint 10. Remove these overrides when
+the upstream dependency ranges include a fixed version. Both frontend lints,
+tests, builds and audits must pass when changing this tooling dependency.
+
 ---
 
 ## Production URLs
