@@ -149,6 +149,8 @@ backend/certbot/log/
 backend/certbot/duckdns.ini
 
 backend/config/jwt/
+# Optional server-specific writable JWT mount; keep the standard read-only mount.
+/backend/compose.jwt.yaml
 backups/
 
 # Generated Symfony reference and one-off local audit script

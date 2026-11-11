@@ -2,9 +2,11 @@
 
 ## Connexion et vérification préalable
 
-L'alias enregistré sur ce poste est `ssh nexo`. La tentative du 5 octobre 2026 a expiré sur le port 22 : il faut rétablir l'accès au serveur avant toute mise à jour publique. La disponibilité du serveur n'est pas confirmée.
+Le serveur actuel est accessible avec `ssh ubuntu@51.222.36.71`. L'authentification interactive par mot de passe a été confirmée. L'ancien alias local `ssh nexo` pointe encore vers un autre serveur et ne doit pas être utilisé pour cette livraison.
 
 Sur le serveur, vérifier le commit installé, `git status`, les services, les certificats et les variables du `.env` sans afficher les secrets. Conserver les clés JWT et le `.env` de production. `FRONTEND_URL` doit désigner le site public ; `MAILER_DSN` peut rester configuré vers Mailpit si la capture de test est le comportement souhaité.
+
+Le fichier local au VPS `backend/compose.jwt.yaml` ne contient qu'une surcharge du montage `./config/jwt:/var/www/html/config/jwt:rw`. Il autorise l'écriture dans le dossier JWT, contrairement au montage standard en lecture seule. Il reste ignoré comme configuration propre au serveur et n'est pas nécessaire au déploiement standard. Ne pas le supprimer ni modifier le service en cours pendant le rangement Git. Les clés privées restent dans le dossier ignoré `backend/config/jwt/`.
 
 ## Local
 
@@ -16,19 +18,21 @@ docker compose -f docker-compose.yaml -f compose.override.yaml -f compose.local.
 
 ## Serveur
 
-Publier uniquement les fichiers applicatifs, migrations, tests et configuration nécessaires. Exclure `.env`, clés JWT, sauvegardes, données temporaires et rapports contenant des données personnelles. Un push sur main déclenche le déploiement automatique si les contrôles GitHub réussissent et les secrets SSH sont configurés. Prévoir une courte indisponibilité pendant les sauvegardes et migrations.
+Publier uniquement les fichiers applicatifs, migrations, tests et configuration nécessaires. Exclure `.env`, clés JWT, sauvegardes, données temporaires et rapports contenant des données personnelles. La CI actuelle contrôle les tests, builds, audits et la configuration de livraison ; elle ne déploie pas automatiquement sur le VPS. Prévoir une courte indisponibilité pendant les sauvegardes et migrations.
 
 Pour une mise à jour manuelle, après publication et contrôle du dépôt serveur propre :
 ```bash
 cd ~/MyBank
-git pull --ff-only origin main
+git pull --ff-only origin develop
 cd backend
 bash scripts/deploy.sh
 ```
 
 Le script valide Compose, construit les images, stoppe l'API, sauvegarde les deux bases, applique les migrations puis démarre et vérifie les services. Il exige que MySQL/MongoDB soient déjà démarrés. Il ne supprime aucun volume. Si la sauvegarde ou une migration échoue, l'API reste arrêtée pour une intervention explicite.
 
-Les sauvegardes SQL/MongoDB sont compressées et leur intégrité gzip est contrôlée. Elles sont privées (`umask 077`) et conservées dans `backups/`, exclu de Git. Copiez-les aussi vers un stockage sûr indépendant du serveur ; leur rétention n'est pas automatisée par le nouveau script.
+Le serveur et la dernière livraison vérifiée utilisent actuellement la branche `develop`. Vérifier la branche choisie avant toute mise à jour ; cette commande met à jour les fichiers, mais ne remplace pas l'exécution du script de déploiement.
+
+Les sauvegardes SQL/MongoDB sont compressées et leur intégrité gzip est contrôlée. Elles sont privées (`umask 077`) et conservées dans `backups/`, exclu de Git. Après une nouvelle sauvegarde réussie, le script purge les archives reconnues datant d'au moins 30 jours. Les copies hors serveur Windows ne sont pas purgées automatiquement ; voir backend/README.md.
 
 ## Retour arrière préparé
 

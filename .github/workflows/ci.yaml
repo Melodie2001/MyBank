@@ -240,7 +240,9 @@ jobs:
           set -eu
           sh -n proxy/docker-entrypoint.sh
           sh -n docker/entrypoint.sh
-          bash -n scripts/deploy.sh scripts/backup-databases.sh
+          for script in scripts/*.sh; do
+            bash -n "$script"
+          done
           mkdir -p certbot/conf certbot/www certbot/log
           docker compose build proxy
 
