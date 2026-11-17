@@ -18,19 +18,28 @@ docker compose -f docker-compose.yaml -f compose.override.yaml -f compose.local.
 
 ## Serveur
 
-Publier uniquement les fichiers applicatifs, migrations, tests et configuration nécessaires. Exclure `.env`, clés JWT, sauvegardes, données temporaires et rapports contenant des données personnelles. La CI actuelle contrôle les tests, builds, audits et la configuration de livraison ; elle ne déploie pas automatiquement sur le VPS. Prévoir une courte indisponibilité pendant les sauvegardes et migrations.
+Publier uniquement les fichiers applicatifs, migrations, tests et configuration nécessaires. Exclure `.env`, clés JWT, sauvegardes, données temporaires et rapports contenant des données personnelles. Après un push sur `main`, GitHub Actions exécute les quatre contrôles puis déploie le commit validé sur le VPS. Prévoir une courte indisponibilité pendant les sauvegardes et migrations.
 
 Pour une mise à jour manuelle, après publication et contrôle du dépôt serveur propre :
 ```bash
 cd ~/MyBank
-git pull --ff-only origin develop
+git switch main
+git pull --ff-only origin main
 cd backend
-bash scripts/deploy.sh
+sudo bash scripts/deploy.sh
 ```
 
 Le script valide Compose, construit les images, stoppe l'API, sauvegarde les deux bases, applique les migrations puis démarre et vérifie les services. Il exige que MySQL/MongoDB soient déjà démarrés. Il ne supprime aucun volume. Si la sauvegarde ou une migration échoue, l'API reste arrêtée pour une intervention explicite.
 
-Le serveur et la dernière livraison vérifiée utilisent actuellement la branche `develop`. Vérifier la branche choisie avant toute mise à jour ; cette commande met à jour les fichiers, mais ne remplace pas l'exécution du script de déploiement.
+Le serveur utilise la branche `main`. La mise à jour des fichiers Git doit être suivie de l'exécution du script pour appliquer la livraison aux conteneurs.
+
+### Accès GitHub Actions au VPS
+
+Le job `Deploy to production server` se connecte à `ubuntu@51.222.36.71` avec une clé dédiée, conservée dans le secret de dépôt `NEXO_DEPLOY_SSH_KEY`. Sa clé publique doit être autorisée dans `/home/ubuntu/.ssh/authorized_keys`. Le compte doit pouvoir exécuter `sudo -n true`, puis le script de livraison, et récupérer le dépôt sans saisie interactive.
+
+La clé publique ED25519 du serveur est épinglée dans le workflow à partir de l'entrée déjà connue localement. En cas de remplacement de cette clé hôte, vérifier la nouvelle valeur depuis la console du VPS avant de modifier le workflow.
+
+Les déploiements GitHub sont sérialisés. Un verrou côté serveur protège aussi cette exécution. Le job vérifie que le dépôt serveur est propre et applique uniquement le commit qui a passé les contrôles. Une exécution dépassée par un nouveau commit sur `main` laisse la livraison à ce nouveau workflow. Après le script, les trois adresses HTTPS publiques sont contrôlées.
 
 Les sauvegardes SQL/MongoDB sont compressées et leur intégrité gzip est contrôlée. Elles sont privées (`umask 077`) et conservées dans `backups/`, exclu de Git. Après une nouvelle sauvegarde réussie, le script purge les archives reconnues datant d'au moins 30 jours. Les copies hors serveur Windows ne sont pas purgées automatiquement ; voir backend/README.md.
 

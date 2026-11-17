@@ -264,4 +264,85 @@ jobs:
 
           docker compose run --rm --no-deps proxy nginx -t
 
-  # Production deployment will be configured when the new server is available.
+  # =====================
+  # DEPLOY (production)
+  # =====================
+  deploy:
+    name: Deploy to production server
+    runs-on: ubuntu-latest
+    needs: [symfony-tests, frontend-tests, frontend-admin-tests, deployment-config]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    timeout-minutes: 45
+    permissions:
+      contents: read
+    concurrency:
+      group: nexo-finance-production
+      cancel-in-progress: false
+
+    steps:
+      - name: Deploy the validated commit via SSH
+        env:
+          DEPLOY_SSH_KEY: ${{ secrets.NEXO_DEPLOY_SSH_KEY }}
+          DEPLOY_COMMIT: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          if [ -z "$DEPLOY_SSH_KEY" ]; then
+            echo '::error::Configure the NEXO_DEPLOY_SSH_KEY repository secret.'
+            exit 1
+          fi
+
+          key_file=$(mktemp "$RUNNER_TEMP/nexo-deploy-key.XXXXXX")
+          hosts_file=$(mktemp "$RUNNER_TEMP/nexo-known-hosts.XXXXXX")
+          trap 'rm -f "$key_file" "$hosts_file"' EXIT
+          printf '%s\n' "$DEPLOY_SSH_KEY" | tr -d '\r' > "$key_file"
+          chmod 600 "$key_file"
+          printf '%s\n' '51.222.36.71 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAICdDhP0cULe9xvDnVoeVIo+HUu5sufgyN0Gmw/+MOd/5' > "$hosts_file"
+
+          ssh -i "$key_file" \
+            -o BatchMode=yes \
+            -o IdentitiesOnly=yes \
+            -o StrictHostKeyChecking=yes \
+            -o UserKnownHostsFile="$hosts_file" \
+            -o ConnectTimeout=20 \
+            -o ServerAliveInterval=30 \
+            -o ServerAliveCountMax=6 \
+            ubuntu@51.222.36.71 "bash -s -- '$DEPLOY_COMMIT'" <<'REMOTE'
+          set -euo pipefail
+          deploy_commit="$1"
+          exec 9>/home/ubuntu/.nexo-finance-deploy.lock
+          flock -w 120 9
+          cd /home/ubuntu/MyBank
+          sudo -n true
+
+          if [ -n "$(git status --porcelain)" ]; then
+            echo 'Deployment stopped: the server checkout has local changes.' >&2
+            exit 1
+          fi
+
+          git fetch origin main
+          if [ "$(git rev-parse origin/main)" != "$deploy_commit" ]; then
+            echo 'A newer main commit exists; its workflow will deploy it.'
+            exit 0
+          fi
+
+          git switch main
+          git merge --ff-only "$deploy_commit"
+          if [ "$(git rev-parse HEAD)" != "$deploy_commit" ]; then
+            echo 'Deployment stopped: the checkout differs from the validated commit.' >&2
+            exit 1
+          fi
+
+          sudo -n bash backend/scripts/deploy.sh
+          REMOTE
+
+      - name: Check the public production sites
+        run: |
+          set -eu
+          for url in \
+            https://nexo-finance.duckdns.org/ \
+            https://nexo-finance-admin.duckdns.org/ \
+            https://nexo-finance-api.duckdns.org/health
+          do
+            curl --fail --silent --show-error --max-time 30 --retry 3 \
+              --output /dev/null "$url"
+          done

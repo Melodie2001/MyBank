@@ -548,7 +548,7 @@ The project uses **GitHub Actions** for continuous integration. On every push to
 ## Author
 
 GitHub Actions runs tests and build checks on pushes to `develop` and `main`.
-Automatic production deployment is disabled while the new server is being prepared.
+After all four checks succeed on a push to `main`, GitHub Actions deploys the validated commit to the production VPS using the `NEXO_DEPLOY_SSH_KEY` repository secret, then checks the three public HTTPS sites. See `backend/UPDATE_GUIDE.md` for server access requirements.
 
 **Elodie MINKOUE**  
 CDA 3ème année — L'École Multimédia — 2025
